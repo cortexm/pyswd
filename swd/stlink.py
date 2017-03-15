@@ -134,11 +134,11 @@ class Stlink():
         self._com = stlinkcom.StlinkCom()
         self._version = self.read_version()
         self.leave_state()
-        self._target_volgtage = self.read_target_voltage()
+        # self._target_volgtage = self.read_target_voltage()
         if self._version.jtag >= 22:
-            self.set_swd_freq(swd_frequency)
+            self._set_swd_freq(swd_frequency)
         self.enter_debug_swd()
-        self._coreid = self.get_coreid()
+        # self._coreid = self.get_coreid()
 
     @property
     def com(self):
@@ -149,17 +149,6 @@ class Stlink():
     def version(self):
         """ST-Link version"""
         return self._version
-
-    @property
-    def coreid(self):
-        """Connected CPU Core ID"""
-        return self._coreid
-
-    @property
-    def target_voltage(self):
-        """Target supply voltage"""
-        return self._target_volgtage
-
 
     def read_version(self):
         """Read and decode version from ST-Link"""
@@ -181,14 +170,7 @@ class Stlink():
             return
         self._com.xfer(cmd)
 
-    def read_target_voltage(self):
-        """Read target voltage from programmer"""
-        res = self._com.xfer([Stlink.STLINK_GET_TARGET_VOLTAGE], rx_len=8)
-        an0 = int.from_bytes(res[:4], byteorder='little')
-        an1 = int.from_bytes(res[4:8], byteorder='little')
-        return 2 * an1 * 1.2 / an0 if an0 != 0 else None
-
-    def set_swd_freq(self, frequency=1800000):
+    def _set_swd_freq(self, frequency=1800000):
         """Set SWD frequency"""
         for freq, data in Stlink.STLINK_DEBUG_A2_SWD_FREQ_MAP.items():
             if frequency >= freq:
@@ -202,6 +184,13 @@ class Stlink():
                 return
         raise StlinkException("Selected SWD frequency is too low")
 
+    def get_target_voltage(self):
+        """Get target voltage from programmer"""
+        res = self._com.xfer([Stlink.STLINK_GET_TARGET_VOLTAGE], rx_len=8)
+        an0 = int.from_bytes(res[:4], byteorder='little')
+        an1 = int.from_bytes(res[4:8], byteorder='little')
+        return 2 * an1 * 1.2 / an0 if an0 != 0 else None
+
     def enter_debug_swd(self):
         """Enter SWD debug mode"""
         cmd = [
@@ -211,7 +200,7 @@ class Stlink():
         self._com.xfer(cmd, rx_len=2)
 
     def get_coreid(self):
-        """Read core ID from MCU"""
+        """Get core ID from MCU"""
         cmd = [
             Stlink.STLINK_DEBUG_COMMAND,
             Stlink.STLINK_DEBUG_READCOREID]
@@ -219,7 +208,7 @@ class Stlink():
         return int.from_bytes(res[:4], byteorder='little')
 
     def get_reg(self, reg):
-        """Read core register"""
+        """Get core register"""
         cmd = [
             Stlink.STLINK_DEBUG_COMMAND,
             Stlink.STLINK_DEBUG_A2_READREG,
@@ -298,7 +287,7 @@ class Stlink():
         return self._com.xfer(cmd, rx_len=size)
 
     def write_mem8(self, addr, data):
-        """write memory (8 bits access)"""
+        """Write memory (8 bits access)"""
         if len(data) > Stlink.STLINK_MAXIMUM_8BIT_DATA:
             raise StlinkException('Too much bytes to write')
         cmd = [Stlink.STLINK_DEBUG_COMMAND, Stlink.STLINK_DEBUG_WRITEMEM_8BIT]
