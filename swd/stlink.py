@@ -132,7 +132,7 @@ class Stlink():
 
     def __init__(self, swd_frequency=1800000):
         self._com = stlinkcom.StlinkCom()
-        self._version = self.read_version()
+        self._version = self.get_version()
         self.leave_state()
         # self._target_volgtage = self.read_target_voltage()
         if self._version.jtag >= 22:
@@ -150,7 +150,7 @@ class Stlink():
         """ST-Link version"""
         return self._version
 
-    def read_version(self):
+    def get_version(self):
         """Read and decode version from ST-Link"""
         res = self._com.xfer([Stlink.STLINK_GET_VERSION, 0x80], rx_len=6)
         dev_ver = self._com.get_version()
