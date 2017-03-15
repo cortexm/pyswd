@@ -12,7 +12,43 @@ constructor for connected swd device:
 
 `dev = swd.stlink.Stlink()`
 
-all public methods
+all public methods from `swd.stlink.Stlink` class:
+
+`com(self)`
+instance to Communication class
+
+`version(self)`
+ST-Link version
+
+`get_target_voltage(self)`
+Get target voltage from programmer
+
+`get_coreid(self)`
+Get core ID from MCU
+
+`get_reg(self, reg)`
+Get core register (R0, R1, ... )
+
+`set_reg(self, reg, data)`
+Set core register
+
+`set_mem32(self, addr, data)`
+Set memory register (32 bits)
+
+`get_mem32(self, addr)`
+Get memory register (32 bits)
+
+`read_mem32(self, addr, size)`
+Read memory (32 bits access)
+
+`write_mem32(self, addr, data)`
+Write memory (32 bits access)
+
+`read_mem8(self, addr, size)`
+Read memory (8 bits access)
+
+`write_mem8(self, addr, data)`
+Write memory (8 bits access)
 
 ### Example:
 
