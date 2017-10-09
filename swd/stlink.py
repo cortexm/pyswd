@@ -1,6 +1,7 @@
 """ST-Link/V2 protocol"""
 
 import swd.stlinkcom as stlinkcom
+import collections
 
 class StlinkException(Exception):
     """Exception"""
@@ -67,20 +68,19 @@ class Stlink():
     STLINK_DEBUG_A2_NRST_HIGH = 0x01
     STLINK_DEBUG_A2_NRST_PULSE = 0x02
 
-    STLINK_DEBUG_A2_SWD_FREQ_MAP = {
-        4000000: 0,
-        1800000: 1,  # default
-        1200000: 2,
-        950000:  3,
-        480000:  7,
-        240000: 15,
-        125000: 31,
-        100000: 40,
-        50000:  79,
-        25000: 158,
-        # 15000: 265,
-        # 5000:  798
-    }
+    STLINK_DEBUG_A2_SWD_FREQ_MAP = collections.OrderedDict()
+    STLINK_DEBUG_A2_SWD_FREQ_MAP[4000000] = 0
+    STLINK_DEBUG_A2_SWD_FREQ_MAP[1800000] = 1
+    STLINK_DEBUG_A2_SWD_FREQ_MAP[1200000] = 2
+    STLINK_DEBUG_A2_SWD_FREQ_MAP[950000] = 3
+    STLINK_DEBUG_A2_SWD_FREQ_MAP[480000] = 7
+    STLINK_DEBUG_A2_SWD_FREQ_MAP[240000] = 15
+    STLINK_DEBUG_A2_SWD_FREQ_MAP[125000] = 31
+    STLINK_DEBUG_A2_SWD_FREQ_MAP[100000] = 40
+    STLINK_DEBUG_A2_SWD_FREQ_MAP[50000] = 79
+    STLINK_DEBUG_A2_SWD_FREQ_MAP[25000] = 158
+    STLINK_DEBUG_A2_SWD_FREQ_MAP[15000] = 265
+    STLINK_DEBUG_A2_SWD_FREQ_MAP[5000] = 798
 
     STLINK_MAXIMUM_TRANSFER_SIZE = 1024
     STLINK_MAXIMUM_8BIT_DATA = 64
