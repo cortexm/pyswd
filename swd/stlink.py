@@ -1,89 +1,95 @@
 """ST-Link/V2 protocol"""
 
-import swd.stlinkcom as stlinkcom
+import logging as _logging
+from swd import stlinkcom as _stlinkcom
+
 
 class StlinkException(Exception):
     """Exception"""
 
-
 class Stlink():
-    """ST-Link protocol"""
-    STLINK_GET_VERSION = 0xf1
-    STLINK_DEBUG_COMMAND = 0xf2
-    STLINK_DFU_COMMAND = 0xf3
-    STLINK_SWIM_COMMAND = 0xf4
-    STLINK_GET_CURRENT_MODE = 0xf5
-    STLINK_GET_TARGET_VOLTAGE = 0xf7
+    """ST-Link commands"""
+    _STLINK_GET_VERSION = 0xf1
+    _STLINK_DEBUG_COMMAND = 0xf2
+    _STLINK_DFU_COMMAND = 0xf3
+    _STLINK_SWIM_COMMAND = 0xf4
+    _STLINK_GET_CURRENT_MODE = 0xf5
+    _STLINK_GET_TARGET_VOLTAGE = 0xf7
 
-    STLINK_MODE_DFU = 0x00
-    STLINK_MODE_MASS = 0x01
-    STLINK_MODE_DEBUG = 0x02
-    STLINK_MODE_SWIM = 0x03
-    STLINK_MODE_BOOTLOADER = 0x04
+    _STLINK_MODE_DFU = 0x00
+    _STLINK_MODE_MASS = 0x01
+    _STLINK_MODE_DEBUG = 0x02
+    _STLINK_MODE_SWIM = 0x03
+    _STLINK_MODE_BOOTLOADER = 0x04
 
-    STLINK_DFU_EXIT = 0x07
+    _STLINK_DFU_EXIT = 0x07
 
-    STLINK_SWIM_ENTER = 0x00
-    STLINK_SWIM_EXIT = 0x01
+    _STLINK_SWIM_ENTER = 0x00
+    _STLINK_SWIM_EXIT = 0x01
 
-    STLINK_DEBUG_ENTER_JTAG = 0x00
-    STLINK_DEBUG_STATUS = 0x01
-    STLINK_DEBUG_FORCEDEBUG = 0x02
-    STLINK_DEBUG_A1_RESETSYS = 0x03
-    STLINK_DEBUG_A1_READALLREGS = 0x04
-    STLINK_DEBUG_A1_READREG = 0x05
-    STLINK_DEBUG_A1_WRITEREG = 0x06
-    STLINK_DEBUG_READMEM_32BIT = 0x07
-    STLINK_DEBUG_WRITEMEM_32BIT = 0x08
-    STLINK_DEBUG_RUNCORE = 0x09
-    STLINK_DEBUG_STEPCORE = 0x0a
-    STLINK_DEBUG_A1_SETFP = 0x0b
-    STLINK_DEBUG_READMEM_8BIT = 0x0c
-    STLINK_DEBUG_WRITEMEM_8BIT = 0x0d
-    STLINK_DEBUG_A1_CLEARFP = 0x0e
-    STLINK_DEBUG_A1_WRITEDEBUGREG = 0x0f
-    STLINK_DEBUG_A1_SETWATCHPOINT = 0x10
-    STLINK_DEBUG_A1_ENTER = 0x20
-    STLINK_DEBUG_EXIT = 0x21
-    STLINK_DEBUG_READCOREID = 0x22
-    STLINK_DEBUG_A2_ENTER = 0x30
-    STLINK_DEBUG_A2_READ_IDCODES = 0x31
-    STLINK_DEBUG_A2_RESETSYS = 0x32
-    STLINK_DEBUG_A2_READREG = 0x33
-    STLINK_DEBUG_A2_WRITEREG = 0x34
-    STLINK_DEBUG_A2_WRITEDEBUGREG = 0x35
-    STLINK_DEBUG_A2_READDEBUGREG = 0x36
-    STLINK_DEBUG_A2_READALLREGS = 0x3a
-    STLINK_DEBUG_A2_GETLASTRWSTATUS = 0x3b
-    STLINK_DEBUG_A2_DRIVE_NRST = 0x3c
-    STLINK_DEBUG_SYNC = 0x3e
-    STLINK_DEBUG_A2_START_TRACE_RX = 0x40
-    STLINK_DEBUG_A2_STOP_TRACE_RX = 0x41
-    STLINK_DEBUG_A2_GET_TRACE_NB = 0x42
-    STLINK_DEBUG_A2_SWD_SET_FREQ = 0x43
-    STLINK_DEBUG_ENTER_SWD = 0xa3
+    _STLINK_DEBUG_ENTER_JTAG = 0x00
+    _STLINK_DEBUG_STATUS = 0x01
+    _STLINK_DEBUG_FORCEDEBUG = 0x02
+    _STLINK_DEBUG_A1_RESETSYS = 0x03
+    _STLINK_DEBUG_A1_READALLREGS = 0x04
+    _STLINK_DEBUG_A1_READREG = 0x05
+    _STLINK_DEBUG_A1_WRITEREG = 0x06
+    _STLINK_DEBUG_READMEM_32BIT = 0x07
+    _STLINK_DEBUG_WRITEMEM_32BIT = 0x08
+    _STLINK_DEBUG_RUNCORE = 0x09
+    _STLINK_DEBUG_STEPCORE = 0x0a
+    _STLINK_DEBUG_A1_SETFP = 0x0b
+    _STLINK_DEBUG_READMEM_8BIT = 0x0c
+    _STLINK_DEBUG_WRITEMEM_8BIT = 0x0d
+    _STLINK_DEBUG_A1_CLEARFP = 0x0e
+    _STLINK_DEBUG_A1_WRITEDEBUGREG = 0x0f
+    _STLINK_DEBUG_A1_SETWATCHPOINT = 0x10
+    _STLINK_DEBUG_A1_ENTER = 0x20
+    _STLINK_DEBUG_EXIT = 0x21
+    _STLINK_DEBUG_READCOREID = 0x22
+    _STLINK_DEBUG_A2_ENTER = 0x30
+    _STLINK_DEBUG_A2_READ_IDCODES = 0x31
+    _STLINK_DEBUG_A2_RESETSYS = 0x32
+    _STLINK_DEBUG_A2_READREG = 0x33
+    _STLINK_DEBUG_A2_WRITEREG = 0x34
+    _STLINK_DEBUG_A2_WRITEDEBUGREG = 0x35
+    _STLINK_DEBUG_A2_READDEBUGREG = 0x36
+    _STLINK_DEBUG_A2_READALLREGS = 0x3a
+    _STLINK_DEBUG_A2_GETLASTRWSTAT = 0x3b
+    _STLINK_DEBUG_A2_DRIVE_NRST = 0x3c
+    _STLINK_DEBUG_SYNC = 0x3e
+    _STLINK_DEBUG_A2_START_TRACE_RX = 0x40
+    _STLINK_DEBUG_A2_STOP_TRACE_RX = 0x41
+    _STLINK_DEBUG_A2_GET_TRACE_NB = 0x42
+    _STLINK_DEBUG_A2_SWD_SET_FREQ = 0x43
+    _STLINK_DEBUG_ENTER_SWD = 0xa3
 
-    STLINK_DEBUG_A2_NRST_LOW = 0x00
-    STLINK_DEBUG_A2_NRST_HIGH = 0x01
-    STLINK_DEBUG_A2_NRST_PULSE = 0x02
+    _STLINK_DEBUG_A2_NRST_LOW = 0x00
+    _STLINK_DEBUG_A2_NRST_HIGH = 0x01
+    _STLINK_DEBUG_A2_NRST_PULSE = 0x02
 
-    STLINK_DEBUG_A2_SWD_FREQ_MAP = {
-        4000000: 0,
-        1800000: 1,  # default
-        1200000: 2,
-        950000:  3,
-        480000:  7,
-        240000: 15,
-        125000: 31,
-        100000: 40,
-        50000:  79,
-        25000: 158,
-        # 15000: 265,
-        # 5000:  798
-    }
+    _STLINK_DEBUG_A2_SWD_FREQ = (
+        (4000000, 0, ),
+        (1800000, 1, ),   # default
+        (1200000, 2, ),
+        (950000, 3, ),
+        (480000, 7, ),
+        (240000, 15, ),
+        (125000, 31, ),
+        (100000, 40, ),
+        (50000, 79, ),
+        (25000, 158, ),
+        # 16-bit number is not currently supported
+        # (15000, 265, ),
+        # (5000, 798, ),
+    )
 
-    STLINK_MAXIMUM_TRANSFER_SIZE = 1024
-    STLINK_MAXIMUM_8BIT_DATA = 64
+    _STLINK_MAXIMUM_TRANSFER_SIZE = 1024
+    _STLINK_MAXIMUM_8BIT_DATA = 64
+
+    _LOGGER_LEVEL1 = _logging.DEBUG - 1
+    _LOGGER_LEVEL2 = _logging.DEBUG - 2
+
 
     class StlinkVersion():
         """ST-Link version holder class"""
@@ -98,6 +104,10 @@ class Stlink():
                 self._str += "S%d" % self._swim
             if dev_ver == 'V2-1':
                 self._str += "M%d" % self._mass
+
+        def __str__(self):
+            """String representation"""
+            return self._str
 
         @property
         def stlink(self):
@@ -130,167 +140,370 @@ class Stlink():
             return self._str
 
 
-    def __init__(self, swd_frequency=1800000):
-        self._com = stlinkcom.StlinkCom()
-        self._version = self.get_version()
-        self.leave_state()
+    def __init__(self, swd_frequency=1800000, logger=None):
+        if logger is None:
+            logger = _logging.Logger('stlink')
+        self._logger = logger
+        self._com = _stlinkcom.StlinkCom(logger=self._logger)
+        self._version = self._get_version()
+        self._leave_state()
         # self._target_volgtage = self.read_target_voltage()
         if self._version.jtag >= 22:
             self._set_swd_freq(swd_frequency)
-        self.enter_debug_swd()
+        self._enter_debug_swd()
         # self._coreid = self.get_coreid()
 
-    @property
-    def com(self):
-        """Communication class"""
-        return self._com
-
-    @property
-    def version(self):
-        """ST-Link version"""
-        return self._version
-
-    def get_version(self):
-        """Read and decode version from ST-Link"""
-        res = self._com.xfer([Stlink.STLINK_GET_VERSION, 0x80], rx_len=6)
-        dev_ver = self._com.get_version()
+    def _get_version(self):
+        res = self._com.xfer([Stlink._STLINK_GET_VERSION, 0x80], rx_length=6)
         ver = int.from_bytes(res[:2], byteorder='big')
-        return Stlink.StlinkVersion(dev_ver, ver)
+        return Stlink.StlinkVersion(self._com.version, ver)
 
-    def leave_state(self):
-        """Leave current state of ST-Link"""
-        res = self._com.xfer([Stlink.STLINK_GET_CURRENT_MODE], rx_len=2)
-        if res[0] == Stlink.STLINK_MODE_DFU:
-            cmd = [Stlink.STLINK_DFU_COMMAND, Stlink.STLINK_DFU_EXIT]
-        elif res[0] == Stlink.STLINK_MODE_DEBUG:
-            cmd = [Stlink.STLINK_DEBUG_COMMAND, Stlink.STLINK_DEBUG_EXIT]
-        elif res[0] == Stlink.STLINK_MODE_SWIM:
-            cmd = [Stlink.STLINK_SWIM_COMMAND, Stlink.STLINK_SWIM_EXIT]
+    def _leave_state(self):
+        res = self._com.xfer([Stlink._STLINK_GET_CURRENT_MODE], rx_length=2)
+        if res[0] == Stlink._STLINK_MODE_DFU:
+            cmd = [Stlink._STLINK_DFU_COMMAND, Stlink._STLINK_DFU_EXIT]
+        elif res[0] == Stlink._STLINK_MODE_DEBUG:
+            cmd = [Stlink._STLINK_DEBUG_COMMAND, Stlink._STLINK_DEBUG_EXIT]
+        elif res[0] == Stlink._STLINK_MODE_SWIM:
+            cmd = [Stlink._STLINK_SWIM_COMMAND, Stlink._STLINK_SWIM_EXIT]
         else:
             return
         self._com.xfer(cmd)
 
     def _set_swd_freq(self, frequency=1800000):
-        """Set SWD frequency"""
-        for freq, data in Stlink.STLINK_DEBUG_A2_SWD_FREQ_MAP.items():
+        self._logger.log(
+            self._LOGGER_LEVEL2,
+            "frequency:%d",
+            frequency)
+        for freq, data in Stlink._STLINK_DEBUG_A2_SWD_FREQ:
             if frequency >= freq:
                 cmd = [
-                    Stlink.STLINK_DEBUG_COMMAND,
-                    Stlink.STLINK_DEBUG_A2_SWD_SET_FREQ,
+                    Stlink._STLINK_DEBUG_COMMAND,
+                    Stlink._STLINK_DEBUG_A2_SWD_SET_FREQ,
                     data]
-                res = self._com.xfer(cmd, rx_len=2)
+                res = self._com.xfer(cmd, rx_length=2)
                 if res[0] != 0x80:
                     raise StlinkException("Error switching SWD frequency")
                 return
         raise StlinkException("Selected SWD frequency is too low")
 
+    def _enter_debug_swd(self):
+        cmd = [
+            Stlink._STLINK_DEBUG_COMMAND,
+            Stlink._STLINK_DEBUG_A2_ENTER,
+            Stlink._STLINK_DEBUG_ENTER_SWD]
+        self._com.xfer(cmd, rx_length=2)
+
+    def _write_mem8(self, address, data):
+        self._logger.log(
+            self._LOGGER_LEVEL2,
+            "address:0x%08x, len(data):%d Bytes",
+            address,
+            len(data))
+        if len(data) > Stlink._STLINK_MAXIMUM_8BIT_DATA:
+            raise StlinkException(
+                'Too many Bytes to write (maximum is %d Bytes)'
+                % Stlink._STLINK_MAXIMUM_8BIT_DATA)
+        cmd = [Stlink._STLINK_DEBUG_COMMAND, Stlink._STLINK_DEBUG_WRITEMEM_8BIT]
+        cmd.extend(list(address.to_bytes(4, byteorder='little')))
+        cmd.extend(list(len(data).to_bytes(4, byteorder='little')))
+        self._com.xfer(cmd, data=data)
+
+    def _read_mem8(self, address, size):
+        self._logger.log(
+            self._LOGGER_LEVEL2,
+            "address:0x%08x, size:%d",
+            address,
+            size)
+        if size > Stlink._STLINK_MAXIMUM_8BIT_DATA:
+            raise StlinkException(
+                'Too many Bytes to read (maximum is %d Bytes)'
+                % Stlink._STLINK_MAXIMUM_8BIT_DATA)
+        cmd = [Stlink._STLINK_DEBUG_COMMAND, Stlink._STLINK_DEBUG_READMEM_8BIT]
+        cmd.extend(list(address.to_bytes(4, byteorder='little')))
+        cmd.extend(list(size.to_bytes(4, byteorder='little')))
+        return self._com.xfer(cmd, rx_length=size)
+
+    def _write_mem32(self, address, data):
+        self._logger.log(
+            self._LOGGER_LEVEL2,
+            "address:0x%08x, len(data):%d Bytes",
+            address,
+            len(data))
+        if address % 4:
+            raise StlinkException('Address must be aligned to 4 Bytes')
+        if len(data) % 4:
+            raise StlinkException('Size must be aligned to 4 Bytes')
+        if len(data) > Stlink._STLINK_MAXIMUM_TRANSFER_SIZE:
+            raise StlinkException(
+                'Too many Bytes to write (maximum is %d Bytes)'
+                % Stlink._STLINK_MAXIMUM_TRANSFER_SIZE)
+        cmd = [
+            Stlink._STLINK_DEBUG_COMMAND,
+            Stlink._STLINK_DEBUG_WRITEMEM_32BIT]
+        cmd.extend(list(address.to_bytes(4, byteorder='little')))
+        cmd.extend(list(len(data).to_bytes(4, byteorder='little')))
+        self._com.xfer(cmd, data=data)
+
+    def _read_mem32(self, address, size):
+        self._logger.log(
+            self._LOGGER_LEVEL2,
+            "address:0x%08x, size:%d",
+            address,
+            size)
+        if address % 4:
+            raise StlinkException('Address must be aligned to 4 Bytes')
+        if size % 4:
+            raise StlinkException('Size must be aligned to 4 Bytes')
+        if size > Stlink._STLINK_MAXIMUM_TRANSFER_SIZE:
+            raise StlinkException(
+                'Too many Bytes to read (maximum is %d Bytes)'
+                % Stlink._STLINK_MAXIMUM_TRANSFER_SIZE)
+        cmd = [
+            Stlink._STLINK_DEBUG_COMMAND,
+            Stlink._STLINK_DEBUG_READMEM_32BIT]
+        cmd.extend(list(address.to_bytes(4, byteorder='little')))
+        cmd.extend(list(size.to_bytes(4, byteorder='little')))
+        return self._com.xfer(cmd, rx_length=size)
+
+    @property
+    def version(self):
+        """property with ST-Link version
+
+        Return:
+            instance of StlinkVersion
+        """
+        return self._version
+
     def get_target_voltage(self):
-        """Get target voltage from programmer"""
-        res = self._com.xfer([Stlink.STLINK_GET_TARGET_VOLTAGE], rx_len=8)
+        """Get target voltage from programmer
+
+        Return:
+            return measured voltage
+        """
+        res = self._com.xfer([Stlink._STLINK_GET_TARGET_VOLTAGE], rx_length=8)
         an0 = int.from_bytes(res[:4], byteorder='little')
         an1 = int.from_bytes(res[4:8], byteorder='little')
-        return 2 * an1 * 1.2 / an0 if an0 != 0 else None
-
-    def enter_debug_swd(self):
-        """Enter SWD debug mode"""
-        cmd = [
-            Stlink.STLINK_DEBUG_COMMAND,
-            Stlink.STLINK_DEBUG_A2_ENTER,
-            Stlink.STLINK_DEBUG_ENTER_SWD]
-        self._com.xfer(cmd, rx_len=2)
+        return round(2 * an1 * 1.2 / an0, 2) if an0 != 0 else None
 
     def get_coreid(self):
-        """Get core ID from MCU"""
+        """Get core ID from MCU
+
+        Return:
+            32 bit number
+        """
         cmd = [
-            Stlink.STLINK_DEBUG_COMMAND,
-            Stlink.STLINK_DEBUG_READCOREID]
-        res = self._com.xfer(cmd, rx_len=4)
+            Stlink._STLINK_DEBUG_COMMAND,
+            Stlink._STLINK_DEBUG_READCOREID]
+        res = self._com.xfer(cmd, rx_length=4)
         return int.from_bytes(res[:4], byteorder='little')
 
-    def get_reg(self, reg):
-        """Get core register"""
+    def get_reg(self, register):
+        """Get core register
+
+        Read 32 bit CPU core register (e.g. R0, R1, ...)
+        (MCU must be halted to access core register)
+
+        Arguments:
+            register: register ID (depends on architecture)
+
+        Return:
+            32 bit number
+        """
+        self._logger.log(
+            self._LOGGER_LEVEL1,
+            "register:%d",
+            register)
         cmd = [
-            Stlink.STLINK_DEBUG_COMMAND,
-            Stlink.STLINK_DEBUG_A2_READREG,
-            reg]
-        res = self._com.xfer(cmd, rx_len=8)
+            Stlink._STLINK_DEBUG_COMMAND,
+            Stlink._STLINK_DEBUG_A2_READREG,
+            register]
+        res = self._com.xfer(cmd, rx_length=8)
         return int.from_bytes(res[4:8], byteorder='little')
 
-    def set_reg(self, reg, data):
-        """Set core register"""
-        cmd = [
-            Stlink.STLINK_DEBUG_COMMAND,
-            Stlink.STLINK_DEBUG_A2_WRITEREG,
-            reg]
-        cmd.extend(list(data.to_bytes(4, byteorder='little')))
-        self._com.xfer(cmd, rx_len=2)
+    def set_reg(self, register, data):
+        """Set core register
 
-    def set_mem32(self, addr, data):
-        """Set memory register (32 bits)"""
-        if addr % 4:
-            raise StlinkException('address is not in multiples of 4')
-        cmd = [
-            Stlink.STLINK_DEBUG_COMMAND,
-            Stlink.STLINK_DEBUG_A2_WRITEDEBUGREG]
-        cmd.extend(list(addr.to_bytes(4, byteorder='little')))
-        cmd.extend(list(data.to_bytes(4, byteorder='little')))
-        self._com.xfer(cmd, rx_len=2)
+        Write 32 bit CPU core register (e.g. R0, R1, ...)
+        (MCU must be halted to access core register)
 
-    def get_mem32(self, addr):
-        """Get memory register (32 bits)"""
-        if addr % 4:
-            raise StlinkException('address is not in multiples of 4')
+        Arguments:
+            register: register ID (depends on architecture)
+            data: 32 bit number
+        """
+        self._logger.log(
+            self._LOGGER_LEVEL1,
+            "register:%d, data:0x%08x",
+            register,
+            data)
         cmd = [
-            Stlink.STLINK_DEBUG_COMMAND,
-            Stlink.STLINK_DEBUG_A2_READDEBUGREG]
-        cmd.extend(list(addr.to_bytes(4, byteorder='little')))
-        res = self._com.xfer(cmd, rx_len=8)
+            Stlink._STLINK_DEBUG_COMMAND,
+            Stlink._STLINK_DEBUG_A2_WRITEREG,
+            register]
+        cmd.extend(list(data.to_bytes(4, byteorder='little')))
+        self._com.xfer(cmd, rx_length=2)
+
+    def get_mem32(self, address):
+        """Get memory register
+
+        use 32 bit access
+
+        Arguments:
+            address: address in memory (must be aligned to 4 bytes)
+
+        Return:
+            return 32 bit number
+        """
+        self._logger.log(
+            self._LOGGER_LEVEL1,
+            "address:0x%08x",
+            address)
+        if address % 4:
+            raise StlinkException('address is not aligned to 4 Bytes')
+        cmd = [
+            Stlink._STLINK_DEBUG_COMMAND,
+            Stlink._STLINK_DEBUG_A2_READDEBUGREG]
+        cmd.extend(list(address.to_bytes(4, byteorder='little')))
+        res = self._com.xfer(cmd, rx_length=8)
         return int.from_bytes(res[4:8], byteorder='little')
 
-    def read_mem32(self, addr, size):
-        """Read memory (32 bits access)"""
-        if addr % 4:
-            raise StlinkException('Address must be in multiples of 4')
-        if size % 4:
-            raise StlinkException('Size must be in multiples of 4')
-        if size > Stlink.STLINK_MAXIMUM_TRANSFER_SIZE:
-            raise StlinkException('Too much bytes to read')
+    def set_mem32(self, address, data):
+        """Set memory register
+
+        use 32 bit access
+
+        Arguments:
+            address: address in memory (must be aligned to 4 bytes)
+            data: 32 bit number
+        """
+        self._logger.log(
+            self._LOGGER_LEVEL1,
+            "address:0x%08x, data:0x%08x",
+            address,
+            data)
+        if address % 4:
+            raise StlinkException('address is not aligned to 4 Bytes')
         cmd = [
-            Stlink.STLINK_DEBUG_COMMAND,
-            Stlink.STLINK_DEBUG_READMEM_32BIT]
-        cmd.extend(list(addr.to_bytes(4, byteorder='little')))
-        cmd.extend(list(size.to_bytes(4, byteorder='little')))
-        return self._com.xfer(cmd, rx_len=size)
+            Stlink._STLINK_DEBUG_COMMAND,
+            Stlink._STLINK_DEBUG_A2_WRITEDEBUGREG]
+        cmd.extend(list(address.to_bytes(4, byteorder='little')))
+        cmd.extend(list(data.to_bytes(4, byteorder='little')))
+        self._com.xfer(cmd, rx_length=2)
 
-    def write_mem32(self, addr, data):
-        """Write memory (32 bits access)"""
-        if addr % 4:
-            raise StlinkException('Address must be in multiples of 4')
-        if len(data) % 4:
-            raise StlinkException('Size must be in multiples of 4')
-        if len(data) > Stlink.STLINK_MAXIMUM_TRANSFER_SIZE:
-            raise StlinkException('Too much bytes to write')
-        cmd = [
-            Stlink.STLINK_DEBUG_COMMAND,
-            Stlink.STLINK_DEBUG_WRITEMEM_32BIT]
-        cmd.extend(list(addr.to_bytes(4, byteorder='little')))
-        cmd.extend(list(len(data).to_bytes(4, byteorder='little')))
-        self._com.xfer(cmd, data=data)
+    def read_mem(self, address, size):
+        """Read bytes memory
 
-    def read_mem8(self, addr, size):
-        """Read memory (8 bits access)"""
-        if size > Stlink.STLINK_MAXIMUM_8BIT_DATA:
-            raise StlinkException('Too much bytes to read')
-        cmd = [Stlink.STLINK_DEBUG_COMMAND, Stlink.STLINK_DEBUG_READMEM_8BIT]
-        cmd.extend(list(addr.to_bytes(4, byteorder='little')))
-        cmd.extend(list(size.to_bytes(4, byteorder='little')))
-        return self._com.xfer(cmd, rx_len=size)
+        automatically use 8 and 32 bit access read which depends on alignment
 
-    def write_mem8(self, addr, data):
-        """Write memory (8 bits access)"""
-        if len(data) > Stlink.STLINK_MAXIMUM_8BIT_DATA:
-            raise StlinkException('Too much bytes to write')
-        cmd = [Stlink.STLINK_DEBUG_COMMAND, Stlink.STLINK_DEBUG_WRITEMEM_8BIT]
-        cmd.extend(list(addr.to_bytes(4, byteorder='little')))
-        cmd.extend(list(len(data).to_bytes(4, byteorder='little')))
-        self._com.xfer(cmd, data=data)
+        Arguments:
+            address: address in memory
+            size: number of bytes to read
+
+        Return:
+            iterable of read data
+        """
+        self._logger.log(
+            self._LOGGER_LEVEL1,
+            "address:0x%08x, size:%d",
+            address,
+            size)
+        while size:
+            chunk_size = size
+            if address % 4 or (chunk_size < Stlink._STLINK_MAXIMUM_8BIT_DATA and chunk_size % 4):
+                chunk_size = min(chunk_size, Stlink._STLINK_MAXIMUM_8BIT_DATA - (address % 4))
+                for i in self._read_mem8(address, chunk_size):
+                    yield i
+            else:
+                chunk_size = min(chunk_size, Stlink._STLINK_MAXIMUM_TRANSFER_SIZE)
+                chunk_size -= chunk_size % 4
+                for i in self._read_mem32(address, chunk_size):
+                    yield i
+            address += chunk_size
+            size -= chunk_size
+
+    def write_mem(self, address, data):
+        """Write memory
+
+        Arguments:
+            address: address in memory
+            data: list or iterable of bytes to write into memory
+        """
+        self._logger.log(
+            self._LOGGER_LEVEL2,
+            "address:0x%08x, data:[..]",
+            address)
+        data = iter(data)
+        done = False
+        chunk = []
+        chunk_size = 0
+        # first chunk to align address
+        # after this write address will be aligned
+        if address % 4:
+            chunk_size_max = Stlink._STLINK_MAXIMUM_8BIT_DATA - (address % 4)
+            try:
+                while chunk_size < chunk_size_max:
+                    chunk.append(next(data))
+                    chunk_size += 1
+            except StopIteration:
+                if not chunk:
+                    return
+                done = True
+            self._write_mem8(address, chunk)
+            del chunk[:]
+            address += chunk_size
+            chunk_size = 0
+        # read remained data, here is address aligned
+        while not done or chunk:
+            chunk_size_max = Stlink._STLINK_MAXIMUM_TRANSFER_SIZE
+            if not done:
+                try:
+                    while chunk_size < chunk_size_max:
+                        chunk.append(next(data))
+                        chunk_size += 1
+                except StopIteration:
+                    if not chunk:
+                        return
+                    done = True
+            if chunk_size % 4 == 0:
+                self._write_mem32(address, chunk)
+            elif chunk_size <= Stlink._STLINK_MAXIMUM_8BIT_DATA:
+                self._write_mem8(address, chunk)
+            else:
+                chunk_size -= chunk_size % 4
+                self._write_mem32(address, chunk[:chunk_size])
+                del chunk[:chunk_size]
+                address += chunk_size
+                chunk_size = len(chunk)
+                continue
+            del chunk[:]
+            address += chunk_size
+            chunk_size = 0
+
+    def fill_mem(self, address, size, pattern):
+        """Fill memory with pattern
+
+        Arguments:
+            address: address in memory
+            size: number of bytes to fill
+            pattern: list of bytes to fill
+        """
+        self._logger.log(
+            self._LOGGER_LEVEL1,
+            "address:0x%08x, size:%d, pattern:%s",
+            address,
+            size,
+            ', '.join(['0x%02x' % i for i in pattern]))
+        index = 0
+        data = pattern * ((min(size, Stlink._STLINK_MAXIMUM_TRANSFER_SIZE)) // len(pattern) + 1)
+        while size:
+            chunk_size = size
+            if address % 4 or (chunk_size < Stlink._STLINK_MAXIMUM_8BIT_DATA and chunk_size % 4):
+                chunk_size = min(chunk_size, Stlink._STLINK_MAXIMUM_8BIT_DATA - (address % 4))
+                self._write_mem8(address, data[index:index + chunk_size])
+            else:
+                chunk_size = min(chunk_size, Stlink._STLINK_MAXIMUM_TRANSFER_SIZE)
+                chunk_size -= chunk_size % 4
+                self._write_mem32(address, data[index:index + chunk_size])
+            index = (index + chunk_size) % len(pattern)
+            address += chunk_size
+            size -= chunk_size

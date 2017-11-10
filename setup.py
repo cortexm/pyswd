@@ -14,7 +14,7 @@ def get_long_description():
 
 setuptools.setup(
     name='pyswd',
-    version='0.0.1',
+    version='1.0.0',
     description='SWD debugging tool',
     long_description=get_long_description(),
     url='https://github.com/pavelrevak/pyswd',
@@ -36,9 +36,13 @@ setuptools.setup(
         'swd'
     ],
 
+    install_requires=[
+        'pyusb (>=1.0.2)'
+    ],
+
     entry_points={
         'console_scripts': [
-            'pyswd=swd:main',
+            'pyswd=swd._app:main',
         ],
     },
 )
