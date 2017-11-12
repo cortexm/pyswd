@@ -8,6 +8,9 @@ import swd.stlink
 import swd.stlinkcom
 
 
+class PyswdException(Exception):
+    """Exception"""
+
 PROGNAME_STR = "pyswd"
 VERSION_STR = "%s v1.0.0 (ST-LinkV2)" % PROGNAME_STR
 ACTIONS_HELP_STR = """
@@ -41,9 +44,45 @@ list of available actions:
 #   write:sram:{file}     write binary file into SRAM memory
 #   sleep:{seconds}        sleep (float) - insert delay between commands
 
+def configure_args():
+    """configure and process command line arguments"""
+    parser = argparse.ArgumentParser(
+        prog=PROGNAME_STR, formatter_class=argparse.RawTextHelpFormatter,
+        epilog=ACTIONS_HELP_STR)
+    parser.add_argument('-V', '--version', action='version', version=VERSION_STR)
+    parser.add_argument("-q", "--quite", action="store_true", help="quite output")
+    parser.add_argument("-d", "--debug", action="count", help="increase debug output")
+    parser.add_argument("-i", "--info", action="count", help="increase info output")
+    parser.add_argument("-v", "--verbose", action="count", help="increase verbose output")
+    parser.add_argument("-f", "--freq", type=int, default=1800000, help="set SWD frequency")
+    parser.add_argument('action', nargs='*', help='actions will be processed sequentially')
+    return parser.parse_args()
 
-class PyswdException(Exception):
-    """Exception"""
+LOG_FORMATER = '%(levelname)s:%(module)s.%(funcName)s:%(lineno)d: %(message)s'
+
+class _PyswdFormatter(logging.Formatter):
+    def format(self, record):
+        if record.levelno <= logging.DEBUG:
+            return logging.Formatter.format(self, record)
+        if record.levelno <= logging.INFO:
+            return record.getMessage()
+        if record.levelno <= logging.WARNING:
+            return "WARNING: %s" % record.getMessage()
+        return "ERROR: %s" % record.getMessage()
+
+def configure_logger():
+    logging.addLevelName(9, 'DEBUG1')
+    logging.addLevelName(8, 'DEBUG2')
+    logging.addLevelName(7, 'DEBUG3')
+    logging.addLevelName(6, 'DEBUG4')
+    logging.addLevelName(5, 'DEBUG5')
+    fmt = _PyswdFormatter(LOG_FORMATER)
+    hdlr = logging.StreamHandler()
+    hdlr.setLevel(1)
+    hdlr.setFormatter(fmt)
+    logger = logging.Logger('pyswd')
+    logger.addHandler(hdlr)
+    return logger
 
 def chunks(data, chunk_size):
     """Yield chunks"""
@@ -115,42 +154,35 @@ def convert_numeric(num):
         return int(num[:-1]) * 1024 ** 3
     return int(num, 0)
 
-class _PyswdFormatter(logging.Formatter):
-    def format(self, record):
-        if record.levelno <= logging.DEBUG:
-            return logging.Formatter.format(self, record)
-        if record.levelno <= logging.INFO:
-            return record.getMessage()
-        if record.levelno <= logging.WARNING:
-            return "WARNING: %s" % record.getMessage()
-        return "ERROR: %s" % record.getMessage()
-
 class Application():
     """Application"""
-    _FORMATER = '%(levelname)s:%(module)s.%(funcName)s:%(lineno)d: %(message)s'
 
-    def __init__(self):
+    def __init__(self, args, logger):
         """Application startup"""
-        logging.addLevelName(9, 'DEBUG1')
-        logging.addLevelName(8, 'DEBUG2')
-        logging.addLevelName(7, 'DEBUG3')
-        logging.addLevelName(6, 'DEBUG4')
-        logging.addLevelName(5, 'DEBUG5')
-        fmt = _PyswdFormatter(Application._FORMATER)
-        hdlr = logging.StreamHandler()
-        hdlr.setLevel(1)
-        hdlr.setFormatter(fmt)
-        self._logger = logging.Logger('pyswd')
-        self._logger.addHandler(hdlr)
-        self._logger.setLevel(logging.WARNING)
+        self._logger = logger
         self._dev = None
         self._verbose = 0
+        self._actions = args.action
+        self._swd_frequency = args.freq
+        if args.verbose is not None:
+            self._verbose = args.verbose
+        if args.quite:
+            self._logger.setLevel(logging.ERROR)
+        elif args.debug is not None:
+            self._logger.setLevel(logging.DEBUG - (args.debug - 1))
+        elif args.info is not None:
+            self._logger.setLevel(logging.INFO - (args.info - 1))
+        else:
+            self._logger.setLevel(logging.WARNING)
 
     def print_device_info(self):
         """Show device informations"""
         self._logger.info(self._dev.version)
         self._logger.info("Target voltage: %0.2fV", self._dev.get_target_voltage())
-        self._logger.info("COREID: 0x%08x", self._dev.get_coreid())
+        coreid = self._dev.get_coreid()
+        self._logger.info("COREID: 0x%08x", coreid)
+        if coreid == 0:
+            self._logger.warning("COREID is 0x%08x, probably no MCU is connected." % coreid)
 
     def action_dump32(self, params):
         """Dump memory 32 bit"""
@@ -232,9 +264,9 @@ class Application():
         pattern = [int(i, 0) for i in params[2:]]
         self._dev.fill_mem(addr, size, pattern)
 
-    def process_actions(self, actions):
+    def process_actions(self):
         """Process all actions"""
-        for action in actions:
+        for action in self._actions:
             self._logger.debug(action)
             action_parts = action.split(":")
             action_name = "action_" + action_parts[0]
@@ -244,52 +276,26 @@ class Application():
 
     def start(self):
         """Application start point"""
-        parser = argparse.ArgumentParser(
-            prog=PROGNAME_STR, formatter_class=argparse.RawTextHelpFormatter,
-            epilog=ACTIONS_HELP_STR)
-        parser.add_argument('-V', '--version', action='version', version=VERSION_STR)
-        parser.add_argument("-q", "--quite", action="store_true", help="quite output")
-        parser.add_argument("-d", "--debug", action="count", help="increase debug output")
-        parser.add_argument("-i", "--info", action="count", help="increase info output")
-        parser.add_argument("-v", "--verbose", action="count", help="increase verbose output")
-        parser.add_argument("-f", "--freq", type=int, default=1800000, help="set SWD frequency")
-        parser.add_argument('action', nargs='*', help='actions will be processed sequentially')
-        args = parser.parse_args()
-        # print(args)
-        if args.verbose is not None:
-            self._verbose = args.verbose
-        if args.quite:
-            self._logger.setLevel(logging.ERROR)
-        elif args.debug is not None:
-            self._logger.setLevel(logging.DEBUG - (args.debug - 1))
-        elif args.info is not None:
-            self._logger.setLevel(logging.INFO - (args.info - 1))
         try:
-            self._dev = swd.Stlink(swd_frequency=args.freq, logger=self._logger)
+            self._dev = swd.Stlink(swd_frequency=self._swd_frequency, logger=self._logger)
+            self.print_device_info()
+            self.process_actions()
         except swd.stlinkcom.StlinkComNotFound:
-            self._logger.error("No debugging device was found.")
-            return 1
-        except swd.stlinkcom.StlinkComException as err:
-            self._logger.error("StlinkCom error: %s.", err)
-            return 1
-        self.print_device_info()
-        try:
-            self.process_actions(args.action)
-        except swd.stlinkcom.StlinkComNotFound:
-            self._logger.error("No debugging device was found.")
-            return 1
-        except swd.stlink.StlinkException as err:
-            self._logger.error("Stlink error: %s.", err)
-            return 1
-        except swd.stlinkcom.StlinkComException as err:
-            self._logger.error("StlinkCom error: %s.", err)
-            return 1
+            self._logger.error("ST-Link not connected.")
         except PyswdException as err:
             self._logger.error("pyswd error: %s.", err)
-            return 1
-        return 0
+        except swd.stlink.StlinkException as err:
+            self._logger.critical("Stlink error: %s.", err)
+        except swd.stlinkcom.StlinkComException as err:
+            self._logger.critical("StlinkCom error: %s.", err)
+        else:
+            return 0
+        return 1
 
 def main():
     """application startup"""
-    app = Application()
-    exit(app.start())
+    logger = configure_logger()
+    args = configure_args()
+    app = Application(args, logger)
+    ret = app.start()
+    exit(ret)
