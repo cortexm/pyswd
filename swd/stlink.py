@@ -412,13 +412,11 @@ class Stlink():
             chunk_size = size
             if address % 4 or (chunk_size < Stlink._STLINK_MAXIMUM_8BIT_DATA and chunk_size % 4):
                 chunk_size = min(chunk_size, Stlink._STLINK_MAXIMUM_8BIT_DATA - (address % 4))
-                for i in self._read_mem8(address, chunk_size):
-                    yield i
+                yield from self._read_mem8(address, chunk_size)
             else:
                 chunk_size = min(chunk_size, Stlink._STLINK_MAXIMUM_TRANSFER_SIZE)
                 chunk_size -= chunk_size % 4
-                for i in self._read_mem32(address, chunk_size):
-                    yield i
+                yield from self._read_mem32(address, chunk_size)
             address += chunk_size
             size -= chunk_size
 
