@@ -1,6 +1,7 @@
 """ST-Link/V2 protocol"""
 
 import logging as _logging
+import itertools as _itertools
 from swd import stlinkcom as _stlinkcom
 
 
@@ -433,51 +434,30 @@ class Stlink():
             "address:0x%08x, data:[..]",
             address)
         data = iter(data)
-        done = False
-        chunk = []
-        chunk_size = 0
         # first chunk to align address
-        # after this write address will be aligned
         if address % 4:
             chunk_size_max = Stlink._STLINK_MAXIMUM_8BIT_DATA - (address % 4)
-            try:
-                while chunk_size < chunk_size_max:
-                    chunk.append(next(data))
-                    chunk_size += 1
-            except StopIteration:
-                if not chunk:
-                    return
-                done = True
+            chunk = list(_itertools.islice(data, 0, chunk_size_max))
+            if not chunk:
+                return
             self._write_mem8(address, chunk)
-            del chunk[:]
-            address += chunk_size
-            chunk_size = 0
-        # read remained data, here is address aligned
-        while not done or chunk:
-            chunk_size_max = Stlink._STLINK_MAXIMUM_TRANSFER_SIZE
-            if not done:
-                try:
-                    while chunk_size < chunk_size_max:
-                        chunk.append(next(data))
-                        chunk_size += 1
-                except StopIteration:
-                    if not chunk:
-                        return
-                    done = True
-            if chunk_size % 4 == 0:
+            address += len(chunk)
+        # write remained data, here is address always aligned
+        while True:
+            chunk = list(_itertools.islice(data, 0, Stlink._STLINK_MAXIMUM_TRANSFER_SIZE))
+            if not chunk:
+                return
+            if len(chunk) % 4 == 0:
                 self._write_mem32(address, chunk)
-            elif chunk_size <= Stlink._STLINK_MAXIMUM_8BIT_DATA:
-                self._write_mem8(address, chunk)
-            else:
-                chunk_size -= chunk_size % 4
-                self._write_mem32(address, chunk[:chunk_size])
-                del chunk[:chunk_size]
-                address += chunk_size
-                chunk_size = len(chunk)
+                address += len(chunk)
                 continue
-            del chunk[:]
-            address += chunk_size
-            chunk_size = 0
+            if len(chunk) > Stlink._STLINK_MAXIMUM_8BIT_DATA:
+                chunk_size32 = len(chunk) & 0xfffffffc
+                self._write_mem32(address, chunk[:chunk_size32])
+                del chunk[:chunk_size32]
+                address += chunk_size32
+            self._write_mem8(address, chunk)
+            return
 
     def fill_mem(self, address, size, pattern):
         """Fill memory with pattern
