@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import itertools
 import swd
 import swd.stlink
 import swd.stlinkcom
@@ -44,75 +45,51 @@ list of available actions:
 class PyswdException(Exception):
     """Exception"""
 
-
 def chunks(data, chunk_size):
-    """Yield successive n-sized chunks from l."""
-    data = iter(data)
+    """Yield chunks"""
     while True:
-        chunk = []
-        try:
-            for _ in range(chunk_size):
-                chunk.append(next(data))
-        except StopIteration:
-            if not chunk:
-                return
+        chunk = list(itertools.islice(data, 0, chunk_size))
+        if not chunk:
+            return
         yield chunk
 
-def print_buffer32(addr, data, verbose=0):
-    """print buffer in 8bit size"""
+def hex_line8(chunk):
+    """Create 8 bit hex string from bytes in chunk"""
+    result = ' '.join([
+        '%02x' % part
+        for part in chunk])
+    return result.ljust(16 * 3 - 1)
+
+def hex_line16(chunk):
+    """Create 16 bit hex string from bytes in chunk"""
+    result = ' '.join([
+        '%04x' % int.from_bytes(part, byteorder='little')
+        for part in chunks(iter(chunk), 2)])
+    return result.ljust((16 // 2) * 5 - 1)
+
+def hex_line32(chunk):
+    """Create 32 bit hex string from bytes in chunk"""
+    result = ' '.join([
+        '%08x' % int.from_bytes(part, byteorder='little')
+        for part in chunks(iter(chunk), 4)])
+    return result.ljust((16 // 4) * 9 - 1)
+
+def ascii_line(chunk):
+    """Create ASCII string from bytes in chunk"""
+    return ''.join([
+        chr(d) if d >= 32 and d < 127 else '.'
+        for d in chunk])
+
+def print_buffer(addr, data, hex_line=hex_line8, verbose=0):
+    """Print buffer in hex and ASCII"""
     prev_chunk = []
     same_chunk = False
     for chunk in chunks(data, 16):
         if verbose > 0 or prev_chunk != chunk:
-            chunk32 = [int.from_bytes(part, byteorder='little') for part in chunks(chunk, 4)]
-            print('%08x  %s%s  %s' % (
+            print('%08x  %s  %s' % (
                 addr,
-                ' '.join(['%08x' % d for d in chunk32]),
-                '         ' * (4 - len(chunk32)),
-                ''.join([chr(d) if d >= 32 and d < 127 else '.' for d in chunk]),
-            ))
-            prev_chunk = chunk
-            same_chunk = False
-        elif not same_chunk:
-            print('*')
-            same_chunk = True
-        addr += len(chunk)
-    if same_chunk or verbose > 1:
-        print('%08x' % addr)
-
-def print_buffer16(addr, data, verbose=0):
-    """print buffer in 8bit size"""
-    prev_chunk = []
-    same_chunk = False
-    for chunk in chunks(data, 16):
-        if verbose > 0 or  prev_chunk != chunk:
-            chunk16 = [int.from_bytes(part, byteorder='little') for part in chunks(chunk, 2)]
-            print('%08x  %s%s  %s' % (
-                addr,
-                ' '.join(['%04x' % d for d in chunk16]),
-                '     ' * (8 - len(chunk16)),
-                ''.join([chr(d) if d >= 32 and d < 127 else '.' for d in chunk]),
-            ))
-            prev_chunk = chunk
-            same_chunk = False
-        elif not same_chunk:
-            print('*')
-            same_chunk = True
-        addr += len(chunk)
-    if same_chunk or verbose > 1:
-        print('%08x' % addr)
-
-def print_buffer8(addr, data, verbose=0):
-    """print buffer in 8bit size"""
-    prev_chunk = []
-    same_chunk = False
-    for chunk in chunks(data, 16):
-        if verbose > 0 or prev_chunk != chunk:
-            print('%08x  %s%s  %s' % (
-                addr,
-                ' '.join(['%02x' % d for d in chunk]),
-                '   ' * (16 - len(chunk)),
-                ''.join([chr(d) if d >= 32 and d < 127 else '.' for d in chunk]),
+                hex_line(chunk),
+                ascii_line(chunk),
             ))
             prev_chunk = chunk
             same_chunk = False
@@ -191,7 +168,7 @@ class Application():
             size = convert_numeric(params[1])
             test_alignment(size, "Size", 4)
             data = self._dev.read_mem(addr, size)
-            print_buffer32(addr, data, verbose=self._verbose)
+            print_buffer(addr, data, hex_line32, verbose=self._verbose)
         else:
             raise PyswdException("dump32: too many parameters")
 
@@ -208,9 +185,9 @@ class Application():
             size = convert_numeric(params[1])
             test_alignment(size, "Size", 2)
             data = self._dev.read_mem(addr, size)
-            print_buffer16(addr, data, verbose=self._verbose)
+            print_buffer(addr, data, hex_line16, verbose=self._verbose)
         else:
-            raise PyswdException("dump32: too many parameters")
+            raise PyswdException("dump16: too many parameters")
 
     def action_dump8(self, params):
         """Dump memory 8 bit"""
@@ -223,7 +200,7 @@ class Application():
         elif len(params) == 2:
             size = convert_numeric(params[1])
             data = self._dev.read_mem(addr, size)
-            print_buffer8(addr, data, verbose=self._verbose)
+            print_buffer(addr, data, hex_line8, verbose=self._verbose)
         else:
             raise PyswdException("dump: too many parameters")
 
