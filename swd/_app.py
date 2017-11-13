@@ -11,9 +11,11 @@ import swd.stlinkcom
 class PyswdException(Exception):
     """Exception"""
 
-PROGNAME_STR = "pyswd"
-VERSION_STR = "%s v1.0.0 (ST-LinkV2)" % PROGNAME_STR
-ACTIONS_HELP_STR = """
+PROGNAME = "pyswd"
+VERSION = "v1.0.0"
+
+_VERSION_STR = "%s %s (ST-LinkV2)" % (PROGNAME, VERSION)
+_ACTIONS_HELP_STR = """
 list of available actions:
   dump8:{addr}[:{size}]     print content of memory 8 bit register or dump
   dump16:{addr}[:{size}]    print content of memory 16 bit register or dump
@@ -44,12 +46,12 @@ list of available actions:
 #   write:sram:{file}     write binary file into SRAM memory
 #   sleep:{seconds}        sleep (float) - insert delay between commands
 
-def configure_args():
+def _configure_argparse():
     """configure and process command line arguments"""
     parser = argparse.ArgumentParser(
-        prog=PROGNAME_STR, formatter_class=argparse.RawTextHelpFormatter,
-        epilog=ACTIONS_HELP_STR)
-    parser.add_argument('-V', '--version', action='version', version=VERSION_STR)
+        prog=PROGNAME, formatter_class=argparse.RawTextHelpFormatter,
+        epilog=_ACTIONS_HELP_STR)
+    parser.add_argument('-V', '--version', action='version', version=_VERSION_STR)
     parser.add_argument("-q", "--quite", action="store_true", help="quite output")
     parser.add_argument("-d", "--debug", action="count", help="increase debug output")
     parser.add_argument("-i", "--info", action="count", help="increase info output")
@@ -58,7 +60,7 @@ def configure_args():
     parser.add_argument('action', nargs='*', help='actions will be processed sequentially')
     return parser.parse_args()
 
-LOG_FORMATER = '%(levelname)s:%(module)s.%(funcName)s:%(lineno)d: %(message)s'
+_LOG_FORMATER = '%(levelname)s:%(module)s.%(funcName)s:%(lineno)d: %(message)s'
 
 class _PyswdFormatter(logging.Formatter):
     def format(self, record):
@@ -70,13 +72,14 @@ class _PyswdFormatter(logging.Formatter):
             return "WARNING: %s" % record.getMessage()
         return "ERROR: %s" % record.getMessage()
 
-def configure_logger():
+def _configure_logger():
+    """Basic configuration of logger"""
     logging.addLevelName(9, 'DEBUG1')
     logging.addLevelName(8, 'DEBUG2')
     logging.addLevelName(7, 'DEBUG3')
     logging.addLevelName(6, 'DEBUG4')
     logging.addLevelName(5, 'DEBUG5')
-    fmt = _PyswdFormatter(LOG_FORMATER)
+    fmt = _PyswdFormatter(_LOG_FORMATER)
     hdlr = logging.StreamHandler()
     hdlr.setLevel(1)
     hdlr.setFormatter(fmt)
@@ -86,6 +89,7 @@ def configure_logger():
 
 def chunks(data, chunk_size):
     """Yield chunks"""
+    data = iter(data)
     while True:
         chunk = list(itertools.islice(data, 0, chunk_size))
         if not chunk:
@@ -103,14 +107,14 @@ def hex_line16(chunk):
     """Create 16 bit hex string from bytes in chunk"""
     result = ' '.join([
         '%04x' % int.from_bytes(part, byteorder='little')
-        for part in chunks(iter(chunk), 2)])
+        for part in chunks(chunk, 2)])
     return result.ljust((16 // 2) * 5 - 1)
 
 def hex_line32(chunk):
     """Create 32 bit hex string from bytes in chunk"""
     result = ' '.join([
         '%08x' % int.from_bytes(part, byteorder='little')
-        for part in chunks(iter(chunk), 4)])
+        for part in chunks(chunk, 4)])
     return result.ljust((16 // 4) * 9 - 1)
 
 def ascii_line(chunk):
@@ -294,8 +298,8 @@ class Application():
 
 def main():
     """application startup"""
-    logger = configure_logger()
-    args = configure_args()
+    logger = _configure_logger()
+    args = _configure_argparse()
     app = Application(args, logger)
     ret = app.start()
     exit(ret)
