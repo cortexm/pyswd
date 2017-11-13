@@ -1,5 +1,6 @@
 """Application"""
 
+import sys
 import argparse
 import logging
 import itertools
@@ -139,6 +140,8 @@ def print_buffer(addr, data, hex_line=hex_line8, verbose=0):
         elif not same_chunk:
             print('*')
             same_chunk = True
+        elif sys.stdout.isatty() and addr % 0x1000 == 0:
+            print('%08x\r' % addr, end='', flush=True)
         addr += len(chunk)
     if same_chunk or verbose > 1:
         print('%08x' % addr)
