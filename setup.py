@@ -2,6 +2,7 @@
 """
 
 import setuptools
+import swd.__about__
 
 def get_long_description():
     """Return long description from README.md file"""
@@ -13,15 +14,15 @@ def get_long_description():
     return long_description
 
 setuptools.setup(
-    name='pyswd',
-    version='1.0.0',
-    description='SWD debugging tool',
+    name=swd.__about__.PROGNAME,
+    version=swd.__about__.VERSION,
+    description=swd.__about__.DESCRIPTION,
     long_description=get_long_description(),
-    url='https://github.com/pavelrevak/pyswd',
-    author='Pavel Revak',
-    author_email='pavel.revak@gmail.com',
+    url=swd.__about__.URL,
+    author=swd.__about__.AUTHOR,
+    author_email=swd.__about__.AUTHOR_EMAIL,
     license='MIT',
-    keywords='SWD debugger STM32 STLINK',
+    keywords='SWD debugger STM32 STLINK CORTEX-M ARM',
 
     classifiers=[
         # https://pypi.python.org/pypi?%3Aaction=list_classifiers

@@ -7,15 +7,17 @@ import itertools
 import swd
 import swd.stlink
 import swd.stlinkcom
+import swd.__about__
 
 
 class PyswdException(Exception):
     """Exception"""
 
-PROGNAME = "pyswd"
-VERSION = "v1.0.0"
-
-_VERSION_STR = "%s %s (ST-LinkV2)" % (PROGNAME, VERSION)
+_VERSION_STR = "%s %s (%s <%s>)" % (
+    swd.__about__.PROGNAME,
+    swd.__about__.VERSION,
+    swd.__about__.AUTHOR,
+    swd.__about__.AUTHOR_EMAIL)
 _ACTIONS_HELP_STR = """
 list of available actions:
   dump8:{addr}[:{size}]     print content of memory 8 bit register or dump
@@ -50,7 +52,7 @@ list of available actions:
 def _configure_argparse():
     """configure and process command line arguments"""
     parser = argparse.ArgumentParser(
-        prog=PROGNAME, formatter_class=argparse.RawTextHelpFormatter,
+        prog=swd.__about__.PROGNAME, formatter_class=argparse.RawTextHelpFormatter,
         epilog=_ACTIONS_HELP_STR)
     parser.add_argument('-V', '--version', action='version', version=_VERSION_STR)
     parser.add_argument("-q", "--quite", action="store_true", help="quite output")
