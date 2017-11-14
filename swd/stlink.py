@@ -141,18 +141,18 @@ class Stlink():
             return self._str
 
 
-    def __init__(self, swd_frequency=1800000, logger=None):
+    def __init__(self, swd_frequency=1800000, stlinkcom=None, logger=None):
         if logger is None:
             logger = _logging.Logger('stlink')
         self._logger = logger
-        self._com = _stlinkcom.StlinkCom(logger=self._logger)
+        self._com = stlinkcom
+        if stlinkcom is None:
+            self._com = _stlinkcom.StlinkCom(logger=self._logger)
         self._version = self._get_version()
         self._leave_state()
-        # self._target_volgtage = self.read_target_voltage()
         if self._version.jtag >= 22:
             self._set_swd_freq(swd_frequency)
         self._enter_debug_swd()
-        # self._coreid = self.get_coreid()
 
     def _get_version(self):
         res = self._com.xfer([Stlink._STLINK_GET_VERSION, 0x80], rx_length=6)
