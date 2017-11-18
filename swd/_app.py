@@ -169,7 +169,7 @@ class Application():
     def __init__(self, args, logger):
         """Application startup"""
         self._logger = logger
-        self._dev = None
+        self._swd = None
         self._verbose = 0
         self._actions = args.action
         self._swd_frequency = args.freq
@@ -186,9 +186,9 @@ class Application():
 
     def print_device_info(self):
         """Show device informations"""
-        self._logger.info(self._dev.version)
-        self._logger.info("Target voltage: %0.2fV", self._dev.get_target_voltage())
-        coreid = self._dev.get_coreid()
+        self._logger.info(self._swd.get_version())
+        self._logger.info("Target voltage: %0.2fV", self._swd.get_target_voltage())
+        coreid = self._swd.get_coreid()
         self._logger.info("COREID: 0x%08x", coreid)
         if coreid == 0:
             self._logger.warning("COREID is 0x%08x, probably no MCU is connected." % coreid)
@@ -200,15 +200,15 @@ class Application():
         addr = convert_numeric(params[0])
         if len(params) == 1:
             if addr % 4:
-                data = self._dev.read_mem(addr, 4)
+                data = self._swd.read_mem(addr, 4)
                 val = int.from_bytes(data, byteorder='little')
             else:
-                val = self._dev.get_mem32(addr)
+                val = self._swd.get_mem32(addr)
             print("%08x: %08x" % (addr, val))
         elif len(params) == 2:
             size = convert_numeric(params[1])
             test_alignment(size, "Size", 4)
-            data = self._dev.read_mem(addr, size)
+            data = self._swd.read_mem(addr, size)
             print_buffer(addr, data, hex_line32, verbose=self._verbose)
         else:
             raise PyswdException("dump32: too many parameters")
@@ -219,13 +219,13 @@ class Application():
             raise PyswdException("dump16: no parameters")
         addr = convert_numeric(params[0])
         if len(params) == 1:
-            data = self._dev.read_mem(addr, 2)
+            data = self._swd.read_mem(addr, 2)
             val = int.from_bytes(data, byteorder='little')
             print("%08x: %04x" % (addr, val))
         elif len(params) == 2:
             size = convert_numeric(params[1])
             test_alignment(size, "Size", 2)
-            data = self._dev.read_mem(addr, size)
+            data = self._swd.read_mem(addr, size)
             print_buffer(addr, data, hex_line16, verbose=self._verbose)
         else:
             raise PyswdException("dump16: too many parameters")
@@ -236,11 +236,11 @@ class Application():
             raise PyswdException("dump: no parameters")
         addr = convert_numeric(params[0])
         if len(params) == 1:
-            data = self._dev.read_mem(addr, 1)
+            data = self._swd.read_mem(addr, 1)
             print("%08x: %02x" % (addr, next(data)))
         elif len(params) == 2:
             size = convert_numeric(params[1])
-            data = self._dev.read_mem(addr, size)
+            data = self._swd.read_mem(addr, size)
             print_buffer(addr, data, hex_line8, verbose=self._verbose)
         else:
             raise PyswdException("dump: too many parameters")
@@ -262,7 +262,7 @@ class Application():
             raise PyswdException("set: require at least 3 parameters")
         addr = convert_numeric(params[0])
         data = [int(i, 0) for i in params[1:]]
-        self._dev.write_mem(addr, data)
+        self._swd.write_mem(addr, data)
 
     def action_fill8(self, params):
         """Fill memory with pattern"""
@@ -271,7 +271,7 @@ class Application():
         addr = convert_numeric(params[0])
         size = convert_numeric(params[1])
         pattern = [int(i, 0) for i in params[2:]]
-        self._dev.fill_mem(addr, size, pattern)
+        self._swd.fill_mem(addr, pattern, size)
 
     def process_actions(self):
         """Process all actions"""
@@ -286,7 +286,7 @@ class Application():
     def start(self):
         """Application start point"""
         try:
-            self._dev = swd.Stlink(swd_frequency=self._swd_frequency, logger=self._logger)
+            self._swd = swd.Swd(swd_frequency=self._swd_frequency, logger=self._logger)
             self.print_device_info()
             self.process_actions()
         except swd.stlinkcom.StlinkComNotFound:

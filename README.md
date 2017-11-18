@@ -37,13 +37,13 @@ pip3 uninstall pyswd
 ## Python SWD module
 
 ### Constructor:
-`swd.Stlink(swd_frequency=1800000, logger=None)`
+`swd.Swd(swd_frequency=1800000, logger=None)`
 #### Arguments:
 - swd_frequency: SWD communication frequency
 - logger: logging interface (optional)
 ```Python
 >>> import swd
->>> dev = swd.Stlink()
+>>> dev = swd.Swd()
 ```
 ### ST-Link version
 property with ST-Link version
@@ -113,13 +113,13 @@ Get MCU core ID
 '01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f'
 ```
 ### Fill memory
-`write_mem(address, size, pattern)`
+`write_mem(address, pattern, size)`
 #### Arguments:
 - address: address in memory
-- size: number of bytes to fill memory
 - pattern: list or iterable of bytes whic will be stored into memory
+- size: number of bytes to fill memory
 ```Python
->>> dev.fill_mem(0x20000300, 20, [5, 6, 7])
+>>> dev.fill_mem(0x20000300, [5, 6, 7], 20)
 >>> data = dev.read_mem(0x20000300, 20)
 >>> ' '.join(['%02x' % d for d in data])
 '05 06 07 05 06 07 05 06 07 05 06 07 05 06 07 05 06 07 05 06'

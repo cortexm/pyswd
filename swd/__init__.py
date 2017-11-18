@@ -1,3 +1,3 @@
 """Main module"""
 
-from swd.stlink import Stlink
+from swd.swd import Swd

@@ -1,15 +1,15 @@
 .PHONY: test install uninstall
 
-all: install
+all: test install
 
 test:
-	@echo TESTNG ..
+	@echo TESTING
 	@python3 -m unittest discover
 
-install: test
-	@echo INSTALLING ..
+install:
+	@echo INSTALLING
 	@pip3 install --upgrade .
 
 uninstall:
-	@echo UNINSTALLING ..
+	@echo UNINSTALLING
 	@pip3 uninstall pyswd
