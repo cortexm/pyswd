@@ -8,6 +8,7 @@ import swd
 import swd.stlink
 import swd.stlinkcom
 import swd.__about__
+import swd._log as _log
 
 
 class PyswdException(Exception):
@@ -62,33 +63,6 @@ def _configure_argparse():
     parser.add_argument("-f", "--freq", type=int, default=1800000, help="set SWD frequency")
     parser.add_argument('action', nargs='*', help='actions will be processed sequentially')
     return parser.parse_args()
-
-_LOG_FORMATER = '%(levelname)s:%(module)s.%(funcName)s:%(lineno)d: %(message)s'
-
-class _PyswdFormatter(logging.Formatter):
-    def format(self, record):
-        if record.levelno <= logging.DEBUG:
-            return logging.Formatter.format(self, record)
-        if record.levelno <= logging.INFO:
-            return record.getMessage()
-        if record.levelno <= logging.WARNING:
-            return "WARNING: %s" % record.getMessage()
-        return "ERROR: %s" % record.getMessage()
-
-def _configure_logger():
-    """Basic configuration of logger"""
-    logging.addLevelName(9, 'DEBUG1')
-    logging.addLevelName(8, 'DEBUG2')
-    logging.addLevelName(7, 'DEBUG3')
-    logging.addLevelName(6, 'DEBUG4')
-    logging.addLevelName(5, 'DEBUG5')
-    fmt = _PyswdFormatter(_LOG_FORMATER)
-    hdlr = logging.StreamHandler()
-    hdlr.setLevel(1)
-    hdlr.setFormatter(fmt)
-    logger = logging.Logger('pyswd')
-    logger.addHandler(hdlr)
-    return logger
 
 def chunks(data, chunk_size):
     """Yield chunks"""
@@ -166,9 +140,8 @@ def convert_numeric(num):
 class Application():
     """Application"""
 
-    def __init__(self, args, logger):
+    def __init__(self, args):
         """Application startup"""
-        self._logger = logger
         self._swd = None
         self._verbose = 0
         self._actions = args.action
@@ -176,22 +149,23 @@ class Application():
         if args.verbose is not None:
             self._verbose = args.verbose
         if args.quite:
-            self._logger.setLevel(logging.ERROR)
+            logging.basicConfig(level=logging.ERROR)
         elif args.debug is not None:
-            self._logger.setLevel(logging.DEBUG - (args.debug - 1))
+            logging.basicConfig(level=logging.DEBUG - (args.debug - 1))
         elif args.info is not None:
-            self._logger.setLevel(logging.INFO - (args.info - 1))
+            logging.basicConfig(level=logging.INFO - (args.info - 1))
         else:
-            self._logger.setLevel(logging.WARNING)
+            logging.basicConfig(level=logging.WARNING)
 
     def print_device_info(self):
         """Show device informations"""
-        self._logger.info(self._swd.get_version())
-        self._logger.info("Target voltage: %0.2fV", self._swd.get_target_voltage())
+        logging.info(self._swd.get_version())
+        logging.info("Target voltage: %0.2fV", self._swd.get_target_voltage())
         coreid = self._swd.get_coreid()
-        self._logger.info("COREID: 0x%08x", coreid)
+        logging.info("COREID: 0x%08x", coreid)
         if coreid == 0:
-            self._logger.warning("COREID is 0x%08x, probably no MCU is connected." % coreid)
+            logging.warning("COREID is 0x%08x, probably no MCU is connected.", coreid)
+
 
     def action_dump32(self, params):
         """Dump memory 32 bit"""
@@ -276,7 +250,7 @@ class Application():
     def process_actions(self):
         """Process all actions"""
         for action in self._actions:
-            self._logger.debug(action)
+            logging.debug(action)
             action_parts = action.split(":")
             action_name = "action_" + action_parts[0]
             if not hasattr(self, action_name):
@@ -286,25 +260,25 @@ class Application():
     def start(self):
         """Application start point"""
         try:
-            self._swd = swd.Swd(swd_frequency=self._swd_frequency, logger=self._logger)
+            self._swd = swd.Swd(swd_frequency=self._swd_frequency)
             self.print_device_info()
             self.process_actions()
         except swd.stlinkcom.StlinkComNotFound:
-            self._logger.error("ST-Link not connected.")
+            logging.error("ST-Link not connected.")
         except PyswdException as err:
-            self._logger.error("pyswd error: %s.", err)
+            logging.error("pyswd error: %s.", err)
         except swd.stlink.StlinkException as err:
-            self._logger.critical("Stlink error: %s.", err)
+            logging.critical("Stlink error: %s.", err)
         except swd.stlinkcom.StlinkComException as err:
-            self._logger.critical("StlinkCom error: %s.", err)
+            logging.critical("StlinkCom error: %s.", err)
         else:
             return 0
         return 1
 
 def main():
     """application startup"""
-    logger = _configure_logger()
+    _log.configure()
     args = _configure_argparse()
-    app = Application(args, logger)
+    app = Application(args)
     ret = app.start()
     exit(ret)

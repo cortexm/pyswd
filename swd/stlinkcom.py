@@ -2,6 +2,7 @@
 
 import logging as _logging
 import usb.core as _usb
+import swd._log as _log
 
 
 class StlinkComException(Exception):
@@ -22,27 +23,28 @@ class StlinkComV2Usb():
 
     _LOGGER_LEVEL3 = _logging.DEBUG - 3
 
-    def __init__(self, logger=None):
-        self._logger = logger
+    def __init__(self):
         self._dev = _usb.find(idVendor=self.ID_VENDOR, idProduct=self.ID_PRODUCT)
         if self._dev is None:
             raise StlinkComNotFound()
 
+    @_log.log(_log.DEBUG4)
     def write(self, data, tout=200):
         """Write data to USB pipe"""
-        self._logger.log(self._LOGGER_LEVEL3, "%s", ', '.join(['0x%02x' % i for i in data]))
+        # _logging.log(self._LOGGER_LEVEL3, "%s", ', '.join(['0x%02x' % i for i in data]))
         try:
             count = self._dev.write(self.PIPE_OUT, data, tout)
         except _usb.USBError as err:
             self._dev = None
             raise StlinkComException("USB Error: %s" % err)
-        self._logger.log(self._LOGGER_LEVEL3, "count=%d", count)
+        _logging.log(self._LOGGER_LEVEL3, "count=%d", count)
         if count != len(data):
             raise StlinkComException("Error Sending data")
 
+    @_log.log(_log.DEBUG4)
     def read(self, size, tout=200):
         """Read data from USB pipe"""
-        self._logger.log(self._LOGGER_LEVEL3, "size=%d", size)
+        _logging.log(self._LOGGER_LEVEL3, "size=%d", size)
         read_size = size
         if read_size < 64:
             read_size = 64
@@ -54,7 +56,7 @@ class StlinkComV2Usb():
         except _usb.USBError as err:
             self._dev = None
             raise StlinkComException("USB Error: %s" % err)
-        self._logger.log(self._LOGGER_LEVEL3, "%s", ', '.join(['0x%02x' % i for i in data]))
+        # _logging.log(self._LOGGER_LEVEL3, "%s", ', '.join(['0x%02x' % i for i in data]))
         return data
 
     def __del__(self):
@@ -76,14 +78,11 @@ class StlinkCom():
     _STLINK_CMD_SIZE = 16
     _COM_CLASSES = [StlinkComV2Usb, StlinkComV21Usb]
 
-    def __init__(self, logger=None):
-        if logger is None:
-            logger = _logging.Logger('stlink')
-        self._logger = logger
+    def __init__(self):
         self._dev = None
         for com_cls in self._COM_CLASSES:
             try:
-                self._dev = com_cls(logger=self._logger)
+                self._dev = com_cls()
                 break
             except StlinkComNotFound:
                 continue
@@ -95,6 +94,7 @@ class StlinkCom():
         """property with device version"""
         return self._dev.DEV_NAME
 
+    @_log.log(_log.DEBUG3)
     def xfer(self, command, data=None, rx_length=0, tout=200):
         """Transfer command between ST-Link
 
