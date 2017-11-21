@@ -161,11 +161,8 @@ class Application():
         """Show device informations"""
         logging.info(self._swd.get_version())
         logging.info("Target voltage: %0.2fV", self._swd.get_target_voltage())
-        coreid = self._swd.get_coreid()
-        logging.info("COREID: 0x%08x", coreid)
-        if coreid == 0:
-            logging.warning("COREID is 0x%08x, probably no MCU is connected.", coreid)
-
+        if self._swd.get_coreid() == 0:
+            logging.warning("No COREID, probably MCU is not connected.")
 
     def action_dump32(self, params):
         """Dump memory 32 bit"""
