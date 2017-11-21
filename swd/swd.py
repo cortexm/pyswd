@@ -33,13 +33,13 @@ class Swd():
         return self._drv.get_target_voltage()
 
     @_log.log(_log.DEBUG1)
-    def get_coreid(self):
+    def get_idcode(self):
         """Get core ID from MCU
 
         Return:
             32 bit number
         """
-        return self._drv.get_coreid()
+        return self._drv.get_idcode()
 
     @_log.log(_log.DEBUG1)
     def get_reg(self, register):

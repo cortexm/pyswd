@@ -128,13 +128,13 @@ class TestStlinkGetCoreid(_TestStlink):
     def test(self):
         """test getting ore id"""
         self._com.xfer_mock.set_return_data([
-            [0x77, 0x14, 0xb1, 0x0b],
+            [0x80, 0x00, 0x55, 0x55, 0x77, 0x14, 0xb1, 0x0b, 0x00, 0x00, 0x00, 0x00],
         ])
-        coreid = self._stlink.get_coreid()
+        idcode = self._stlink.get_idcode()
         self.assertEqual(self._com.xfer_mock.get_call_log(), [
-            {'command': [0xf2, 0x22], 'data': None, 'rx_length': 4, 'tout': 200},
+            {'command': [0xf2, 0x31], 'data': None, 'rx_length': 12, 'tout': 200},
         ])
-        self.assertEqual(coreid, 0xbb11477)
+        self.assertEqual(idcode, 0xbb11477)
 
 
 class TestStlinkGetReg(_TestStlink):

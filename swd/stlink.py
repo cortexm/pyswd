@@ -214,7 +214,7 @@ class Stlink():
         return round(2 * an1 * 1.2 / an0, 2) if an0 != 0 else None
 
     @_log.log(_log.DEBUG2)
-    def get_coreid(self):
+    def get_idcode(self):
         """Get core ID from MCU
 
         Return:
@@ -222,9 +222,9 @@ class Stlink():
         """
         cmd = [
             Stlink._STLINK_DEBUG_COMMAND,
-            Stlink._STLINK_DEBUG_READCOREID]
-        res = self._com.xfer(cmd, rx_length=4)
-        return int.from_bytes(res[:4], byteorder='little')
+            Stlink._STLINK_DEBUG_A2_READ_IDCODES]
+        res = self._com.xfer(cmd, rx_length=12)
+        return int.from_bytes(res[4:8], byteorder='little')
 
     @_log.log(_log.DEBUG2)
     def get_reg(self, register):

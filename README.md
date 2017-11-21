@@ -47,7 +47,7 @@ pip3 uninstall pyswd
 ```
 ### ST-Link version
 property with ST-Link version
-#### Return
+#### Return:
   instance of StlinkVersion
 ```Python
 >>> dev.version.str
@@ -55,18 +55,18 @@ property with ST-Link version
 ```
 ### Target voltage
 Get target voltage measured by ST-Link
-#### Return
+#### Return:
   float target voltage in volts
 ```Python
 >>> dev.get_target_voltage()
 3.21
 ```
-### Core ID
-Get MCU core ID
-#### Return
-  32bit unsigned with core ID
+### ID code
+Get MCU ID code
+#### Return:
+  32bit unsigned with ID code
 ```Python
->>> hex(dev.get_coreid())
+>>> hex(dev.get_idcode())
 '0xbb11477'
 ```
 ### Get memory register
@@ -127,9 +127,9 @@ Get MCU core ID
 ### Read core register
 `get_reg(register)`
 On CortexM platform this will work only if program is halted
-#### Arguments
+#### Arguments:
 - register: is numeric coded register (e.g. 0: R0, 1: R1, ...)
-#### Return
+#### Return:
   32bit unsigned data
 ```Python
 >>> hex(dev.get_reg(1))
@@ -138,7 +138,7 @@ On CortexM platform this will work only if program is halted
 ### Write core register
 `get_reg(register)`
 On CortexM platform this will work only if program is halted
-#### Arguments
+#### Arguments:
 - register: is numeric coded register (e.g. 0: R0, 1: R1, ...)
 - data: 32bit unsigned data
 ```Python
