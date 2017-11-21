@@ -1,6 +1,5 @@
 """ST-Link/V2 driver"""
 
-# import itertools as _itertools
 from swd.stlinkcom import StlinkCom as _StlinkCom
 import swd._log as _log
 
@@ -8,68 +7,86 @@ import swd._log as _log
 class StlinkException(Exception):
     """Exception"""
 
+
 class Stlink():
     """ST-Link class"""
-    _STLINK_GET_VERSION = 0xf1
-    _STLINK_DEBUG_COMMAND = 0xf2
-    _STLINK_DFU_COMMAND = 0xf3
-    _STLINK_SWIM_COMMAND = 0xf4
-    _STLINK_GET_CURRENT_MODE = 0xf5
-    _STLINK_GET_TARGET_VOLTAGE = 0xf7
 
-    _STLINK_MODE_DFU = 0x00
-    _STLINK_MODE_MASS = 0x01
-    _STLINK_MODE_DEBUG = 0x02
-    _STLINK_MODE_SWIM = 0x03
-    _STLINK_MODE_BOOTLOADER = 0x04
 
-    _STLINK_DFU_EXIT = 0x07
+    class _Cmd():
+        """Stlink commands"""
+        GET_VERSION = 0xf1
+        GET_CURRENT_MODE = 0xf5
+        GET_TARGET_VOLTAGE = 0xf7
 
-    _STLINK_SWIM_ENTER = 0x00
-    _STLINK_SWIM_EXIT = 0x01
+        class Mode():
+            """Stlink commands"""
+            DFU = 0x00
+            MASS = 0x01
+            DEBUG = 0x02
+            SWIM = 0x03
+            BOOTLOADER = 0x04
 
-    _STLINK_DEBUG_ENTER_JTAG = 0x00
-    _STLINK_DEBUG_STATUS = 0x01
-    _STLINK_DEBUG_FORCEDEBUG = 0x02
-    _STLINK_DEBUG_A1_RESETSYS = 0x03
-    _STLINK_DEBUG_A1_READALLREGS = 0x04
-    _STLINK_DEBUG_A1_READREG = 0x05
-    _STLINK_DEBUG_A1_WRITEREG = 0x06
-    _STLINK_DEBUG_READMEM_32BIT = 0x07
-    _STLINK_DEBUG_WRITEMEM_32BIT = 0x08
-    _STLINK_DEBUG_RUNCORE = 0x09
-    _STLINK_DEBUG_STEPCORE = 0x0a
-    _STLINK_DEBUG_A1_SETFP = 0x0b
-    _STLINK_DEBUG_READMEM_8BIT = 0x0c
-    _STLINK_DEBUG_WRITEMEM_8BIT = 0x0d
-    _STLINK_DEBUG_A1_CLEARFP = 0x0e
-    _STLINK_DEBUG_A1_WRITEDEBUGREG = 0x0f
-    _STLINK_DEBUG_A1_SETWATCHPOINT = 0x10
-    _STLINK_DEBUG_A1_ENTER = 0x20
-    _STLINK_DEBUG_EXIT = 0x21
-    _STLINK_DEBUG_READCOREID = 0x22
-    _STLINK_DEBUG_A2_ENTER = 0x30
-    _STLINK_DEBUG_A2_READ_IDCODES = 0x31
-    _STLINK_DEBUG_A2_RESETSYS = 0x32
-    _STLINK_DEBUG_A2_READREG = 0x33
-    _STLINK_DEBUG_A2_WRITEREG = 0x34
-    _STLINK_DEBUG_A2_WRITEDEBUGREG = 0x35
-    _STLINK_DEBUG_A2_READDEBUGREG = 0x36
-    _STLINK_DEBUG_A2_READALLREGS = 0x3a
-    _STLINK_DEBUG_A2_GETLASTRWSTAT = 0x3b
-    _STLINK_DEBUG_A2_DRIVE_NRST = 0x3c
-    _STLINK_DEBUG_SYNC = 0x3e
-    _STLINK_DEBUG_A2_START_TRACE_RX = 0x40
-    _STLINK_DEBUG_A2_STOP_TRACE_RX = 0x41
-    _STLINK_DEBUG_A2_GET_TRACE_NB = 0x42
-    _STLINK_DEBUG_A2_SWD_SET_FREQ = 0x43
-    _STLINK_DEBUG_ENTER_SWD = 0xa3
+        class Dfu():
+            """Stlink commands"""
+            COMMAND = 0xf3
+            EXIT = 0x07
 
-    _STLINK_DEBUG_A2_NRST_LOW = 0x00
-    _STLINK_DEBUG_A2_NRST_HIGH = 0x01
-    _STLINK_DEBUG_A2_NRST_PULSE = 0x02
+        class Swim():
+            """Stlink commands"""
+            COMMAND = 0xf4
+            ENTER = 0x00
+            EXIT = 0x01
 
-    _STLINK_DEBUG_A2_SWD_FREQ = (
+        class Debug():
+            """Stlink commands"""
+            COMMAND = 0xf2
+            ENTER_JTAG = 0x00
+            STATUS = 0x01
+            FORCEDEBUG = 0x02
+            READMEM_32BIT = 0x07
+            WRITEMEM_32BIT = 0x08
+            RUNCORE = 0x09
+            STEPCORE = 0x0a
+            READMEM_8BIT = 0x0c
+            WRITEMEM_8BIT = 0x0d
+            EXIT = 0x21
+            READCOREID = 0x22
+            SYNC = 0x3e
+            ENTER_SWD = 0xa3
+
+            class Apiv1():
+                """Stlink commands"""
+                RESETSYS = 0x03
+                READALLREGS = 0x04
+                READREG = 0x05
+                WRITEREG = 0x06
+                SETFP = 0x0b
+                CLEARFP = 0x0e
+                WRITEDEBUGREG = 0x0f
+                SETWATCHPOINT = 0x10
+                ENTER = 0x20
+
+            class Apiv2():
+                """Stlink commands"""
+                ENTER = 0x30
+                READ_IDCODES = 0x31
+                RESETSYS = 0x32
+                READREG = 0x33
+                WRITEREG = 0x34
+                WRITEDEBUGREG = 0x35
+                READDEBUGREG = 0x36
+                READALLREGS = 0x3a
+                GETLASTRWSTAT = 0x3b
+                DRIVE_NRST = 0x3c
+                START_TRACE_RX = 0x40
+                STOP_TRACE_RX = 0x41
+                GET_TRACE_NB = 0x42
+                SWD_SET_FREQ = 0x43
+                NRST_LOW = 0x00
+                NRST_HIGH = 0x01
+                NRST_PULSE = 0x02
+
+    _SWD_FREQ = (
         (4000000, 0, ),
         (1800000, 1, ),   # default
         (1200000, 2, ),
@@ -154,30 +171,30 @@ class Stlink():
 
     @_log.log(_log.DEBUG3)
     def _get_version(self):
-        res = self._com.xfer([Stlink._STLINK_GET_VERSION, 0x80], rx_length=6)
+        res = self._com.xfer([Stlink._Cmd.GET_VERSION, 0x80], rx_length=6)
         ver = int.from_bytes(res[:2], byteorder='big')
         return Stlink.StlinkVersion(self._com.version, ver)
 
     @_log.log(_log.DEBUG3)
     def _leave_state(self):
-        res = self._com.xfer([Stlink._STLINK_GET_CURRENT_MODE], rx_length=2)
-        if res[0] == Stlink._STLINK_MODE_DFU:
-            cmd = [Stlink._STLINK_DFU_COMMAND, Stlink._STLINK_DFU_EXIT]
-        elif res[0] == Stlink._STLINK_MODE_DEBUG:
-            cmd = [Stlink._STLINK_DEBUG_COMMAND, Stlink._STLINK_DEBUG_EXIT]
-        elif res[0] == Stlink._STLINK_MODE_SWIM:
-            cmd = [Stlink._STLINK_SWIM_COMMAND, Stlink._STLINK_SWIM_EXIT]
+        res = self._com.xfer([Stlink._Cmd.GET_CURRENT_MODE], rx_length=2)
+        if res[0] == Stlink._Cmd.Mode.DFU:
+            cmd = [Stlink._Cmd.Dfu.COMMAND, Stlink._Cmd.Dfu.EXIT]
+        elif res[0] == Stlink._Cmd.Mode.DEBUG:
+            cmd = [Stlink._Cmd.Debug.COMMAND, Stlink._Cmd.Debug.EXIT]
+        elif res[0] == Stlink._Cmd.Mode.SWIM:
+            cmd = [Stlink._Cmd.Swim.COMMAND, Stlink._Cmd.Swim.EXIT]
         else:
             return
         self._com.xfer(cmd)
 
     @_log.log(_log.DEBUG3)
     def _set_swd_freq(self, frequency=1800000):
-        for freq, data in Stlink._STLINK_DEBUG_A2_SWD_FREQ:
+        for freq, data in Stlink._SWD_FREQ:
             if frequency >= freq:
                 cmd = [
-                    Stlink._STLINK_DEBUG_COMMAND,
-                    Stlink._STLINK_DEBUG_A2_SWD_SET_FREQ,
+                    Stlink._Cmd.Debug.COMMAND,
+                    Stlink._Cmd.Debug.Apiv2.SWD_SET_FREQ,
                     data]
                 res = self._com.xfer(cmd, rx_length=2)
                 if res[0] != 0x80:
@@ -188,9 +205,9 @@ class Stlink():
     @_log.log(_log.DEBUG3)
     def _enter_debug_swd(self):
         cmd = [
-            Stlink._STLINK_DEBUG_COMMAND,
-            Stlink._STLINK_DEBUG_A2_ENTER,
-            Stlink._STLINK_DEBUG_ENTER_SWD]
+            Stlink._Cmd.Debug.COMMAND,
+            Stlink._Cmd.Debug.Apiv2.ENTER,
+            Stlink._Cmd.Debug.ENTER_SWD]
         self._com.xfer(cmd, rx_length=2)
 
     def get_version(self):
@@ -208,7 +225,7 @@ class Stlink():
         Return:
             measured voltage
         """
-        res = self._com.xfer([Stlink._STLINK_GET_TARGET_VOLTAGE], rx_length=8)
+        res = self._com.xfer([Stlink._Cmd.GET_TARGET_VOLTAGE], rx_length=8)
         an0 = int.from_bytes(res[:4], byteorder='little')
         an1 = int.from_bytes(res[4:8], byteorder='little')
         return round(2 * an1 * 1.2 / an0, 2) if an0 != 0 else None
@@ -221,8 +238,8 @@ class Stlink():
             32 bit number
         """
         cmd = [
-            Stlink._STLINK_DEBUG_COMMAND,
-            Stlink._STLINK_DEBUG_A2_READ_IDCODES]
+            Stlink._Cmd.Debug.COMMAND,
+            Stlink._Cmd.Debug.Apiv2.READ_IDCODES]
         res = self._com.xfer(cmd, rx_length=12)
         return int.from_bytes(res[4:8], byteorder='little')
 
@@ -241,8 +258,8 @@ class Stlink():
             32 bit number
         """
         cmd = [
-            Stlink._STLINK_DEBUG_COMMAND,
-            Stlink._STLINK_DEBUG_A2_READREG,
+            Stlink._Cmd.Debug.COMMAND,
+            Stlink._Cmd.Debug.Apiv2.READREG,
             register]
         res = self._com.xfer(cmd, rx_length=8)
         return int.from_bytes(res[4:8], byteorder='little')
@@ -260,8 +277,8 @@ class Stlink():
             data: 32 bit number
         """
         cmd = [
-            Stlink._STLINK_DEBUG_COMMAND,
-            Stlink._STLINK_DEBUG_A2_WRITEREG,
+            Stlink._Cmd.Debug.COMMAND,
+            Stlink._Cmd.Debug.Apiv2.WRITEREG,
             register]
         cmd.extend(list(data.to_bytes(4, byteorder='little')))
         self._com.xfer(cmd, rx_length=2)
@@ -281,8 +298,8 @@ class Stlink():
         if address % 4:
             raise StlinkException('Address is not aligned to 4 Bytes')
         cmd = [
-            Stlink._STLINK_DEBUG_COMMAND,
-            Stlink._STLINK_DEBUG_A2_READDEBUGREG]
+            Stlink._Cmd.Debug.COMMAND,
+            Stlink._Cmd.Debug.Apiv2.READDEBUGREG]
         cmd.extend(list(address.to_bytes(4, byteorder='little')))
         res = self._com.xfer(cmd, rx_length=8)
         return int.from_bytes(res[4:8], byteorder='little')
@@ -300,8 +317,8 @@ class Stlink():
         if address % 4:
             raise StlinkException('Address is not aligned to 4 Bytes')
         cmd = [
-            Stlink._STLINK_DEBUG_COMMAND,
-            Stlink._STLINK_DEBUG_A2_WRITEDEBUGREG]
+            Stlink._Cmd.Debug.COMMAND,
+            Stlink._Cmd.Debug.Apiv2.WRITEDEBUGREG]
         cmd.extend(list(address.to_bytes(4, byteorder='little')))
         cmd.extend(list(data.to_bytes(4, byteorder='little')))
         self._com.xfer(cmd, rx_length=2)
@@ -323,7 +340,7 @@ class Stlink():
             raise StlinkException(
                 'Too many Bytes to read (maximum is %d Bytes)'
                 % Stlink.MAXIMUM_8BIT_DATA)
-        cmd = [Stlink._STLINK_DEBUG_COMMAND, Stlink._STLINK_DEBUG_READMEM_8BIT]
+        cmd = [Stlink._Cmd.Debug.COMMAND, Stlink._Cmd.Debug.READMEM_8BIT]
         cmd.extend(list(address.to_bytes(4, byteorder='little')))
         cmd.extend(list(size.to_bytes(4, byteorder='little')))
         return self._com.xfer(cmd, rx_length=size)
@@ -342,7 +359,7 @@ class Stlink():
             raise StlinkException(
                 'Too many Bytes to write (maximum is %d Bytes)'
                 % Stlink.MAXIMUM_8BIT_DATA)
-        cmd = [Stlink._STLINK_DEBUG_COMMAND, Stlink._STLINK_DEBUG_WRITEMEM_8BIT]
+        cmd = [Stlink._Cmd.Debug.COMMAND, Stlink._Cmd.Debug.WRITEMEM_8BIT]
         cmd.extend(list(address.to_bytes(4, byteorder='little')))
         cmd.extend(list(len(data).to_bytes(4, byteorder='little')))
         self._com.xfer(cmd, data=data)
@@ -370,8 +387,8 @@ class Stlink():
                 'Too many Bytes to read (maximum is %d Bytes)'
                 % Stlink.MAXIMUM_32BIT_DATA)
         cmd = [
-            Stlink._STLINK_DEBUG_COMMAND,
-            Stlink._STLINK_DEBUG_READMEM_32BIT]
+            Stlink._Cmd.Debug.COMMAND,
+            Stlink._Cmd.Debug.READMEM_32BIT]
         cmd.extend(list(address.to_bytes(4, byteorder='little')))
         cmd.extend(list(size.to_bytes(4, byteorder='little')))
         return self._com.xfer(cmd, rx_length=size)
@@ -396,8 +413,8 @@ class Stlink():
                 'Too many Bytes to write (maximum is %d Bytes)'
                 % Stlink.MAXIMUM_32BIT_DATA)
         cmd = [
-            Stlink._STLINK_DEBUG_COMMAND,
-            Stlink._STLINK_DEBUG_WRITEMEM_32BIT]
+            Stlink._Cmd.Debug.COMMAND,
+            Stlink._Cmd.Debug.WRITEMEM_32BIT]
         cmd.extend(list(address.to_bytes(4, byteorder='little')))
         cmd.extend(list(len(data).to_bytes(4, byteorder='little')))
         self._com.xfer(cmd, data=data)
