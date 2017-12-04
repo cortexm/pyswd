@@ -27,6 +27,9 @@ list of available actions:
   dump:{addr}[:{size}]      print content of memory 32 bit register or 8 bit dump
 
   set8:{addr}:{data}[:{data}..]     set 8 bit memory
+  set16:{addr}:{data}[:{data}..]    set 16 bit memory
+  set32:{addr}:{data}[:{data}..]    set 32 bit memory
+  set:{addr}:{data}[:{data}..]      set 32 bit memory register or 8 bit memory area
 
   fill8:{addr}:{size}:{pattern}     fill memory with 8 bit pattern
 
@@ -36,9 +39,6 @@ list of available actions:
 #   dump:core                 print content of core registers (R1, R2, ..)
 #   dump:{reg_name}           print content of core register (R1, R2, ..)
 #   set:{reg}:{data}                  set core register (halt core)
-#   set:{addr}:{data}[:{data}..]      set 32 bit memory
-#   set16:{addr}:{data}[:{data}..]    set 16 bit memory
-#   set32:{addr}:{data}[:{data}..]    set 32 bit memory
 #   fill:{addr}:{size}:{pattern}      fill memory with 8 bit pattern
 #   fill16:{addr}:{size}:{pattern}    fill memory with 16 bit pattern
 #   fill32:{addr}:{size}:{pattern}    fill memory with 32 bit pattern
@@ -227,13 +227,47 @@ class Application():
         else:
             raise PyswdException("dump: too many parameters")
 
+    def action_set32(self, params):
+        """Fill memory with data"""
+        if len(params) < 2:
+            raise PyswdException("set: require at least 2 parameters")
+        addr = convert_numeric(params[0])
+        if addr % 4 == 0 and len(params) == 2:
+            self._swd.set_mem32(addr, int(params[1], 0))
+        else:
+            data = []
+            for i in params[1:]:
+                data.extend(int(i, 0).to_bytes(4, byteorder='little'))
+            self._swd.write_mem(addr, data)
+
+    def action_set16(self, params):
+        """Fill memory with data"""
+        if len(params) < 2:
+            raise PyswdException("set: require at least 2 parameters")
+        addr = convert_numeric(params[0])
+        data = []
+        for i in params[1:]:
+            data.extend(int(i, 0).to_bytes(2, byteorder='little'))
+        self._swd.write_mem(addr, data)
+
     def action_set8(self, params):
         """Fill memory with data"""
         if len(params) < 2:
-            raise PyswdException("set: require at least 3 parameters")
+            raise PyswdException("set: require at least 2 parameters")
         addr = convert_numeric(params[0])
         data = [int(i, 0) for i in params[1:]]
         self._swd.write_mem(addr, data)
+
+    def action_set(self, params):
+        """Dump memory"""
+        if not params:
+            raise PyswdException("set: no parameters")
+        if len(params) == 2:
+            self.action_set32(params)
+        elif len(params) > 2:
+            self.action_set8(params)
+        else:
+            raise PyswdException("set: too many parameters")
 
     def action_fill8(self, params):
         """Fill memory with pattern"""
