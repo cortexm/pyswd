@@ -31,32 +31,27 @@ class StlinkComV2Usb():
     @_log.log(_log.DEBUG4)
     def write(self, data, tout=200):
         """Write data to USB pipe"""
-        # _logging.log(self._LOGGER_LEVEL3, "%s", ', '.join(['0x%02x' % i for i in data]))
+        _logging.log(_log.DEBUG4, "%s", ', '.join(['0x%02x' % i for i in data]))
         try:
             count = self._dev.write(self.PIPE_OUT, data, tout)
         except _usb.USBError as err:
             self._dev = None
             raise StlinkComException("USB Error: %s" % err)
-        _logging.log(self._LOGGER_LEVEL3, "count=%d", count)
+        _logging.log(_log.DEBUG4, "count=%d", count)
         if count != len(data):
             raise StlinkComException("Error Sending data")
 
     @_log.log(_log.DEBUG4)
     def read(self, size, tout=200):
         """Read data from USB pipe"""
-        _logging.log(self._LOGGER_LEVEL3, "size=%d", size)
         read_size = size
-        if read_size < 64:
-            read_size = 64
-        elif read_size % 4:
-            read_size += 3
-            read_size &= 0xffc
+        _logging.log(_log.DEBUG4, "size=%d, read_size=%d", size, read_size)
         try:
             data = self._dev.read(self.PIPE_IN, read_size, tout).tolist()[:size]
         except _usb.USBError as err:
             self._dev = None
             raise StlinkComException("USB Error: %s" % err)
-        # _logging.log(self._LOGGER_LEVEL3, "%s", ', '.join(['0x%02x' % i for i in data]))
+        _logging.log(_log.DEBUG4, "%s", ', '.join(['0x%02x' % i for i in data]))
         return data
 
     def __del__(self):

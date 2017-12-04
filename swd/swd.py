@@ -97,6 +97,18 @@ class Swd():
         """
         self._drv.set_mem32(address, data)
 
+    def _get_chunk_size_to_align_size(self, address, size):
+        if size > self._drv.MAXIMUM_8BIT_DATA:
+            return min(size, self._drv.MAXIMUM_8BIT_DATA - (address % 4))
+        return size
+
+    def _get_chunk_size_to_align_address(self, address, size):
+        if address % 4:
+            if size == self._drv.MAXIMUM_8BIT_DATA:
+                return size
+            return min(size, self._drv.MAXIMUM_8BIT_DATA - (address % 4))
+        return 0
+
     @_log.log(_log.DEBUG1)
     def read_mem(self, address, size):
         """Read bytes memory
@@ -110,11 +122,14 @@ class Swd():
         Return:
             iterable of read data
         """
+        chunk_size = self._get_chunk_size_to_align_address(address, size)
+        if chunk_size:
+            yield from self._drv.read_mem8(address, chunk_size)
+            address += chunk_size
+            size -= chunk_size
         while size:
             chunk_size = size
-            if address % 4 or (chunk_size < self._drv.MAXIMUM_8BIT_DATA and chunk_size % 4):
-                if chunk_size > 64:
-                    chunk_size = min(chunk_size, self._drv.MAXIMUM_8BIT_DATA - (address % 4))
+            if chunk_size < self._drv.MAXIMUM_8BIT_DATA and chunk_size % 4:
                 yield from self._drv.read_mem8(address, chunk_size)
             else:
                 chunk_size = min(chunk_size, self._drv.MAXIMUM_32BIT_DATA)
@@ -175,7 +190,8 @@ class Swd():
         while size:
             chunk_size = size
             if address % 4 or (chunk_size < self._drv.MAXIMUM_8BIT_DATA and chunk_size % 4):
-                chunk_size = min(chunk_size, self._drv.MAXIMUM_8BIT_DATA - (address % 4))
+                if chunk_size > self._drv.MAXIMUM_8BIT_DATA:
+                    chunk_size = min(chunk_size, self._drv.MAXIMUM_8BIT_DATA - (address % 4))
                 self._drv.write_mem8(address, data[index:index + chunk_size])
             else:
                 chunk_size = min(chunk_size, self._drv.MAXIMUM_32BIT_DATA)

@@ -105,7 +105,7 @@ class Stlink():
     _STLINK_MAXIMUM_TRANSFER_SIZE = 1024
     _STLINK_MAXIMUM_8BIT_DATA = 64
 
-    MAXIMUM_8BIT_DATA = _STLINK_MAXIMUM_8BIT_DATA
+    MAXIMUM_8BIT_DATA = 4
     MAXIMUM_32BIT_DATA = _STLINK_MAXIMUM_TRANSFER_SIZE
 
 
@@ -336,10 +336,10 @@ class Stlink():
         Return:
             list of read data
         """
-        if size > Stlink.MAXIMUM_8BIT_DATA:
+        if size > Stlink._STLINK_MAXIMUM_8BIT_DATA:
             raise StlinkException(
                 'Too many Bytes to read (maximum is %d Bytes)'
-                % Stlink.MAXIMUM_8BIT_DATA)
+                % Stlink._STLINK_MAXIMUM_8BIT_DATA)
         cmd = [Stlink._Cmd.Debug.COMMAND, Stlink._Cmd.Debug.READMEM_8BIT]
         cmd.extend(list(address.to_bytes(4, byteorder='little')))
         cmd.extend(list(size.to_bytes(4, byteorder='little')))
@@ -355,10 +355,10 @@ class Stlink():
             address: address in memory
             data: list of bytes to write into memory
         """
-        if len(data) > Stlink.MAXIMUM_8BIT_DATA:
+        if len(data) > Stlink._STLINK_MAXIMUM_8BIT_DATA:
             raise StlinkException(
                 'Too many Bytes to write (maximum is %d Bytes)'
-                % Stlink.MAXIMUM_8BIT_DATA)
+                % Stlink._STLINK_MAXIMUM_8BIT_DATA)
         cmd = [Stlink._Cmd.Debug.COMMAND, Stlink._Cmd.Debug.WRITEMEM_8BIT]
         cmd.extend(list(address.to_bytes(4, byteorder='little')))
         cmd.extend(list(len(data).to_bytes(4, byteorder='little')))
@@ -382,10 +382,10 @@ class Stlink():
             raise StlinkException('Address is not aligned to 4 Bytes')
         if size % 4:
             raise StlinkException('Size is not aligned to 4 Bytes')
-        if size > Stlink.MAXIMUM_32BIT_DATA:
+        if size > Stlink._STLINK_MAXIMUM_TRANSFER_SIZE:
             raise StlinkException(
                 'Too many Bytes to read (maximum is %d Bytes)'
-                % Stlink.MAXIMUM_32BIT_DATA)
+                % Stlink._STLINK_MAXIMUM_TRANSFER_SIZE)
         cmd = [
             Stlink._Cmd.Debug.COMMAND,
             Stlink._Cmd.Debug.READMEM_32BIT]
@@ -408,10 +408,10 @@ class Stlink():
             raise StlinkException('Address is not aligned to 4 Bytes')
         if len(data) % 4:
             raise StlinkException('Size is not aligned to 4 Bytes')
-        if len(data) > Stlink.MAXIMUM_32BIT_DATA:
+        if len(data) > Stlink._STLINK_MAXIMUM_TRANSFER_SIZE:
             raise StlinkException(
                 'Too many Bytes to write (maximum is %d Bytes)'
-                % Stlink.MAXIMUM_32BIT_DATA)
+                % Stlink._STLINK_MAXIMUM_TRANSFER_SIZE)
         cmd = [
             Stlink._Cmd.Debug.COMMAND,
             Stlink._Cmd.Debug.WRITEMEM_32BIT]
