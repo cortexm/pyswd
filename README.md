@@ -172,14 +172,19 @@ action                actions will be processed sequentially
 ````
 ### List of available actions:
 ```
-dump8:{addr}[:{size}]     print content of memory 8 bit register or dump
-dump16:{addr}[:{size}]    print content of memory 16 bit register or dump
-dump32:{addr}[:{size}]    print content of memory 32 bit register or dump
-dump:{addr}[:{size}]      print content of memory 32 bit register or 8 bit dump
+  dump8:{addr}[:{size}]     print content of memory 8 bit register or dump
+  dump16:{addr}[:{size}]    print content of memory 16 bit register or dump
+  dump32:{addr}[:{size}]    print content of memory 32 bit register or dump
+  dump:{addr}[:{size}]      print content of memory 32 bit register or 8 bit dump
 
-set8:{addr}:{data}[:{data}..]     set 8 bit memory
+  set8:{addr}:{data}[:{data}..]     set 8 bit memory
+  set16:{addr}:{data}[:{data}..]    set 16 bit memory
+  set32:{addr}:{data}[:{data}..]    set 32 bit memory
+  set:{addr}:{data}[:{data}..]      set 32 bit memory register or 8 bit memory area
 
-fill8:{addr}:{size}:{pattern}     fill memory with 8 bit pattern
+  fill8:{addr}:{size}:{pattern}     fill memory with 8 bit pattern
+
+  sleep:{seconds}           sleep (float) - insert delay between commands
 ```
 (numerical values can be in different formats, like: 42, 0x2a, 0o52, 0b101010, 32K, 1M, ..)
 

@@ -1,6 +1,7 @@
 """Application"""
 
 import sys
+import time
 import argparse
 import logging
 import itertools
@@ -32,6 +33,8 @@ list of available actions:
   set:{addr}:{data}[:{data}..]      set 32 bit memory register or 8 bit memory area
 
   fill8:{addr}:{size}:{pattern}     fill memory with 8 bit pattern
+
+  sleep:{seconds}           sleep (float) - insert delay between commands
 
   (numerical values can be in different formats, like: 42, 0x2a, 0o52, 0b101010, 32K, 1M, ..)
 """
@@ -181,7 +184,7 @@ class Application():
     def action_dump32(self, params):
         """Dump memory 32 bit"""
         if not params:
-            raise PyswdException("dump32: no parameters")
+            raise PyswdException("no parameters")
         addr = convert_numeric(params[0])
         if len(params) == 1:
             if addr % 4:
@@ -196,12 +199,12 @@ class Application():
             data = self._swd.read_mem(addr, size)
             print_buffer(addr, data, hex_line32, verbose=self._verbose)
         else:
-            raise PyswdException("dump32: too many parameters")
+            raise PyswdException("too many parameters")
 
     def action_dump16(self, params):
         """Dump memory 16 bit"""
         if not params:
-            raise PyswdException("dump16: no parameters")
+            raise PyswdException("no parameters")
         addr = convert_numeric(params[0])
         if len(params) == 1:
             data = self._swd.read_mem(addr, 2)
@@ -213,12 +216,12 @@ class Application():
             data = self._swd.read_mem(addr, size)
             print_buffer(addr, data, hex_line16, verbose=self._verbose)
         else:
-            raise PyswdException("dump16: too many parameters")
+            raise PyswdException("too many parameters")
 
     def action_dump8(self, params):
         """Dump memory 8 bit"""
         if not params:
-            raise PyswdException("dump: no parameters")
+            raise PyswdException("no parameters")
         addr = convert_numeric(params[0])
         if len(params) == 1:
             data = self._swd.read_mem(addr, 1)
@@ -228,23 +231,23 @@ class Application():
             data = self._swd.read_mem(addr, size)
             print_buffer(addr, data, hex_line8, verbose=self._verbose)
         else:
-            raise PyswdException("dump: too many parameters")
+            raise PyswdException("too many parameters")
 
     def action_dump(self, params):
         """Dump memory"""
         if not params:
-            raise PyswdException("dump: no parameters")
+            raise PyswdException("no parameters")
         if len(params) == 1:
             self.action_dump32(params)
         elif len(params) == 2:
             self.action_dump8(params)
         else:
-            raise PyswdException("dump: too many parameters")
+            raise PyswdException("too many parameters")
 
     def action_set32(self, params):
         """Fill memory with data"""
         if len(params) < 2:
-            raise PyswdException("set: require at least 2 parameters")
+            raise PyswdException("require at least 2 parameters")
         addr = convert_numeric(params[0])
         if addr % 4 == 0 and len(params) == 2:
             self._swd.set_mem32(addr, convert_numeric(params[1], 32))
@@ -257,7 +260,7 @@ class Application():
     def action_set16(self, params):
         """Fill memory with data"""
         if len(params) < 2:
-            raise PyswdException("set: require at least 2 parameters")
+            raise PyswdException("require at least 2 parameters")
         addr = convert_numeric(params[0])
         data = []
         for i in params[1:]:
@@ -267,7 +270,7 @@ class Application():
     def action_set8(self, params):
         """Fill memory with data"""
         if len(params) < 2:
-            raise PyswdException("set: require at least 2 parameters")
+            raise PyswdException("require at least 2 parameters")
         addr = convert_numeric(params[0])
         data = [convert_numeric(i, 8) for i in params[1:]]
         self._swd.write_mem(addr, data)
@@ -275,22 +278,35 @@ class Application():
     def action_set(self, params):
         """Dump memory"""
         if not params:
-            raise PyswdException("set: no parameters")
+            raise PyswdException("no parameters")
         if len(params) == 2:
             self.action_set32(params)
         elif len(params) > 2:
             self.action_set8(params)
         else:
-            raise PyswdException("set: too many parameters")
+            raise PyswdException("too many parameters")
 
     def action_fill8(self, params):
         """Fill memory with pattern"""
         if len(params) < 3:
-            raise PyswdException("fill: require at least 3 parameters")
+            raise PyswdException("require at least 3 parameters")
         addr = convert_numeric(params[0])
         size = convert_numeric(params[1])
         pattern = [convert_numeric(i, 8) for i in params[2:]]
         self._swd.fill_mem(addr, pattern, size)
+
+    @staticmethod
+    def action_sleep(params):
+        """Wait selected time and then continue"""
+        if not params:
+            time.sleep(1)
+        elif len(params) > 1:
+            raise PyswdException("too many parameters")
+        else:
+            try:
+                time.sleep(float(params[0]))
+            except ValueError:
+                raise PyswdException("wrong float value: %s" % params[0])
 
     def process_actions(self):
         """Process all actions"""
@@ -299,8 +315,11 @@ class Application():
             action_parts = action.split(":")
             action_name = "action_" + action_parts[0]
             if not hasattr(self, action_name):
-                raise PyswdException("Action '%s' is not implemented" % action)
-            getattr(self, action_name)(action_parts[1:])
+                raise PyswdException("action '%s' is not implemented" % action)
+            try:
+                getattr(self, action_name)(action_parts[1:])
+            except PyswdException as err:
+                raise PyswdException("%s: %s" % (action_parts[0], err))
 
     def start(self):
         """Application start point"""
