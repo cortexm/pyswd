@@ -127,15 +127,29 @@ def test_alignment(num, param_name, align):
     if num % align:
         raise PyswdException('%s must be aligned to %d Bytes' % (param_name, align))
 
-def convert_numeric(num):
+UNITS = {
+    'K': 1024,
+    'M': 1024 ** 2,
+    'G': 1024 ** 3,
+}
+
+def convert_numeric(num, max_bits=32):
     """Convert string number into integer"""
-    if num[-1] in ('K', 'k'):
-        return int(num[:-1]) * 1024
-    if num[-1] in ('M', 'm'):
-        return int(num[:-1]) * 1024 ** 2
-    if num[-1] in ('G', 'g'):
-        return int(num[:-1]) * 1024 ** 3
-    return int(num, 0)
+    ret = 0
+    if not num:
+        return 0
+    multi = UNITS.get(num[-1].upper())
+    try:
+        if multi:
+            ret = int(num[:-1], 0) * multi
+        else:
+            ret = int(num, 0)
+    except ValueError:
+        raise PyswdException('number "%s" has wrong format' % num)
+    if ret >= pow(2, max_bits):
+        raise PyswdException('%s is too big, number must fit into %d bits' % (num, max_bits))
+    return ret
+
 
 class Application():
     """Application"""
@@ -233,11 +247,11 @@ class Application():
             raise PyswdException("set: require at least 2 parameters")
         addr = convert_numeric(params[0])
         if addr % 4 == 0 and len(params) == 2:
-            self._swd.set_mem32(addr, int(params[1], 0))
+            self._swd.set_mem32(addr, convert_numeric(params[1], 32))
         else:
             data = []
             for i in params[1:]:
-                data.extend(int(i, 0).to_bytes(4, byteorder='little'))
+                data.extend(convert_numeric(i, 32).to_bytes(4, byteorder='little'))
             self._swd.write_mem(addr, data)
 
     def action_set16(self, params):
@@ -247,7 +261,7 @@ class Application():
         addr = convert_numeric(params[0])
         data = []
         for i in params[1:]:
-            data.extend(int(i, 0).to_bytes(2, byteorder='little'))
+            data.extend(convert_numeric(i, 16).to_bytes(2, byteorder='little'))
         self._swd.write_mem(addr, data)
 
     def action_set8(self, params):
@@ -255,7 +269,7 @@ class Application():
         if len(params) < 2:
             raise PyswdException("set: require at least 2 parameters")
         addr = convert_numeric(params[0])
-        data = [int(i, 0) for i in params[1:]]
+        data = [convert_numeric(i, 8) for i in params[1:]]
         self._swd.write_mem(addr, data)
 
     def action_set(self, params):
@@ -275,7 +289,7 @@ class Application():
             raise PyswdException("fill: require at least 3 parameters")
         addr = convert_numeric(params[0])
         size = convert_numeric(params[1])
-        pattern = [int(i, 0) for i in params[2:]]
+        pattern = [convert_numeric(i, 8) for i in params[2:]]
         self._swd.fill_mem(addr, pattern, size)
 
     def process_actions(self):
