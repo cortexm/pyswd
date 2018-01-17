@@ -3,7 +3,9 @@
 
 import setuptools
 
-exec(open('swd/__about__.py').read())
+_ABOUT = {}
+
+exec(open('swd/__about__.py').read(), _ABOUT)
 
 def get_long_description():
     """Return long description from README.md file"""
@@ -15,13 +17,13 @@ def get_long_description():
     return long_description
 
 setuptools.setup(
-    name=PROGNAME,
-    version=VERSION,
-    description=DESCRIPTION,
+    name=_ABOUT['PROGNAME'],
+    version=_ABOUT['VERSION'],
+    description=_ABOUT['DESCRIPTION'],
     long_description=get_long_description(),
-    url=URL,
-    author=AUTHOR,
-    author_email=AUTHOR_EMAIL,
+    url=_ABOUT['URL'],
+    author=_ABOUT['AUTHOR'],
+    author_email=_ABOUT['AUTHOR_EMAIL'],
     license='MIT',
     keywords='SWD debugger STM32 STLINK CORTEX-M ARM',
 
