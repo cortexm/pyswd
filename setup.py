@@ -17,7 +17,7 @@ def get_long_description():
     return long_description
 
 setuptools.setup(
-    name=_ABOUT['PROGNAME'],
+    name=_ABOUT['APP_NAME'],
     version=_ABOUT['VERSION'],
     description=_ABOUT['DESCRIPTION'],
     long_description=get_long_description(),
@@ -46,7 +46,7 @@ setuptools.setup(
 
     entry_points={
         'console_scripts': [
-            'pyswd=swd._app:main',
+            '%s=swd._app:main' % _ABOUT['APP_NAME'],
         ],
     },
 )

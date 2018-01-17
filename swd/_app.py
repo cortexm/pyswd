@@ -16,7 +16,7 @@ class PyswdException(Exception):
     """Exception"""
 
 _VERSION_STR = "%s %s (%s <%s>)" % (
-    swd.__about__.PROGNAME,
+    swd.__about__.APP_NAME,
     swd.__about__.VERSION,
     swd.__about__.AUTHOR,
     swd.__about__.AUTHOR_EMAIL)
@@ -55,7 +55,7 @@ list of available actions:
 def _configure_argparse():
     """configure and process command line arguments"""
     parser = argparse.ArgumentParser(
-        prog=swd.__about__.PROGNAME, formatter_class=argparse.RawTextHelpFormatter,
+        prog=swd.__about__.APP_NAME, formatter_class=argparse.RawTextHelpFormatter,
         epilog=_ACTIONS_HELP_STR)
     parser.add_argument('-V', '--version', action='version', version=_VERSION_STR)
     parser.add_argument("-q", "--quite", action="store_true", help="quite output")
