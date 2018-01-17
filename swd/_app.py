@@ -51,7 +51,6 @@ list of available actions:
 #   write:{file.srec}     write SREC file into memory
 #   write:{addr}:{file}   write binary file into memory
 #   write:sram:{file}     write binary file into SRAM memory
-#   sleep:{seconds}        sleep (float) - insert delay between commands
 
 def _configure_argparse():
     """configure and process command line arguments"""
