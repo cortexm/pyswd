@@ -9,10 +9,10 @@ class Swd():
     """Swd class"""
 
     @_log.log(_log.DEBUG1)
-    def __init__(self, swd_frequency=1800000, driver=None):
+    def __init__(self, swd_frequency=1800000, driver=None, serial_no=''):
         if driver is None:
             # default SWD driver is Stlink
-            driver = _Stlink(swd_frequency=swd_frequency)
+            driver = _Stlink(swd_frequency=swd_frequency, serial_no=serial_no)
         self._drv = driver
 
     def get_version(self):

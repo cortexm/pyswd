@@ -63,6 +63,9 @@ def _configure_argparse():
     parser.add_argument("-i", "--info", action="count", help="increase info output")
     parser.add_argument("-v", "--verbose", action="count", help="increase verbose output")
     parser.add_argument("-f", "--freq", type=int, default=1800000, help="set SWD frequency")
+    parser.add_argument(
+        "-s", "--serial", type=str, default='',
+        help="select ST-Link by serial number (enough is part of serial number: begin or end")
     parser.add_argument('action', nargs='*', help='actions will be processed sequentially')
     return parser.parse_args()
 
@@ -162,6 +165,7 @@ class Application():
         self._verbose = 0
         self._actions = args.action
         self._swd_frequency = args.freq
+        self._serial_no = args.serial
         if args.verbose is not None:
             self._verbose = args.verbose
         if args.quite:
@@ -323,11 +327,16 @@ class Application():
     def start(self):
         """Application start point"""
         try:
-            self._swd = swd.Swd(swd_frequency=self._swd_frequency)
+            self._swd = swd.Swd(swd_frequency=self._swd_frequency, serial_no=self._serial_no)
             self.print_device_info()
             self.process_actions()
         except swd.stlinkcom.StlinkComNotFound:
             logging.error("ST-Link not connected.")
+        except swd.stlinkcom.StlinkComMoreDevices as err:
+            logging.error(
+                "ST-Link Found more devices with these serial numbers:\n  %s",
+                "\n  ".join(err.serial_numbers))
+            logging.error("Use parameter: -s serial_no")
         except PyswdException as err:
             logging.error("pyswd error: %s.", err)
         except swd.stlink.StlinkException as err:

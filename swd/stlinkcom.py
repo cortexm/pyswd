@@ -13,20 +13,47 @@ class StlinkComNotFound(Exception):
     """Exception"""
 
 
-class StlinkComV2Usb():
+class StlinkComMoreDevices(Exception):
+    """Exception"""
+
+    def __init__(self, devices):
+        super().__init__("More than one device found.")
+        self._serial_numbers = [dev.serial_no for dev in devices]
+
+    @property
+    def serial_numbers(self):
+        """return list of serial numbers"""
+        return self._serial_numbers
+
+
+class StlinkComBase():
+    """ST link comm base class"""
+    ID_VENDOR = None
+    ID_PRODUCT = None
+    PIPE_OUT = None
+    PIPE_IN = None
+
     """ST-Link/V2 USB communication class"""
-    ID_VENDOR = 0x0483
-    ID_PRODUCT = 0x3748
-    PIPE_OUT = 0x02
-    PIPE_IN = 0x81
-    DEV_NAME = "V2"
+    def __init__(self, dev):
+        self._dev = dev
 
-    _LOGGER_LEVEL3 = _logging.DEBUG - 3
+    @classmethod
+    def find_all(cls):
+        """return all devices with this idVendor and idProduct"""
+        devices = []
+        for device in _usb.find(idVendor=cls.ID_VENDOR, idProduct=cls.ID_PRODUCT, find_all=True):
+            devices.append(cls(device))
+        return devices
 
-    def __init__(self):
-        self._dev = _usb.find(idVendor=self.ID_VENDOR, idProduct=self.ID_PRODUCT)
-        if self._dev is None:
-            raise StlinkComNotFound()
+
+    @property
+    def serial_no(self):
+        """Return device serial number"""
+        return ''.join(['%02X' % ord(c) for c in self._dev.serial_number])
+
+    def compare_serial_no(self, serial_no):
+        """Compare device serial no with selected serial number"""
+        return self.serial_no.startswith(serial_no) or self.serial_no.endswith(serial_no)
 
     @_log.log(_log.DEBUG4)
     def write(self, data, tout=200):
@@ -59,7 +86,16 @@ class StlinkComV2Usb():
             self._dev.finalize()
 
 
-class StlinkComV21Usb(StlinkComV2Usb):
+class StlinkComV2Usb(StlinkComBase):
+    """ST-Link/V2 USB communication class"""
+    ID_VENDOR = 0x0483
+    ID_PRODUCT = 0x3748
+    PIPE_OUT = 0x02
+    PIPE_IN = 0x81
+    DEV_NAME = "V2"
+
+
+class StlinkComV21Usb(StlinkComBase):
     """ST-Link/V2-1 USB communication"""
     ID_VENDOR = 0x0483
     ID_PRODUCT = 0x374b
@@ -73,16 +109,32 @@ class StlinkCom():
     _STLINK_CMD_SIZE = 16
     _COM_CLASSES = [StlinkComV2Usb, StlinkComV21Usb]
 
-    def __init__(self):
+    @classmethod
+    def _find_all_devices(cls):
+        devices = []
+        for com_cls in cls._COM_CLASSES:
+            devices.extend(com_cls.find_all())
+        return devices
+
+    @staticmethod
+    def _filter_devices(devices, serial_no):
+        filtered_devices = []
+        for dev in devices:
+            serial = dev.serial_no
+            if serial.startswith(serial_no) or serial.endswith(serial_no):
+                filtered_devices.append(dev)
+        return filtered_devices
+
+    def __init__(self, serial_no=''):
         self._dev = None
-        for com_cls in self._COM_CLASSES:
-            try:
-                self._dev = com_cls()
-                break
-            except StlinkComNotFound:
-                continue
-        else:
+        devices = StlinkCom._find_all_devices()
+        if serial_no:
+            devices = StlinkCom._filter_devices(devices, serial_no)
+        if not devices:
             raise StlinkComNotFound()
+        if len(devices) > 1:
+            raise StlinkComMoreDevices(devices)
+        self._dev = devices[0]
 
     @property
     def version(self):

@@ -158,10 +158,10 @@ class Stlink():
             return self._str
 
     @_log.log(_log.DEBUG2)
-    def __init__(self, swd_frequency=1800000, com=None):
+    def __init__(self, swd_frequency=1800000, com=None, serial_no=''):
         if com is None:
             # default com driver is StlinkCom
-            com = _StlinkCom()
+            com = _StlinkCom(serial_no)
         self._com = com
         self._version = self._get_version()
         self._leave_state()

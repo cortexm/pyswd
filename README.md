@@ -87,7 +87,7 @@ Get MCU ID code
 ```Python
 >>> dev.set_mem32(0x20000200, 0x12345678)
 >>> hex(dev.get_mem32(0x20000200))
-'0x12345678
+'0x12345678'
 ```
 ### Read memory
 `read_mem(address, size)`
@@ -169,6 +169,8 @@ action                actions will be processed sequentially
 -i, --info            increase info output
 -v, --verbose         increase verbose output
 -f FREQ, --freq FREQ  set SWD frequency
+-s SERIAL, --serial SERIAL
+                        select ST-Link by serial number (enough is part of serial number: begin or end
 ````
 ### List of available actions:
 ```
