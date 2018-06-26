@@ -36,6 +36,12 @@ list of available actions:
 
   sleep:{seconds}           sleep (float) - insert delay between commands
 
+  reset[:halt]              reset core or halt after reset
+  run                       run core
+  step[:{n}]                step core (n-times)
+  halt                      halt core
+  nodebug                   disable debug
+
   (numerical values can be in different formats, like: 42, 0x2a, 0o52, 0b101010, 32K, 1M, ..)
 """
 # TODO unimplemented actions:
@@ -162,6 +168,7 @@ class Application():
     def __init__(self, args):
         """Application startup"""
         self._swd = None
+        self._cortexm = None
         self._verbose = 0
         self._actions = args.action
         self._swd_frequency = args.freq
@@ -296,6 +303,32 @@ class Application():
         pattern = [convert_numeric(i, 8) for i in params[2:]]
         self._swd.fill_mem(addr, pattern, size)
 
+    def action_reset(self, params):
+        """Reset MCU"""
+        if not params:
+            self._cortexm.core_reset()
+        elif params[0] == 'halt':
+            self._cortexm.core_reset_halt()
+        else:
+            raise PyswdException("Wrong parameter")
+
+    def action_run(self, unused_params):
+        """Run core"""
+        self._cortexm.core_run()
+
+    def action_step(self, params):
+        """Run core"""
+        for _ in range(convert_numeric(params[0])):
+            self._cortexm.core_step()
+
+    def action_halt(self, unused_params):
+        """Run core"""
+        self._cortexm.core_halt()
+
+    def action_nodebug(self, unused_params):
+        """Run core"""
+        self._cortexm.core_debug_disable()
+
     @staticmethod
     def action_sleep(params):
         """Wait selected time and then continue"""
@@ -328,6 +361,7 @@ class Application():
             self._swd = swd.Swd(swd_frequency=self._swd_frequency, serial_no=self._serial_no)
             # reading ID code can generate exception and stop if no MCU is connected
             self._swd.get_idcode()
+            self._cortexm = swd.CortexM(self._swd)
             self.print_device_info()
             self.process_actions()
         except swd.stlinkcom.StlinkComNotFound:

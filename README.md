@@ -171,7 +171,7 @@ action                actions will be processed sequentially
 -f FREQ, --freq FREQ  set SWD frequency
 -s SERIAL, --serial SERIAL
                         select ST-Link by serial number (enough is part of serial number: begin or end
-````
+```
 ### List of available actions:
 ```
   dump8:{addr}[:{size}]     print content of memory 8 bit register or dump
@@ -187,6 +187,12 @@ action                actions will be processed sequentially
   fill8:{addr}:{size}:{pattern}     fill memory with 8 bit pattern
 
   sleep:{seconds}           sleep (float) - insert delay between commands
+
+  reset[:halt]              reset core or halt after reset
+  run                       run core
+  step[:{n}]                step core (n-times)
+  halt                      halt core
+  nodebug                   disable debug
 ```
 (numerical values can be in different formats, like: 42, 0x2a, 0o52, 0b101010, 32K, 1M, ..)
 
