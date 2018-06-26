@@ -181,8 +181,6 @@ class Application():
         """Show device informations"""
         logging.info(self._swd.get_version())
         logging.info("Target voltage: %0.2fV", self._swd.get_target_voltage())
-        if self._swd.get_idcode() == 0:
-            logging.warning("No IDCODE, probably MCU is not connected.")
 
     def action_dump32(self, params):
         """Dump memory 32 bit"""
@@ -328,6 +326,8 @@ class Application():
         """Application start point"""
         try:
             self._swd = swd.Swd(swd_frequency=self._swd_frequency, serial_no=self._serial_no)
+            # reading ID code can generate exception and stop if no MCU is connected
+            self._swd.get_idcode()
             self.print_device_info()
             self.process_actions()
         except swd.stlinkcom.StlinkComNotFound:

@@ -241,7 +241,10 @@ class Stlink():
             Stlink._Cmd.Debug.COMMAND,
             Stlink._Cmd.Debug.Apiv2.READ_IDCODES]
         res = self._com.xfer(cmd, rx_length=12)
-        return int.from_bytes(res[4:8], byteorder='little')
+        idcode = int.from_bytes(res[4:8], byteorder='little')
+        if idcode == 0:
+            raise StlinkException("No IDCODE, probably MCU is not connected")
+        return idcode
 
     @_log.log(_log.DEBUG2)
     def get_reg(self, register):
