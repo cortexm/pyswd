@@ -58,6 +58,19 @@ class Swd():
         return self._drv.get_reg(register)
 
     @_log.log(_log.DEBUG1)
+    def get_reg_all(self):
+        """Get all core registers
+
+        Read all 32 bit CPU core registers (R0, R1, ...)
+        Order of registers depends on architecture.
+        (MCU must be halted to access core registers)
+
+        Return:
+            list of 32 bit numbers
+        """
+        return self._drv.get_reg_all()
+
+    @_log.log(_log.DEBUG1)
     def set_reg(self, register, data):
         """Set core register
 

@@ -268,6 +268,26 @@ class Stlink():
         return int.from_bytes(res[4:8], byteorder='little')
 
     @_log.log(_log.DEBUG2)
+    def get_reg_all(self):
+        """Get all core registers
+
+        Read all 32 bit CPU core registers (R0, R1, ...)
+        Order of registers depends on architecture.
+        (MCU must be halted to access core registers)
+
+        Return:
+            list of 32 bit numbers
+        """
+        cmd = [
+            Stlink._Cmd.Debug.COMMAND,
+            Stlink._Cmd.Debug.Apiv2.READALLREGS]
+        res = self._com.xfer(cmd, rx_length=88)
+        data = []
+        for index in range(4, len(res), 4):
+            data.append(int.from_bytes(res[index:index + 4], byteorder='little'))
+        return data
+
+    @_log.log(_log.DEBUG2)
     def set_reg(self, register, data):
         """Set core register
 

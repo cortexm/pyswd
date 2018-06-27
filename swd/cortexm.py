@@ -63,7 +63,7 @@ class CortexM():
 
     def get_reg_all(self):
         """Read all registers"""
-        return {reg: self._swd.get_reg(CortexM._get_reg_index(reg)) for reg in CortexM.REGISTERS}
+        return dict(zip(CortexM.REGISTERS, self._swd.get_reg_all()))
 
     def reset(self):
         """Reset"""
