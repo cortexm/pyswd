@@ -65,34 +65,38 @@ class CortexM():
         """Read all registers"""
         return {reg: self._swd.get_reg(CortexM._get_reg_index(reg)) for reg in CortexM.REGISTERS}
 
-    def core_reset(self):
+    def reset(self):
         """Reset"""
         self._swd.set_mem32(CortexM.DEMCR_REG, CortexM.DEMCR_RUN_AFTER_RESET)
         self._swd.set_mem32(CortexM.AIRCR_REG, CortexM.AIRCR_SYSRESETREQ)
         # self._swd.get_mem32(CortexM.AIRCR_REG)
 
-    def core_reset_halt(self):
+    def reset_halt(self):
         """Reset and halt"""
         self._swd.set_mem32(CortexM.DHCSR_REG, CortexM.DHCSR_HALT)
         self._swd.set_mem32(CortexM.DEMCR_REG, CortexM.DEMCR_HALT_AFTER_RESET)
         self._swd.set_mem32(CortexM.AIRCR_REG, CortexM.AIRCR_SYSRESETREQ)
         # self._swd.get_mem32(CortexM.AIRCR_REG)
 
-    def core_halt(self):
+    def halt(self):
         """Halt"""
         self._swd.set_mem32(CortexM.DHCSR_REG, CortexM.DHCSR_HALT)
 
-    def core_step(self):
+    def step(self):
         """Step"""
         self._swd.set_mem32(CortexM.DHCSR_REG, CortexM.DHCSR_STEP)
 
-    def core_run(self):
+    def run(self):
         """Enable debug"""
         self._swd.set_mem32(CortexM.DHCSR_REG, CortexM.DHCSR_DEBUGEN)
 
-    def core_debug_disable(self):
+    def nodebug(self):
         """Disable debug"""
         self._swd.set_mem32(CortexM.DHCSR_REG, CortexM.DHCSR_DEBUGDIS)
+
+    def is_halted(self):
+        """check if core is halted"""
+        return self._swd.get_mem32(CortexM.DHCSR_REG) & CortexM.DHCSR_STATUS_HALT_BIT > 0
 
     # def get_num_breakpoints(self):
     #     """Return number of HW break points"""

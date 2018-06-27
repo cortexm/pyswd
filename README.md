@@ -186,13 +186,16 @@ action                actions will be processed sequentially
 
   fill8:{addr}:{size}:{pattern}     fill memory with 8 bit pattern
 
+  reg:all                   print all core register
+  reg:{reg}                 print content of core register
+  reg:{reg}:{data}          set core register
+
   sleep:{seconds}           sleep (float) - insert delay between commands
 
   reset[:halt]              reset core or halt after reset
-  run                       run core
+  run[:nodebug]             run core
   step[:{n}]                step core (n-times)
   halt                      halt core
-  nodebug                   disable debug
 ```
 (numerical values can be in different formats, like: 42, 0x2a, 0o52, 0b101010, 32K, 1M, ..)
 

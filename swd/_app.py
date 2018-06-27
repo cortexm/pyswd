@@ -34,15 +34,19 @@ list of available actions:
 
   fill8:{addr}:{size}:{pattern}     fill memory with 8 bit pattern
 
+  reg:all                   print all core register
+  reg:{reg}                 print content of core register
+  reg:{reg}:{data}          set core register
+
   sleep:{seconds}           sleep (float) - insert delay between commands
 
   reset[:halt]              reset core or halt after reset
-  run                       run core
+  run[:nodebug]             run core
   step[:{n}]                step core (n-times)
   halt                      halt core
-  nodebug                   disable debug
 
   (numerical values can be in different formats, like: 42, 0x2a, 0o52, 0b101010, 32K, 1M, ..)
+  (reg: R0, R1, ..., R12, SP, LR, PC, PSR, MSP, PSP)
 """
 # TODO unimplemented actions:
 #   dump:core                 print content of core registers (R1, R2, ..)
@@ -303,31 +307,57 @@ class Application():
         pattern = [convert_numeric(i, 8) for i in params[2:]]
         self._swd.fill_mem(addr, pattern, size)
 
+    def action_reg(self, params):
+        """Read/Write core register"""
+        if not params:
+            raise PyswdException("no parameters")
+        halted = self._cortexm.is_halted()
+        if not halted:
+            self._cortexm.halt()
+        if len(params) == 1:
+            if params[0] == 'all':
+                for reg, val in self._cortexm.get_reg_all().items():
+                    print("%s: %08x" % (reg, val))
+            else:
+                val = self._cortexm.get_reg(params[0])
+                print("%s: %08x" % (params[0], val))
+        elif len(params) == 2:
+            val = convert_numeric(params[1])
+            self._cortexm.set_reg(params[0], val)
+        else:
+            raise PyswdException("too many parameters")
+        if not halted:
+            self._cortexm.run()
+
     def action_reset(self, params):
         """Reset MCU"""
         if not params:
-            self._cortexm.core_reset()
+            self._cortexm.reset()
         elif params[0] == 'halt':
-            self._cortexm.core_reset_halt()
+            self._cortexm.reset_halt()
         else:
             raise PyswdException("Wrong parameter")
 
-    def action_run(self, unused_params):
+    def action_run(self, params):
         """Run core"""
-        self._cortexm.core_run()
+        if not params:
+            self._cortexm.run()
+        elif params[0] == 'nodebug':
+            self._cortexm.nodebug()
+        else:
+            raise PyswdException("Wrong parameter")
 
     def action_step(self, params):
         """Run core"""
-        for _ in range(convert_numeric(params[0])):
-            self._cortexm.core_step()
+        if not params:
+            self._cortexm.step()
+        else:
+            for _ in range(convert_numeric(params[0])):
+                self._cortexm.step()
 
     def action_halt(self, unused_params):
         """Run core"""
-        self._cortexm.core_halt()
-
-    def action_nodebug(self, unused_params):
-        """Run core"""
-        self._cortexm.core_debug_disable()
+        self._cortexm.halt()
 
     @staticmethod
     def action_sleep(params):
