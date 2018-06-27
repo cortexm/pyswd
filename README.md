@@ -29,121 +29,301 @@ pip3 install .
 ```
 pip3 install --upgrade .
 ```
+### install for editing
+```
+pip3 install --editable .
+```
 ### uninstall:
 ```
 pip3 uninstall pyswd
 ```
+### using make
+```bash
+make test
+make install
+make editable
+make uninstall
+```
 
-## Python SWD module
+## Python SWD module documentation
 
-### Constructor:
-`swd.Swd(swd_frequency=1800000, logger=None)`
+### swd.Swd:
+`swd.Swd(swd_frequency=1800000, logger=None, serial_no='')`
+
 #### Arguments:
 - swd_frequency: SWD communication frequency
 - logger: logging interface (optional)
+- serial_no: serial number of connected USB ST-Link debugger (optional). Serial number can be also part from begin or end, if more devices are detected then it stops with error
+
 ```Python
 >>> import swd
 >>> dev = swd.Swd()
 ```
+
 ### ST-Link version
 property with ST-Link version
+
 #### Return:
   instance of StlinkVersion
+
 ```Python
 >>> dev.version.str
 'ST-Link/V2 V2J27S6'
 ```
+
 ### Target voltage
 Get target voltage measured by ST-Link
+
 #### Return:
   float target voltage in volts
+
 ```Python
 >>> dev.get_target_voltage()
 3.21
 ```
+
 ### ID code
 Get MCU ID code
+
 #### Return:
   32bit unsigned with ID code
+
 ```Python
 >>> hex(dev.get_idcode())
 '0xbb11477'
 ```
+
 ### Get memory register
 `get_mem32(address)`
+
 #### Arguments:
 - address: address in memory, must be aligned to 32bits
+
 #### Return:
   32bit unsigned data from memory
+
 ```Python
 >>> hex(dev.get_mem32(0x08000000))
 '0x20001000'
 ```
+
 ### Set memory register
 `set_mem32(address, data)`
+
 #### Arguments:
 - address: address in memory, must be aligned to 32bits
 - data: 32bit unsigned data
+
 ```Python
 >>> dev.set_mem32(0x20000200, 0x12345678)
 >>> hex(dev.get_mem32(0x20000200))
 '0x12345678'
 ```
+
 ### Read memory
 `read_mem(address, size)`
+
 #### Arguments:
 - address: address in memory
 - size: number of bytes to read from memory
+
 #### Return:
   iterable of read data
+
 ```Python
 >>> data = dev.read_mem(0x08000000, 16)
 >>> ' '.join(['%02x' % d for d in data])
 '00 10 00 20 45 00 00 08 41 00 00 08 41 00 00 08'
 ```
+
 ### Write memory
 `write_mem(address, data)`
+
 #### Arguments:
 - address: address in memory
 - data: list or iterable of bytes whic will be stored into memory
+
 ```Python
 >>> dev.write_mem(0x20000100, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
 >>> data = dev.read_mem(0x20000100, 15)
 >>> ' '.join(['%02x' % d for d in data])
 '01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f'
 ```
+
 ### Fill memory
 `write_mem(address, pattern, size)`
+
 #### Arguments:
 - address: address in memory
 - pattern: list or iterable of bytes whic will be stored into memory
 - size: number of bytes to fill memory
+
 ```Python
 >>> dev.fill_mem(0x20000300, [5, 6, 7], 20)
 >>> data = dev.read_mem(0x20000300, 20)
 >>> ' '.join(['%02x' % d for d in data])
 '05 06 07 05 06 07 05 06 07 05 06 07 05 06 07 05 06 07 05 06'
 ```
+
 ### Read core register
 `get_reg(register)`
 On CortexM platform this will work only if program is halted
+
 #### Arguments:
 - register: is numeric coded register (e.g. 0: R0, 1: R1, ...)
+
 #### Return:
   32bit unsigned data
+
 ```Python
 >>> hex(dev.get_reg(1))
 '0x0800012e'
 ```
+
+### Read all core registers
+`get_reg_all()`
+On CortexM platform this will work only if program is halted
+
+#### Return:
+  list of 32bit unsigned data for all registers
+
+```Python
+>>> dev.get_reg_all()
+[0,  0,  16942,  10,  100,  0,  0,  0,  0,  0,  0,  0,  10,  604502776,  134288075,  134284002,  1627389952,  604502776,  0,  0,  67125248]
+```
+
 ### Write core register
 `get_reg(register)`
 On CortexM platform this will work only if program is halted
+
 #### Arguments:
 - register: is numeric coded register (e.g. 0: R0, 1: R1, ...)
 - data: 32bit unsigned data
+
 ```Python
->>> hex(dev.get_reg(1))
+>>> dev.set_reg(1, 0x12345678)
+```
+
+### swd.CortexM:
+`swd.CortexM(swd)`
+
+#### Arguments:
+- swd: instance of Swd
+
+```Python
+>>> import swd
+>>> dev = swd.Swd()
+>>> cm = swd.CortexM(dev)
+```
+
+### Read core register
+`get_reg(register)`
+On CortexM platform this will work only if program is halted
+
+#### Arguments:
+- register: name of register (e.g.: 'R0', 'R1', 'SP', 'PC', ...)
+
+#### Return:
+  32bit unsigned data
+
+```Python
+>>> hex(cm.get_reg('PC'))
 '0x0800012e'
+```
+
+### Write core register
+`get_reg(register)`
+On CortexM platform this will work only if program is halted
+
+#### Arguments:
+- register: name of register (e.g.: 'R0', 'R1', 'SP', 'PC', ...)
+- data: 32bit unsigned data
+
+```Python
+>>> cm.set_reg('R2', 0x12345678)
+```
+
+### Read all core registers
+`get_reg_all(register)`
+On CortexM platform this will work only if program is halted
+
+#### Return:
+  dictionary with register name as key and as value 32bit unsigned data for each register
+
+```Python
+>>> cm.get_reg_all()
+{'LR': 134288075,
+ 'MSP': 604502776,
+ 'PC': 134284002,
+ 'PSP': 0,
+ 'PSR': 1627389952,
+ 'R0': 0,
+ 'R1': 0,
+ 'R10': 0,
+ 'R11': 0,
+ 'R12': 10,
+ 'R2': 16942,
+ 'R3': 10,
+ 'R4': 100,
+ 'R5': 0,
+ 'R6': 0,
+ 'R7': 0,
+ 'R8': 0,
+ 'R9': 0,
+ 'SP': 604502776}
+```
+
+### Reset
+`reset()`
+
+```Python
+>>> cm.reset()
+```
+
+### Reset and halt
+`reset_halt()`
+
+```Python
+>>> cm.reset_halt()
+```
+
+### Halt core
+`halt()`
+
+```Python
+>>> cm.halt()
+```
+
+### step program
+`step()`
+
+```Python
+>>> cm.step()
+```
+
+### Run in debug mode
+`run()`
+
+```Python
+>>> cm.run()
+```
+
+### Disable debug mode and run
+`nodebug()`
+
+```Python
+>>> cm.nodebug()
+```
+
+### Check if MCU is halted
+`is_halted()`
+
+#### Return:
+  True status if MCU is halted, or False if is running
+
+```Python
+>>> cm.is_halted()
+True
 ```
 
 ## Python application
