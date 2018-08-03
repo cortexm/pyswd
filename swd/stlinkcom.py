@@ -41,8 +41,11 @@ class StlinkComBase():
     def find_all(cls):
         """return all devices with this idVendor and idProduct"""
         devices = []
-        for device in _usb.find(idVendor=cls.ID_VENDOR, idProduct=cls.ID_PRODUCT, find_all=True):
-            devices.append(cls(device))
+        try:
+            for device in _usb.find(idVendor=cls.ID_VENDOR, idProduct=cls.ID_PRODUCT, find_all=True):
+                devices.append(cls(device))
+        except _usb.NoBackendError as err:
+            raise StlinkComException("USB Error: %s" % err)
         return devices
 
 
