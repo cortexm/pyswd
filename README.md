@@ -232,7 +232,7 @@ On CortexM platform this will work only if program is halted
 ```
 
 ### Write core register
-`get_reg(register)`
+`set_reg(register)`
 On CortexM platform this will work only if program is halted
 
 #### Arguments:
@@ -319,7 +319,7 @@ On CortexM platform this will work only if program is halted
 `is_halted()`
 
 #### Return:
-  True status if MCU is halted, or False if is running
+  True if MCU is halted, or False if is running
 
 ```Python
 >>> cm.is_halted()
