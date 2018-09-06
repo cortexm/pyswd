@@ -244,7 +244,7 @@ On CortexM platform this will work only if program is halted
 ```
 
 ### Read all core registers
-`get_reg_all(register)`
+`get_reg_all()`
 On CortexM platform this will work only if program is halted
 
 #### Return:
@@ -370,12 +370,12 @@ action                actions will be processed sequentially
   reg:{reg}                 print content of core register
   reg:{reg}:{data}          set core register
 
-  sleep:{seconds}           sleep (float) - insert delay between commands
-
   reset[:halt]              reset core or halt after reset
   run[:nodebug]             run core
   step[:{n}]                step core (n-times)
   halt                      halt core
+
+  sleep:{seconds}           sleep (float) - insert delay between commands
 ```
 (numerical values can be in different formats, like: 42, 0x2a, 0o52, 0b101010, 32K, 1M, ..)
 
