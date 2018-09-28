@@ -1,4 +1,6 @@
-"""Unit tests for stlink.py"""
+"""Unit tests for stlink.py
+"""
+
 import unittest
 import swd
 
@@ -144,6 +146,7 @@ class TestReadMem(_TestSwd):
         ])
         self.assertEqual(ret_data, data)
 
+
 class TestReadMemUnalignedSize(_TestSwd):
     """Tests for Swd.read_mem class with unaligned size"""
 
@@ -242,6 +245,7 @@ class TestReadMemUnalignedSize(_TestSwd):
             {'address': 0x0a000028, 'size': 1024},
         ])
         self.assertEqual(ret_data, data)
+
 
 class TestReadMemUnalignedAddress(_TestSwd):
     """Tests for Swd.read_mem class with unaligned address"""
@@ -599,6 +603,7 @@ class TestWriteMemUnalignedSize(_TestSwd):
             {'address': 0xc5000014, 'data': data[:1024]},
         ])
 
+
 class TestWriteMemUnalignedAddress(_TestSwd):
     """Tests for Swd.write_mem class with unaligned address"""
 
@@ -725,6 +730,7 @@ class TestFillMem(_TestSwd):
             {'address': 0x54000410, 'data': data[1024:]},
         ])
 
+
 class TestFillMemUnalignedSize(_TestSwd):
     """Tests for Swd.fill_mem class with unaligned size"""
     _PATTERN = [0x42, 0xc8, 0x1f]
@@ -794,6 +800,7 @@ class TestFillMemUnalignedSize(_TestSwd):
         self.assertEqual(self._drv.write_mem32_mock.get_call_log(), [
             {'address': 0x95000014, 'data': data[:1024]},
         ])
+
 
 class TestFillMemUnalignedAddress(_TestSwd):
     """Tests for Swd.fill_mem class with unaligned address"""

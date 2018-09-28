@@ -1,8 +1,9 @@
-"""ST-Link/V2 USB communication"""
+"""ST-Link/V2 USB communication
+"""
 
 import logging as _logging
 import usb.core as _usb
-import swd._log as _log
+from swd import _log
 
 
 class StlinkComException(Exception):
@@ -42,12 +43,15 @@ class StlinkComBase():
         """return all devices with this idVendor and idProduct"""
         devices = []
         try:
-            for device in _usb.find(idVendor=cls.ID_VENDOR, idProduct=cls.ID_PRODUCT, find_all=True):
+            usb_devices = _usb.find(
+                idVendor=cls.ID_VENDOR,
+                idProduct=cls.ID_PRODUCT,
+                find_all=True)
+            for device in usb_devices:
                 devices.append(cls(device))
         except _usb.NoBackendError as err:
             raise StlinkComException("USB Error: %s" % err)
         return devices
-
 
     @property
     def serial_no(self):
@@ -56,12 +60,19 @@ class StlinkComBase():
 
     def compare_serial_no(self, serial_no):
         """Compare device serial no with selected serial number"""
-        return self.serial_no.startswith(serial_no) or self.serial_no.endswith(serial_no)
+        if self.serial_no.startswith(serial_no):
+            return True
+        if self.serial_no.endswith(serial_no):
+            return True
+        return False
 
     @_log.log(_log.DEBUG4)
     def write(self, data, tout=200):
         """Write data to USB pipe"""
-        _logging.log(_log.DEBUG4, "%s", ', '.join(['0x%02x' % i for i in data]))
+        _logging.log(
+            _log.DEBUG4,
+            "%s",
+            ', '.join(['0x%02x' % i for i in data]))
         try:
             count = self._dev.write(self.PIPE_OUT, data, tout)
         except _usb.USBError as err:
@@ -77,11 +88,15 @@ class StlinkComBase():
         read_size = size
         _logging.log(_log.DEBUG4, "size=%d, read_size=%d", size, read_size)
         try:
-            data = self._dev.read(self.PIPE_IN, read_size, tout).tolist()[:size]
+            data = self._dev.read(self.PIPE_IN, read_size, tout).tolist()
+            data = data[:size]
         except _usb.USBError as err:
             self._dev = None
             raise StlinkComException("USB Error: %s" % err)
-        _logging.log(_log.DEBUG4, "%s", ', '.join(['0x%02x' % i for i in data]))
+        _logging.log(
+            _log.DEBUG4,
+            "%s",
+            ', '.join(['0x%02x' % i for i in data]))
         return data
 
     def __del__(self):
@@ -151,7 +166,8 @@ class StlinkCom():
         Arguments:
             command: is an list of bytes with command (max 16 bytes)
             data: data will be sent after command
-            rx_length: number of expected data to receive after command and data transfer
+            rx_length: number of expected data to receive after command
+                and data transfer
             tout: maximum waiting time for received data
 
         Return:

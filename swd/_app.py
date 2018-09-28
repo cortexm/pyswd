@@ -1,4 +1,5 @@
-"""Application"""
+"""Application
+"""
 
 import sys
 import time
@@ -9,11 +10,12 @@ import swd
 import swd.stlink
 import swd.stlinkcom
 import swd.__about__
-import swd._log as _log
+from swd import _log
 
 
 class PyswdException(Exception):
     """Exception"""
+
 
 _VERSION_STR = "%s %s (%s <%s>)" % (
     swd.__about__.APP_NAME,
@@ -25,12 +27,12 @@ list of available actions:
   dump8:{addr}[:{size}]     print content of memory 8 bit register or dump
   dump16:{addr}[:{size}]    print content of memory 16 bit register or dump
   dump32:{addr}[:{size}]    print content of memory 32 bit register or dump
-  dump:{addr}[:{size}]      print content of memory 32 bit register or 8 bit dump
+  dump:{addr}[:{size}]      print content 32 bit register or 8 bit dump
 
   set8:{addr}:{data}[:{data}..]     set 8 bit memory
   set16:{addr}:{data}[:{data}..]    set 16 bit memory
   set32:{addr}:{data}[:{data}..]    set 32 bit memory
-  set:{addr}:{data}[:{data}..]      set 32 bit memory register or 8 bit memory area
+  set:{addr}:{data}[:{data}..]      set 32 bit register or 8 bit memory area
 
   fill8:{addr}:{size}:{pattern}     fill memory with 8 bit pattern
 
@@ -45,13 +47,10 @@ list of available actions:
   step[:{n}]                step core (n-times)
   halt                      halt core
 
-  (numerical values can be in different formats, like: 42, 0x2a, 0o52, 0b101010, 32K, 1M, ..)
+  (number formats: 42, 0x2a, 0o52, 0b101010, 32K, 1M, ..)
   (reg: R0, R1, ..., R12, SP, LR, PC, PSR, MSP, PSP)
 """
 # TODO unimplemented actions:
-#   dump:core                 print content of core registers (R1, R2, ..)
-#   dump:{reg_name}           print content of core register (R1, R2, ..)
-#   set:{reg}:{data}                  set core register (halt core)
 #   fill:{addr}:{size}:{pattern}      fill memory with 8 bit pattern
 #   fill16:{addr}:{size}:{pattern}    fill memory with 16 bit pattern
 #   fill32:{addr}:{size}:{pattern}    fill memory with 32 bit pattern
@@ -62,22 +61,38 @@ list of available actions:
 #   write:{addr}:{file}   write binary file into memory
 #   write:sram:{file}     write binary file into SRAM memory
 
+
 def _configure_argparse():
     """configure and process command line arguments"""
     parser = argparse.ArgumentParser(
-        prog=swd.__about__.APP_NAME, formatter_class=argparse.RawTextHelpFormatter,
+        prog=swd.__about__.APP_NAME,
+        formatter_class=argparse.RawTextHelpFormatter,
         epilog=_ACTIONS_HELP_STR)
-    parser.add_argument('-V', '--version', action='version', version=_VERSION_STR)
-    parser.add_argument("-q", "--quite", action="store_true", help="quite output")
-    parser.add_argument("-d", "--debug", action="count", help="increase debug output")
-    parser.add_argument("-i", "--info", action="count", help="increase info output")
-    parser.add_argument("-v", "--verbose", action="count", help="increase verbose output")
-    parser.add_argument("-f", "--freq", type=int, default=1800000, help="set SWD frequency")
+    parser.add_argument(
+        "-V", "--version", action='version', version=_VERSION_STR)
+    parser.add_argument(
+        "-q", "--quite", action="store_true",
+        help="quite output")
+    parser.add_argument(
+        "-d", "--debug", action="count",
+        help="increase debug output")
+    parser.add_argument(
+        "-i", "--info", action="count",
+        help="increase info output")
+    parser.add_argument(
+        "-v", "--verbose", action="count",
+        help="increase verbose output")
+    parser.add_argument(
+        "-f", "--freq", type=int, default=1800000,
+        help="set SWD frequency")
     parser.add_argument(
         "-s", "--serial", type=str, default='',
-        help="select ST-Link by serial number (enough is part of serial number: begin or end")
-    parser.add_argument('action', nargs='*', help='actions will be processed sequentially')
+        help="select ST-Link by serial number")
+    parser.add_argument(
+        'action', nargs='*',
+        help='actions will be processed sequentially')
     return parser.parse_args()
+
 
 def chunks(data, chunk_size):
     """Yield chunks"""
@@ -88,12 +103,14 @@ def chunks(data, chunk_size):
             return
         yield chunk
 
+
 def hex_line8(chunk):
     """Create 8 bit hex string from bytes in chunk"""
     result = ' '.join([
         '%02x' % part
         for part in chunk])
     return result.ljust(16 * 3 - 1)
+
 
 def hex_line16(chunk):
     """Create 16 bit hex string from bytes in chunk"""
@@ -102,6 +119,7 @@ def hex_line16(chunk):
         for part in chunks(chunk, 2)])
     return result.ljust((16 // 2) * 5 - 1)
 
+
 def hex_line32(chunk):
     """Create 32 bit hex string from bytes in chunk"""
     result = ' '.join([
@@ -109,11 +127,13 @@ def hex_line32(chunk):
         for part in chunks(chunk, 4)])
     return result.ljust((16 // 4) * 9 - 1)
 
+
 def ascii_line(chunk):
     """Create ASCII string from bytes in chunk"""
     return ''.join([
-        chr(d) if d >= 32 and d < 127 else '.'
+        chr(d) if 32 <= d < 127 else '.'
         for d in chunk])
+
 
 def print_buffer(addr, data, hex_line=hex_line8, verbose=0):
     """Print buffer in hex and ASCII"""
@@ -137,16 +157,20 @@ def print_buffer(addr, data, hex_line=hex_line8, verbose=0):
     if same_chunk or verbose > 1:
         print('%08x' % addr)
 
+
 def test_alignment(num, param_name, align):
     """Test if number is aligned"""
     if num % align:
-        raise PyswdException('%s must be aligned to %d Bytes' % (param_name, align))
+        raise PyswdException(
+            '%s must be aligned to %d Bytes' % (param_name, align))
+
 
 UNITS = {
     'K': 1024,
     'M': 1024 ** 2,
     'G': 1024 ** 3,
 }
+
 
 def convert_numeric(num, max_bits=32):
     """Convert string number into integer"""
@@ -162,7 +186,8 @@ def convert_numeric(num, max_bits=32):
     except ValueError:
         raise PyswdException('number "%s" has wrong format' % num)
     if ret >= pow(2, max_bits):
-        raise PyswdException('%s is too big, number must fit into %d bits' % (num, max_bits))
+        raise PyswdException(
+            '%s is too big, number must fit into %d bits' % (num, max_bits))
     return ret
 
 
@@ -266,7 +291,8 @@ class Application():
         else:
             data = []
             for i in params[1:]:
-                data.extend(convert_numeric(i, 32).to_bytes(4, byteorder='little'))
+                data.extend(
+                    convert_numeric(i, 32).to_bytes(4, byteorder='little'))
             self._swd.write_mem(addr, data)
 
     def action_set16(self, params):
@@ -388,8 +414,11 @@ class Application():
     def start(self):
         """Application start point"""
         try:
-            self._swd = swd.Swd(swd_frequency=self._swd_frequency, serial_no=self._serial_no)
-            # reading ID code can generate exception and stop if no MCU is connected
+            self._swd = swd.Swd(
+                swd_frequency=self._swd_frequency,
+                serial_no=self._serial_no)
+            # reading ID code can generate exception
+            # and stop pyswd if no MCU is connected
             self._swd.get_idcode()
             self._cortexm = swd.CortexM(self._swd)
             self.print_device_info()
@@ -410,6 +439,7 @@ class Application():
         else:
             return 0
         return 1
+
 
 def main():
     """application startup"""

@@ -1,7 +1,10 @@
-"""Cortex-Mx definitions"""
+"""Cortex-Mx definitions
+"""
+
 
 class CortexMException(Exception):
     """Exception"""
+
 
 class CortexM():
     """Definitions for Cortex-M MCUs"""
@@ -96,7 +99,8 @@ class CortexM():
 
     def is_halted(self):
         """check if core is halted"""
-        return self._swd.get_mem32(CortexM.DHCSR_REG) & CortexM.DHCSR_STATUS_HALT_BIT > 0
+        return self._swd.get_mem32(
+            CortexM.DHCSR_REG) & CortexM.DHCSR_STATUS_HALT_BIT > 0
 
     # def get_num_breakpoints(self):
     #     """Return number of HW break points"""

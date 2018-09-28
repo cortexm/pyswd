@@ -1,4 +1,5 @@
-"""logging module"""
+"""logging module
+"""
 
 import logging
 
@@ -8,6 +9,7 @@ DEBUG2 = logging.DEBUG - 2
 DEBUG3 = logging.DEBUG - 3
 DEBUG4 = logging.DEBUG - 4
 DEBUG5 = logging.DEBUG - 5
+
 
 def configure():
     """configure logging levels"""

@@ -1,7 +1,8 @@
-"""ST-Link/V2 driver"""
+"""ST-Link/V2 driver
+"""
 
 from swd.stlinkcom import StlinkCom as _StlinkCom
-import swd._log as _log
+from swd import _log
 
 
 class StlinkException(Exception):
@@ -11,8 +12,7 @@ class StlinkException(Exception):
 class Stlink():
     """ST-Link class"""
 
-
-    class _Cmd():
+    class _Cmd():  # pylint: disable=R0903
         """Stlink commands"""
         GET_VERSION = 0xf1
         GET_CURRENT_MODE = 0xf5
@@ -108,7 +108,6 @@ class Stlink():
     MAXIMUM_8BIT_DATA = 4
     MAXIMUM_32BIT_DATA = _STLINK_MAXIMUM_TRANSFER_SIZE
 
-
     class StlinkVersion():
         """ST-Link version holder class"""
         def __init__(self, dev_ver, ver):
@@ -117,7 +116,8 @@ class Stlink():
             self._swim = ver & 0x3f if dev_ver == 'V2' else None
             self._mass = ver & 0x3f if dev_ver == 'V2-1' else None
             self._api = 2 if self._jtag > 11 else 1
-            self._str = "ST-Link/%s V%dJ%d" % (dev_ver, self._stlink, self._jtag)
+            self._str = "ST-Link/%s V%dJ%d" % (
+                dev_ver, self._stlink, self._jtag)
             if dev_ver == 'V2':
                 self._str += "S%d" % self._swim
             if dev_ver == 'V2-1':
@@ -284,7 +284,8 @@ class Stlink():
         res = self._com.xfer(cmd, rx_length=88)
         data = []
         for index in range(4, len(res), 4):
-            data.append(int.from_bytes(res[index:index + 4], byteorder='little'))
+            data.append(
+                int.from_bytes(res[index:index + 4], byteorder='little'))
         return data
 
     @_log.log(_log.DEBUG2)

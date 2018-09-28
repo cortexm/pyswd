@@ -1,4 +1,6 @@
-"""Unit tests for stlink.py"""
+"""Unit tests for stlink.py
+"""
+
 import unittest
 import swd.stlink
 
@@ -71,11 +73,31 @@ class TestStlinkCotor(_TestStlink):
     def test_com_xfer_call(self):
         """test for creating Stlink object"""
         self.assertEqual(self._ctor_call_log, [
-            {'command': [0xf1, 0x80], 'data': None, 'rx_length': 6, 'tout': 200},
-            {'command': [0xf5], 'data': None, 'rx_length': 2, 'tout': 200},
-            {'command': [0xf2, 0x21], 'data': None, 'rx_length': 0, 'tout': 200},
-            {'command': [0xf2, 0x43, 0x01], 'data': None, 'rx_length': 2, 'tout': 200},
-            {'command': [0xf2, 0x30, 0xa3], 'data': None, 'rx_length': 2, 'tout': 200},
+            {
+                'command': [0xf1, 0x80],
+                'data': None,
+                'rx_length': 6,
+                'tout': 200},
+            {
+                'command': [0xf5],
+                'data': None,
+                'rx_length': 2,
+                'tout': 200},
+            {
+                'command': [0xf2, 0x21],
+                'data': None,
+                'rx_length': 0,
+                'tout': 200},
+            {
+                'command': [0xf2, 0x43, 0x01],
+                'data': None,
+                'rx_length': 2,
+                'tout': 200},
+            {
+                'command': [0xf2, 0x30, 0xa3],
+                'data': None,
+                'rx_length': 2,
+                'tout': 200},
         ])
 
 
@@ -127,13 +149,17 @@ class TestStlinkGetCoreid(_TestStlink):
 
     def test(self):
         """test getting ore id"""
-        self._com.xfer_mock.set_return_data([
-            [0x80, 0x00, 0x55, 0x55, 0x77, 0x14, 0xb1, 0x0b, 0x00, 0x00, 0x00, 0x00],
-        ])
+        self._com.xfer_mock.set_return_data([[
+            0x80, 0x00, 0x55, 0x55, 0x77, 0x14,
+            0xb1, 0x0b, 0x00, 0x00, 0x00, 0x00]])
         idcode = self._stlink.get_idcode()
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
-            {'command': [0xf2, 0x31], 'data': None, 'rx_length': 12, 'tout': 200},
-        ])
+        self.assertEqual(
+            self._com.xfer_mock.get_call_log(),
+            [{
+                'command': [0xf2, 0x31],
+                'data': None,
+                'rx_length': 12,
+                'tout': 200}])
         self.assertEqual(idcode, 0xbb11477)
 
 
@@ -190,7 +216,8 @@ class TestStlinkGetMem32(_TestStlink):
         """test getting memory register with unaligned address"""
         with self.assertRaises(swd.stlink.StlinkException) as context:
             self._stlink.get_mem32(0x08000001)
-        self.assertEqual(str(context.exception), 'Address is not aligned to 4 Bytes')
+        self.assertEqual(
+            str(context.exception), 'Address is not aligned to 4 Bytes')
 
 
 class TestStlinkSetMem32(_TestStlink):
@@ -212,7 +239,8 @@ class TestStlinkSetMem32(_TestStlink):
         """test setting memory register with unaligned address"""
         with self.assertRaises(swd.stlink.StlinkException) as context:
             self._stlink.set_mem32(0x20000001, 0x12345678)
-        self.assertEqual(str(context.exception), 'Address is not aligned to 4 Bytes')
+        self.assertEqual(
+            str(context.exception), 'Address is not aligned to 4 Bytes')
 
 
 class TestStlinkReadMem8(_TestStlink):
@@ -250,7 +278,9 @@ class TestStlinkReadMem8(_TestStlink):
         """test setting memory register with unaligned address"""
         with self.assertRaises(swd.stlink.StlinkException) as context:
             self._stlink.read_mem8(0x20000000, 65)
-        self.assertEqual(str(context.exception), 'Too many Bytes to read (maximum is 64 Bytes)')
+        self.assertEqual(
+            str(context.exception),
+            'Too many Bytes to read (maximum is 64 Bytes)')
 
 
 class TestStlinkWriteMem8(_TestStlink):
@@ -283,12 +313,15 @@ class TestStlinkWriteMem8(_TestStlink):
                 0xf2, 0x0d, 0x00, 0x10, 0x00, 0x20, 0x40, 0x00, 0x00, 0x00
             ], 'data': data, 'rx_length': 0, 'tout': 200},
         ])
+
     def test_over_size(self):
         """test setting memory register with unaligned address"""
         data = list(range(65))
         with self.assertRaises(swd.stlink.StlinkException) as context:
             self._stlink.write_mem8(0x20000000, data)
-        self.assertEqual(str(context.exception), 'Too many Bytes to write (maximum is 64 Bytes)')
+        self.assertEqual(
+            str(context.exception),
+            'Too many Bytes to write (maximum is 64 Bytes)')
 
 
 class TestStlinkReadMem32(_TestStlink):
@@ -326,19 +359,25 @@ class TestStlinkReadMem32(_TestStlink):
         """test setting memory register with unaligned address"""
         with self.assertRaises(swd.stlink.StlinkException) as context:
             self._stlink.read_mem32(0x20000000, 1028)
-        self.assertEqual(str(context.exception), 'Too many Bytes to read (maximum is 1024 Bytes)')
+        self.assertEqual(
+            str(context.exception),
+            'Too many Bytes to read (maximum is 1024 Bytes)')
 
     def test_unaligned_address(self):
         """test setting memory register with unaligned address"""
         with self.assertRaises(swd.stlink.StlinkException) as context:
             self._stlink.read_mem32(0x20000001, 12)
-        self.assertEqual(str(context.exception), 'Address is not aligned to 4 Bytes')
+        self.assertEqual(
+            str(context.exception),
+            'Address is not aligned to 4 Bytes')
 
     def test_unaligned_size(self):
         """test setting memory register with unaligned address"""
         with self.assertRaises(swd.stlink.StlinkException) as context:
             self._stlink.read_mem32(0x20000000, 13)
-        self.assertEqual(str(context.exception), 'Size is not aligned to 4 Bytes')
+        self.assertEqual(
+            str(context.exception),
+            'Size is not aligned to 4 Bytes')
 
 
 class TestStlinkWriteMem32(_TestStlink):
@@ -369,18 +408,24 @@ class TestStlinkWriteMem32(_TestStlink):
         data = list(range(1028))
         with self.assertRaises(swd.stlink.StlinkException) as context:
             self._stlink.write_mem32(0x20000000, data)
-        self.assertEqual(str(context.exception), 'Too many Bytes to write (maximum is 1024 Bytes)')
+        self.assertEqual(
+            str(context.exception),
+            'Too many Bytes to write (maximum is 1024 Bytes)')
 
     def test_unaligned_address(self):
         """test setting memory register with unaligned address"""
         data = list(range(12))
         with self.assertRaises(swd.stlink.StlinkException) as context:
             self._stlink.write_mem32(0x20000001, data)
-        self.assertEqual(str(context.exception), 'Address is not aligned to 4 Bytes')
+        self.assertEqual(
+            str(context.exception),
+            'Address is not aligned to 4 Bytes')
 
     def test_unaligned_size(self):
         """test setting memory register with unaligned address"""
         data = list(range(13))
         with self.assertRaises(swd.stlink.StlinkException) as context:
             self._stlink.write_mem32(0x20000000, data)
-        self.assertEqual(str(context.exception), 'Size is not aligned to 4 Bytes')
+        self.assertEqual(
+            str(context.exception),
+            'Size is not aligned to 4 Bytes')

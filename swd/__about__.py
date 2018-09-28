@@ -1,4 +1,5 @@
-"""ABOUT"""
+"""ABOUT
+"""
 
 APP_NAME = "pyswd"
 VERSION = "v1.0.0"

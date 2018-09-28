@@ -1,8 +1,9 @@
-"""SWD protocol"""
+"""SWD protocol
+"""
 
 import itertools as _itertools
 from swd.stlink import Stlink as _Stlink
-import swd._log as _log
+from swd import _log
 
 
 class Swd():
@@ -172,7 +173,8 @@ class Swd():
             address += len(chunk)
         # write remained data, here is address always aligned
         while True:
-            chunk = list(_itertools.islice(data, 0, self._drv.MAXIMUM_32BIT_DATA))
+            chunk = list(
+                _itertools.islice(data, 0, self._drv.MAXIMUM_32BIT_DATA))
             if not chunk:
                 return
             if len(chunk) % 4 == 0:
@@ -199,7 +201,8 @@ class Swd():
             size: number of bytes to fill
         """
         index = 0
-        data = pattern * ((min(size, self._drv.MAXIMUM_32BIT_DATA)) // len(pattern) + 1)
+        data = pattern * (
+            (min(size, self._drv.MAXIMUM_32BIT_DATA)) // len(pattern) + 1)
         while size:
             chunk_size = size
             if address % 4 or (chunk_size < self._drv.MAXIMUM_8BIT_DATA and chunk_size % 4):

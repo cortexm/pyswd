@@ -1,20 +1,25 @@
 """A setup tools based setup module.
 """
 
+# pylint: disable=W0122
+
 import setuptools
 
 _ABOUT = {}
 
 exec(open('swd/__about__.py').read(), _ABOUT)
 
+
 def get_long_description():
     """Return long description from README.md file"""
     import os
     import codecs
     current_dir = os.path.abspath(os.path.dirname(__file__))
-    with codecs.open(os.path.join(current_dir, 'README.md'), encoding='utf-8') as readme_file:
+    readme_file = os.path.join(current_dir, 'README.md')
+    with codecs.open(readme_file, encoding='utf-8') as readme_file:
         long_description = readme_file.read()
     return long_description
+
 
 setuptools.setup(
     name=_ABOUT['APP_NAME'],
