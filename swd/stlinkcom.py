@@ -87,7 +87,7 @@ class StlinkComBase():
     def read(self, size, tout=200):
         """Read data from USB pipe"""
         _logging.debug("")
-        read_size = size
+        read_size = max(size, 16)
         try:
             data = self._dev.read(self.PIPE_IN, read_size, tout).tolist()
         except _usb.USBError as err:
