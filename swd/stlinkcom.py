@@ -3,7 +3,6 @@
 
 import logging as _logging
 import usb.core as _usb
-from swd import _log
 
 
 class StlinkComException(Exception):
@@ -25,6 +24,13 @@ class StlinkComMoreDevices(Exception):
     def serial_numbers(self):
         """return list of serial numbers"""
         return self._serial_numbers
+
+
+def _hex_data(data):
+    """Return hexadecimal representation of array of bytes"""
+    if data is None:
+        return None
+    return "[%s]" % ', '.join(['0x%02x' % i for i in data])
 
 
 class StlinkComBase():
@@ -66,37 +72,29 @@ class StlinkComBase():
             return True
         return False
 
-    @_log.log(_log.DEBUG4)
     def write(self, data, tout=200):
         """Write data to USB pipe"""
-        _logging.log(
-            _log.DEBUG4,
-            "%s",
-            ', '.join(['0x%02x' % i for i in data]))
+        _logging.debug("")
+        _logging.debug("data: %s", _hex_data(data))
         try:
             count = self._dev.write(self.PIPE_OUT, data, tout)
         except _usb.USBError as err:
             self._dev = None
             raise StlinkComException("USB Error: %s" % err)
-        _logging.log(_log.DEBUG4, "count=%d", count)
         if count != len(data):
             raise StlinkComException("Error Sending data")
 
-    @_log.log(_log.DEBUG4)
     def read(self, size, tout=200):
         """Read data from USB pipe"""
+        _logging.debug("")
         read_size = size
-        _logging.log(_log.DEBUG4, "size=%d, read_size=%d", size, read_size)
         try:
             data = self._dev.read(self.PIPE_IN, read_size, tout).tolist()
-            data = data[:size]
         except _usb.USBError as err:
             self._dev = None
             raise StlinkComException("USB Error: %s" % err)
-        _logging.log(
-            _log.DEBUG4,
-            "%s",
-            ', '.join(['0x%02x' % i for i in data]))
+        _logging.debug("data: %s", _hex_data(data))
+        data = data[:size]
         return data
 
     def __del__(self):
@@ -159,7 +157,6 @@ class StlinkCom():
         """property with device version"""
         return self._dev.DEV_NAME
 
-    @_log.log(_log.DEBUG3)
     def xfer(self, command, data=None, rx_length=0, tout=200):
         """Transfer command between ST-Link
 
@@ -168,7 +165,7 @@ class StlinkCom():
             data: data will be sent after command
             rx_length: number of expected data to receive after command
                 and data transfer
-            tout: maximum waiting time for received data
+            tout: maximum waiting time for received data in ms
 
         Return:
             received data
@@ -176,6 +173,8 @@ class StlinkCom():
         Raises:
             StlinkComException
         """
+        _logging.info("")
+        _logging.info("command: %s", _hex_data(command))
         if len(command) > self._STLINK_CMD_SIZE:
             raise StlinkComException(
                 "Error too many Bytes in command (maximum is %d Bytes)"
@@ -184,7 +183,10 @@ class StlinkCom():
         command += [0] * (self._STLINK_CMD_SIZE - len(command))
         self._dev.write(command, tout)
         if data:
+            _logging.info("write: %s", _hex_data(data))
             self._dev.write(data, tout)
         if rx_length:
-            return self._dev.read(rx_length)
+            data = self._dev.read(rx_length)
+            _logging.info("read: %s", _hex_data(data))
+            return data
         return None

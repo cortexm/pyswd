@@ -1,15 +1,14 @@
 """SWD protocol
 """
 
+import logging as _logging
 import itertools as _itertools
 from swd.stlink import Stlink as _Stlink
-from swd import _log
 
 
 class Swd():
     """Swd class"""
 
-    @_log.log(_log.DEBUG1)
     def __init__(self, swd_frequency=1800000, driver=None, serial_no=''):
         if driver is None:
             # default SWD driver is Stlink
@@ -22,27 +21,27 @@ class Swd():
         Return:
             driver version string
         """
+        _logging.info("")
         return str(self._drv.get_version())
 
-    @_log.log(_log.DEBUG1)
     def get_target_voltage(self):
         """Get target voltage from debugger
 
         Return:
             measured voltage
         """
+        _logging.info("")
         return self._drv.get_target_voltage()
 
-    @_log.log(_log.DEBUG1)
     def get_idcode(self):
         """Get core ID from MCU
 
         Return:
             32 bit number
         """
+        _logging.info("")
         return self._drv.get_idcode()
 
-    @_log.log(_log.DEBUG1)
     def get_reg(self, register):
         """Get core register
 
@@ -56,9 +55,9 @@ class Swd():
         Return:
             32 bit number
         """
+        _logging.info("")
         return self._drv.get_reg(register)
 
-    @_log.log(_log.DEBUG1)
     def get_reg_all(self):
         """Get all core registers
 
@@ -69,9 +68,9 @@ class Swd():
         Return:
             list of 32 bit numbers
         """
+        _logging.info("")
         return self._drv.get_reg_all()
 
-    @_log.log(_log.DEBUG1)
     def set_reg(self, register, data):
         """Set core register
 
@@ -83,9 +82,9 @@ class Swd():
             register: register ID
             data: 32 bit number
         """
+        _logging.info("")
         self._drv.set_reg(register, data)
 
-    @_log.log(_log.DEBUG1)
     def get_mem32(self, address):
         """Get 32 bit memory register with 32 bit memory access.
 
@@ -97,9 +96,9 @@ class Swd():
         Return:
             return 32 bit number
         """
+        _logging.info("")
         return self._drv.get_mem32(address)
 
-    @_log.log(_log.DEBUG1)
     def set_mem32(self, address, data):
         """Set 32 bit memory register with 32 bit memory access.
 
@@ -109,6 +108,7 @@ class Swd():
             address: address in memory
             data: 32 bit number
         """
+        _logging.info("")
         self._drv.set_mem32(address, data)
 
     def _get_chunk_size_to_align_size(self, address, size):
@@ -123,7 +123,6 @@ class Swd():
             return min(size, self._drv.MAXIMUM_8BIT_DATA - (address % 4))
         return 0
 
-    @_log.log(_log.DEBUG1)
     def read_mem(self, address, size):
         """Read bytes memory
 
@@ -136,6 +135,7 @@ class Swd():
         Return:
             iterable of read data
         """
+        _logging.info("")
         chunk_size = self._get_chunk_size_to_align_address(address, size)
         if chunk_size:
             yield from self._drv.read_mem8(address, chunk_size)
@@ -152,7 +152,6 @@ class Swd():
             address += chunk_size
             size -= chunk_size
 
-    @_log.log(_log.DEBUG1)
     def write_mem(self, address, data):
         """Write memory
 
@@ -162,6 +161,7 @@ class Swd():
             address: address in memory
             data: list or iterable of bytes to write into memory
         """
+        _logging.info("")
         data = iter(data)
         # first chunk to align address
         if address % 4:
@@ -189,7 +189,6 @@ class Swd():
             self._drv.write_mem8(address, chunk)
             return
 
-    @_log.log(_log.DEBUG1)
     def fill_mem(self, address, pattern, size):
         """Fill memory with pattern
 
@@ -200,6 +199,7 @@ class Swd():
             pattern: list of bytes to fill
             size: number of bytes to fill
         """
+        _logging.info("")
         index = 0
         data = pattern * (
             (min(size, self._drv.MAXIMUM_32BIT_DATA)) // len(pattern) + 1)

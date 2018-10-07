@@ -1,8 +1,8 @@
 """ST-Link/V2 driver
 """
 
+import logging as _logging
 from swd.stlinkcom import StlinkCom as _StlinkCom
-from swd import _log
 
 
 class StlinkException(Exception):
@@ -157,7 +157,6 @@ class Stlink():
             """String representation"""
             return self._str
 
-    @_log.log(_log.DEBUG2)
     def __init__(self, swd_frequency=1800000, com=None, serial_no=''):
         if com is None:
             # default com driver is StlinkCom
@@ -169,13 +168,11 @@ class Stlink():
             self._set_swd_freq(swd_frequency)
         self._enter_debug_swd()
 
-    @_log.log(_log.DEBUG3)
     def _get_version(self):
         res = self._com.xfer([Stlink._Cmd.GET_VERSION, 0x80], rx_length=6)
         ver = int.from_bytes(res[:2], byteorder='big')
         return Stlink.StlinkVersion(self._com.version, ver)
 
-    @_log.log(_log.DEBUG3)
     def _leave_state(self):
         res = self._com.xfer([Stlink._Cmd.GET_CURRENT_MODE], rx_length=2)
         if res[0] == Stlink._Cmd.Mode.DFU:
@@ -188,7 +185,6 @@ class Stlink():
             return
         self._com.xfer(cmd)
 
-    @_log.log(_log.DEBUG3)
     def _set_swd_freq(self, frequency=1800000):
         for freq, data in Stlink._SWD_FREQ:
             if frequency >= freq:
@@ -202,7 +198,6 @@ class Stlink():
                 return
         raise StlinkException("Selected SWD frequency is too low")
 
-    @_log.log(_log.DEBUG3)
     def _enter_debug_swd(self):
         cmd = [
             Stlink._Cmd.Debug.COMMAND,
@@ -218,25 +213,25 @@ class Stlink():
         """
         return self._version
 
-    @_log.log(_log.DEBUG2)
     def get_target_voltage(self):
         """Get target voltage from debugger
 
         Return:
             measured voltage
         """
+        _logging.info("")
         res = self._com.xfer([Stlink._Cmd.GET_TARGET_VOLTAGE], rx_length=8)
         an0 = int.from_bytes(res[:4], byteorder='little')
         an1 = int.from_bytes(res[4:8], byteorder='little')
         return round(2 * an1 * 1.2 / an0, 2) if an0 != 0 else None
 
-    @_log.log(_log.DEBUG2)
     def get_idcode(self):
         """Get core ID from MCU
 
         Return:
             32 bit number
         """
+        _logging.info("")
         cmd = [
             Stlink._Cmd.Debug.COMMAND,
             Stlink._Cmd.Debug.Apiv2.READ_IDCODES]
@@ -246,7 +241,6 @@ class Stlink():
             raise StlinkException("No IDCODE, probably MCU is not connected")
         return idcode
 
-    @_log.log(_log.DEBUG2)
     def get_reg(self, register):
         """Get core register
 
@@ -260,6 +254,7 @@ class Stlink():
         Return:
             32 bit number
         """
+        _logging.info("")
         cmd = [
             Stlink._Cmd.Debug.COMMAND,
             Stlink._Cmd.Debug.Apiv2.READREG,
@@ -267,7 +262,6 @@ class Stlink():
         res = self._com.xfer(cmd, rx_length=8)
         return int.from_bytes(res[4:8], byteorder='little')
 
-    @_log.log(_log.DEBUG2)
     def get_reg_all(self):
         """Get all core registers
 
@@ -278,6 +272,7 @@ class Stlink():
         Return:
             list of 32 bit numbers
         """
+        _logging.info("")
         cmd = [
             Stlink._Cmd.Debug.COMMAND,
             Stlink._Cmd.Debug.Apiv2.READALLREGS]
@@ -288,7 +283,6 @@ class Stlink():
                 int.from_bytes(res[index:index + 4], byteorder='little'))
         return data
 
-    @_log.log(_log.DEBUG2)
     def set_reg(self, register, data):
         """Set core register
 
@@ -300,6 +294,7 @@ class Stlink():
             register: register ID
             data: 32 bit number
         """
+        _logging.info("")
         cmd = [
             Stlink._Cmd.Debug.COMMAND,
             Stlink._Cmd.Debug.Apiv2.WRITEREG,
@@ -307,7 +302,6 @@ class Stlink():
         cmd.extend(list(data.to_bytes(4, byteorder='little')))
         self._com.xfer(cmd, rx_length=2)
 
-    @_log.log(_log.DEBUG2)
     def get_mem32(self, address):
         """Get 32 bit memory register with 32 bit memory access.
 
@@ -319,6 +313,7 @@ class Stlink():
         Return:
             return 32 bit number
         """
+        _logging.info("")
         if address % 4:
             raise StlinkException('Address is not aligned to 4 Bytes')
         cmd = [
@@ -328,7 +323,6 @@ class Stlink():
         res = self._com.xfer(cmd, rx_length=8)
         return int.from_bytes(res[4:8], byteorder='little')
 
-    @_log.log(_log.DEBUG2)
     def set_mem32(self, address, data):
         """Set 32 bit memory register with 32 bit memory access.
 
@@ -338,6 +332,7 @@ class Stlink():
             address: address in memory
             data: 32 bit number
         """
+        _logging.info("")
         if address % 4:
             raise StlinkException('Address is not aligned to 4 Bytes')
         cmd = [
@@ -347,7 +342,6 @@ class Stlink():
         cmd.extend(list(data.to_bytes(4, byteorder='little')))
         self._com.xfer(cmd, rx_length=2)
 
-    @_log.log(_log.DEBUG2)
     def read_mem8(self, address, size):
         """Read data from memory with 8 bit memory access.
 
@@ -360,6 +354,7 @@ class Stlink():
         Return:
             list of read data
         """
+        _logging.info("")
         if size > Stlink._STLINK_MAXIMUM_8BIT_DATA:
             raise StlinkException(
                 'Too many Bytes to read (maximum is %d Bytes)'
@@ -369,7 +364,6 @@ class Stlink():
         cmd.extend(list(size.to_bytes(4, byteorder='little')))
         return self._com.xfer(cmd, rx_length=size)
 
-    @_log.log(_log.DEBUG2)
     def write_mem8(self, address, data):
         """Write data into memory with 8 bit memory access.
 
@@ -379,6 +373,7 @@ class Stlink():
             address: address in memory
             data: list of bytes to write into memory
         """
+        _logging.info("")
         if len(data) > Stlink._STLINK_MAXIMUM_8BIT_DATA:
             raise StlinkException(
                 'Too many Bytes to write (maximum is %d Bytes)'
@@ -388,7 +383,6 @@ class Stlink():
         cmd.extend(list(len(data).to_bytes(4, byteorder='little')))
         self._com.xfer(cmd, data=data)
 
-    @_log.log(_log.DEBUG2)
     def read_mem32(self, address, size):
         """Read data from memory with 32 bit memory access.
 
@@ -402,6 +396,7 @@ class Stlink():
         Return:
             list of read data
         """
+        _logging.info("")
         if address % 4:
             raise StlinkException('Address is not aligned to 4 Bytes')
         if size % 4:
@@ -417,7 +412,6 @@ class Stlink():
         cmd.extend(list(size.to_bytes(4, byteorder='little')))
         return self._com.xfer(cmd, rx_length=size)
 
-    @_log.log(_log.DEBUG2)
     def write_mem32(self, address, data):
         """Write data into memory with 32 bit memory access.
 
@@ -428,6 +422,7 @@ class Stlink():
             address: address in memory
             data: list of bytes to write into memory
         """
+        _logging.info("")
         if address % 4:
             raise StlinkException('Address is not aligned to 4 Bytes')
         if len(data) % 4:

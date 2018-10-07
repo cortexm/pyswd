@@ -162,6 +162,18 @@ class TestReadMemUnalignedSize(_TestSwd):
         ])
         self.assertEqual(ret_data, data)
 
+    def test_5byte(self):
+        """Test reading memory"""
+        data = list(range(5))
+        self._drv.read_mem8_mock.set_return_data([
+            data,
+        ])
+        ret_data = list(self._swd.read_mem(0x20000000, 5))
+        self.assertEqual(self._drv.read_mem8_mock.get_call_log(), [
+            {'address': 0x20000000, 'size': 5},
+        ])
+        self.assertEqual(ret_data, data)
+
     def test_63bytes(self):
         """Test reading memory"""
         data = list(range(63))
@@ -539,6 +551,7 @@ class TestWriteMem(_TestSwd):
             {'address': 0x24000010, 'data': data[:1024]},
             {'address': 0x24000410, 'data': data[1024:]},
         ])
+
 
 class TestWriteMemUnalignedSize(_TestSwd):
     """Tests for Swd.write_mem class with unaligned size"""

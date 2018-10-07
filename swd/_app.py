@@ -10,7 +10,6 @@ import swd
 import swd.stlink
 import swd.stlinkcom
 import swd.__about__
-from swd import _log
 
 
 class PyswdException(Exception):
@@ -74,13 +73,13 @@ def _configure_argparse():
         "-q", "--quite", action="store_true",
         help="quite output")
     parser.add_argument(
-        "-d", "--debug", action="count",
+        "-d", "--debug", action="count", default=0,
         help="increase debug output")
     parser.add_argument(
-        "-i", "--info", action="count",
+        "-i", "--info", action="count", default=0,
         help="increase info output")
     parser.add_argument(
-        "-v", "--verbose", action="count",
+        "-v", "--verbose", action="count", default=0,
         help="increase verbose output")
     parser.add_argument(
         "-f", "--freq", type=int, default=1800000,
@@ -198,25 +197,27 @@ class Application():
         """Application startup"""
         self._swd = None
         self._cortexm = None
-        self._verbose = 0
+        self._info = args.info
+        self._verbose = args.verbose
         self._actions = args.action
         self._swd_frequency = args.freq
         self._serial_no = args.serial
-        if args.verbose is not None:
-            self._verbose = args.verbose
+        logging_level = logging.WARNING
         if args.quite:
-            logging.basicConfig(level=logging.ERROR)
-        elif args.debug is not None:
-            logging.basicConfig(level=logging.DEBUG - (args.debug - 1))
-        elif args.info is not None:
-            logging.basicConfig(level=logging.INFO - (args.info - 1))
-        else:
-            logging.basicConfig(level=logging.WARNING)
+            logging_level = logging.ERROR
+        elif args.debug > 1:
+            logging_level = logging.DEBUG
+        elif args.debug > 0:
+            logging_level = logging.INFO
+        logging.basicConfig(
+            format='%(levelname)s:%(module)s:%(funcName)s:%(message)s',
+            level=logging_level)
 
     def print_device_info(self):
         """Show device informations"""
-        logging.info(self._swd.get_version())
-        logging.info("Target voltage: %0.2fV", self._swd.get_target_voltage())
+        if self._info:
+            print(self._swd.get_version())
+            print("Target voltage: %0.2fV" % self._swd.get_target_voltage())
 
     def action_dump32(self, params):
         """Dump memory 32 bit"""
@@ -443,7 +444,6 @@ class Application():
 
 def main():
     """application startup"""
-    _log.configure()
     args = _configure_argparse()
     app = Application(args)
     ret = app.start()
