@@ -62,7 +62,11 @@ class StlinkComBase():
     @property
     def serial_no(self):
         """Return device serial number"""
-        return ''.join(['%02X' % ord(c) for c in self._dev.serial_number])
+        try:
+            return ''.join(['%02X' % ord(c) for c in self._dev.serial_number])
+        except NotImplementedError as err:
+            _logging.warning("Getting version is not implemented: %s" % err)
+            return ""
 
     def compare_serial_no(self, serial_no):
         """Compare device serial no with selected serial number"""
