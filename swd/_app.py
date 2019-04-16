@@ -151,7 +151,8 @@ def print_buffer(addr, data, hex_line=hex_line8, verbose=0):
             print('*')
             same_chunk = True
         elif sys.stdout.isatty() and addr % 0x1000 == 0:
-            print('%08x\r' % addr, end='', flush=True)
+            sys.stderr.write('%08x\r' % addr)
+            sys.stderr.flush()
         addr += len(chunk)
     if same_chunk or verbose > 1:
         print('%08x' % addr)
@@ -190,7 +191,7 @@ def convert_numeric(num, max_bits=32):
     return ret
 
 
-class Application():
+class Application:
     """Application"""
 
     def __init__(self, args):
@@ -199,6 +200,7 @@ class Application():
         self._cortexm = None
         self._info = args.info
         self._verbose = args.verbose
+        self._quite = args.quite
         self._actions = args.action
         self._swd_frequency = args.freq
         self._serial_no = args.serial
@@ -213,11 +215,28 @@ class Application():
             format='%(levelname)s:%(module)s:%(funcName)s:%(message)s',
             level=logging_level)
 
-    def print_device_info(self):
-        """Show device informations"""
+    def print_info(self, msg):
+        """Print info string"""
         if self._info:
-            print(self._swd.get_version())
-            print("Target voltage: %0.2fV" % self._swd.get_target_voltage())
+            sys.stderr.write("%s\n" % msg)
+
+    def print_verbose(self, msg):
+        """Print info string"""
+        if self._verbose:
+            sys.stderr.write("%s\n" % msg)
+
+    def print_noquite(self, msg):
+        """Print info string"""
+        if not self._quite:
+            sys.stderr.write("%s\n" % msg)
+
+    def print_io(self, reg_name):
+        """Print IO register content"""
+        bitf_reg = self._swd.reg(reg_name)
+        bitf_reg.tmp_load()
+        print("%s:" % reg_name)
+        for reg in bitf_reg.tmp.get_registers():
+            print("%16s: %8x" % (reg, bitf_reg.tmp.get(reg)))
 
     def action_dump32(self, params):
         """Dump memory 32 bit"""
@@ -402,6 +421,7 @@ class Application():
     def process_actions(self):
         """Process all actions"""
         for action in self._actions:
+            self.print_verbose("ACTION: %s" % action)
             logging.debug(action)
             action_parts = action.split(":")
             action_name = "action_" + action_parts[0]
@@ -420,10 +440,20 @@ class Application():
                 serial_no=self._serial_no)
             # reading ID code can generate exception
             # and stop pyswd if no MCU is connected
+            self.print_info(self._swd.get_version())
             self._swd.get_idcode()
             self._cortexm = swd.CortexM(self._swd)
-            self.print_device_info()
-            self.process_actions()
+            was_halted = self._cortexm.is_halted()
+            if was_halted:
+                self.print_noquite("Core is halted.")
+            if self._actions:
+                self.process_actions()
+                is_halted = self._cortexm.is_halted()
+                if was_halted != is_halted:
+                    if is_halted:
+                        self.print_noquite("Core stay halted.")
+                    else:
+                        self.print_noquite("Core is running.")
         except swd.stlinkcom.StlinkComNotFound:
             logging.error("ST-Link not connected.")
         except swd.stlinkcom.StlinkComMoreDevices as err:
