@@ -1,7 +1,6 @@
 """ST-Link/V2 driver
 """
 
-import logging as _logging
 from swd.stlinkcom import StlinkCom as _StlinkCom
 
 
@@ -9,16 +8,16 @@ class StlinkException(Exception):
     """Exception"""
 
 
-class Stlink():
+class Stlink:
     """ST-Link class"""
 
-    class _Cmd():  # pylint: disable=R0903
+    class _Cmd:  # pylint: disable=R0903
         """Stlink commands"""
         GET_VERSION = 0xf1
         GET_CURRENT_MODE = 0xf5
         GET_TARGET_VOLTAGE = 0xf7
 
-        class Mode():
+        class Mode:
             """Stlink commands"""
             DFU = 0x00
             MASS = 0x01
@@ -26,18 +25,18 @@ class Stlink():
             SWIM = 0x03
             BOOTLOADER = 0x04
 
-        class Dfu():
+        class Dfu:
             """Stlink commands"""
             COMMAND = 0xf3
             EXIT = 0x07
 
-        class Swim():
+        class Swim:
             """Stlink commands"""
             COMMAND = 0xf4
             ENTER = 0x00
             EXIT = 0x01
 
-        class Debug():
+        class Debug:
             """Stlink commands"""
             COMMAND = 0xf2
             ENTER_JTAG = 0x00
@@ -54,7 +53,7 @@ class Stlink():
             SYNC = 0x3e
             ENTER_SWD = 0xa3
 
-            class Apiv1():
+            class Apiv1:
                 """Stlink commands"""
                 RESETSYS = 0x03
                 READALLREGS = 0x04
@@ -66,7 +65,7 @@ class Stlink():
                 SETWATCHPOINT = 0x10
                 ENTER = 0x20
 
-            class Apiv2():
+            class Apiv2:
                 """Stlink commands"""
                 ENTER = 0x30
                 READ_IDCODES = 0x31
@@ -108,7 +107,7 @@ class Stlink():
     MAXIMUM_8BIT_DATA = 4
     MAXIMUM_32BIT_DATA = _STLINK_MAXIMUM_TRANSFER_SIZE
 
-    class StlinkVersion():
+    class StlinkVersion:
         """ST-Link version holder class"""
         def __init__(self, dev_ver, ver):
             self._stlink = (ver >> 12) & 0xf
@@ -219,7 +218,6 @@ class Stlink():
         Return:
             measured voltage
         """
-        _logging.info("")
         res = self._com.xfer([Stlink._Cmd.GET_TARGET_VOLTAGE], rx_length=8)
         an0 = int.from_bytes(res[:4], byteorder='little')
         an1 = int.from_bytes(res[4:8], byteorder='little')
@@ -231,7 +229,6 @@ class Stlink():
         Return:
             32 bit number
         """
-        _logging.info("")
         cmd = [
             Stlink._Cmd.Debug.COMMAND,
             Stlink._Cmd.Debug.Apiv2.READ_IDCODES]
@@ -254,7 +251,6 @@ class Stlink():
         Return:
             32 bit number
         """
-        _logging.info("")
         cmd = [
             Stlink._Cmd.Debug.COMMAND,
             Stlink._Cmd.Debug.Apiv2.READREG,
@@ -272,7 +268,6 @@ class Stlink():
         Return:
             list of 32 bit numbers
         """
-        _logging.info("")
         cmd = [
             Stlink._Cmd.Debug.COMMAND,
             Stlink._Cmd.Debug.Apiv2.READALLREGS]
@@ -294,7 +289,6 @@ class Stlink():
             register: register ID
             data: 32 bit number
         """
-        _logging.info("")
         cmd = [
             Stlink._Cmd.Debug.COMMAND,
             Stlink._Cmd.Debug.Apiv2.WRITEREG,
@@ -313,7 +307,6 @@ class Stlink():
         Return:
             return 32 bit number
         """
-        _logging.info("")
         if address % 4:
             raise StlinkException('Address is not aligned to 4 Bytes')
         cmd = [
@@ -332,7 +325,6 @@ class Stlink():
             address: address in memory
             data: 32 bit number
         """
-        _logging.info("")
         if address % 4:
             raise StlinkException('Address is not aligned to 4 Bytes')
         cmd = [
@@ -354,7 +346,6 @@ class Stlink():
         Return:
             list of read data
         """
-        _logging.info("")
         if size > Stlink._STLINK_MAXIMUM_8BIT_DATA:
             raise StlinkException(
                 'Too many Bytes to read (maximum is %d Bytes)'
@@ -373,7 +364,6 @@ class Stlink():
             address: address in memory
             data: list of bytes to write into memory
         """
-        _logging.info("")
         if len(data) > Stlink._STLINK_MAXIMUM_8BIT_DATA:
             raise StlinkException(
                 'Too many Bytes to write (maximum is %d Bytes)'
@@ -396,7 +386,6 @@ class Stlink():
         Return:
             list of read data
         """
-        _logging.info("")
         if address % 4:
             raise StlinkException('Address is not aligned to 4 Bytes')
         if size % 4:
@@ -422,7 +411,6 @@ class Stlink():
             address: address in memory
             data: list of bytes to write into memory
         """
-        _logging.info("")
         if address % 4:
             raise StlinkException('Address is not aligned to 4 Bytes')
         if len(data) % 4:

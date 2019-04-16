@@ -33,14 +33,13 @@ def _hex_data(data):
     return "[%s]" % ', '.join(['0x%02x' % i for i in data])
 
 
-class StlinkComBase():
+class StlinkComBase:
     """ST link comm base class"""
     ID_VENDOR = None
     ID_PRODUCT = None
     PIPE_OUT = None
     PIPE_IN = None
 
-    """ST-Link/V2 USB communication class"""
     def __init__(self, dev):
         self._dev = dev
 
@@ -65,7 +64,7 @@ class StlinkComBase():
         try:
             return ''.join(['%02X' % ord(c) for c in self._dev.serial_number])
         except NotImplementedError as err:
-            _logging.warning("Getting version is not implemented: %s" % err)
+            _logging.warning("Getting version is not implemented: %s", err)
             return ""
 
     def compare_serial_no(self, serial_no):
@@ -78,7 +77,6 @@ class StlinkComBase():
 
     def write(self, data, tout=200):
         """Write data to USB pipe"""
-        _logging.debug("")
         _logging.debug("data: %s", _hex_data(data))
         try:
             count = self._dev.write(self.PIPE_OUT, data, tout)
@@ -90,7 +88,6 @@ class StlinkComBase():
 
     def read(self, size, tout=200):
         """Read data from USB pipe"""
-        _logging.debug("")
         read_size = max(size, 16)
         try:
             data = self._dev.read(self.PIPE_IN, read_size, tout).tolist()
@@ -124,7 +121,7 @@ class StlinkComV21Usb(StlinkComBase):
     DEV_NAME = "V2-1"
 
 
-class StlinkCom():
+class StlinkCom:
     """ST-Link communication class"""
     _STLINK_CMD_SIZE = 16
     _COM_CLASSES = [StlinkComV2Usb, StlinkComV21Usb]
@@ -177,7 +174,6 @@ class StlinkCom():
         Raises:
             StlinkComException
         """
-        _logging.info("")
         _logging.info("command: %s", _hex_data(command))
         if len(command) > self._STLINK_CMD_SIZE:
             raise StlinkComException(

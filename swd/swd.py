@@ -1,7 +1,6 @@
 """SWD protocol
 """
 
-import logging as _logging
 import itertools as _itertools
 from swd.stlink import Stlink as _Stlink
 
@@ -21,7 +20,6 @@ class Swd():
         Return:
             driver version string
         """
-        _logging.info("")
         return str(self._drv.get_version())
 
     def get_target_voltage(self):
@@ -30,7 +28,6 @@ class Swd():
         Return:
             measured voltage
         """
-        _logging.info("")
         return self._drv.get_target_voltage()
 
     def get_idcode(self):
@@ -39,7 +36,6 @@ class Swd():
         Return:
             32 bit number
         """
-        _logging.info("")
         return self._drv.get_idcode()
 
     def get_reg(self, register):
@@ -55,7 +51,6 @@ class Swd():
         Return:
             32 bit number
         """
-        _logging.info("")
         return self._drv.get_reg(register)
 
     def get_reg_all(self):
@@ -68,7 +63,6 @@ class Swd():
         Return:
             list of 32 bit numbers
         """
-        _logging.info("")
         return self._drv.get_reg_all()
 
     def set_reg(self, register, data):
@@ -82,7 +76,6 @@ class Swd():
             register: register ID
             data: 32 bit number
         """
-        _logging.info("")
         self._drv.set_reg(register, data)
 
     def get_mem32(self, address):
@@ -96,7 +89,6 @@ class Swd():
         Return:
             return 32 bit number
         """
-        _logging.info("")
         return self._drv.get_mem32(address)
 
     def set_mem32(self, address, data):
@@ -108,7 +100,6 @@ class Swd():
             address: address in memory
             data: 32 bit number
         """
-        _logging.info("")
         self._drv.set_mem32(address, data)
 
     def _get_chunk_size_to_align_size(self, address, size):
@@ -135,7 +126,6 @@ class Swd():
         Return:
             iterable of read data
         """
-        _logging.info("")
         chunk_size = self._get_chunk_size_to_align_address(address, size)
         if chunk_size:
             yield from self._drv.read_mem8(address, chunk_size)
@@ -161,7 +151,6 @@ class Swd():
             address: address in memory
             data: list or iterable of bytes to write into memory
         """
-        _logging.info("")
         data = iter(data)
         # first chunk to align address
         if address % 4:
@@ -199,7 +188,6 @@ class Swd():
             pattern: list of bytes to fill
             size: number of bytes to fill
         """
-        _logging.info("")
         index = 0
         data = pattern * (
             (min(size, self._drv.MAXIMUM_32BIT_DATA)) // len(pattern) + 1)
