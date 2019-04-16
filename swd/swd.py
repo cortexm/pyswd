@@ -17,6 +17,15 @@ class Swd():
                 serial_no=serial_no,
                 debug=debug)
         self._drv = driver
+        self._io = {}
+
+    def append_io(self, registers):
+        """Append bitfield registers"""
+        self._io.update(registers)
+
+    def reg(self, reg_name):
+        """Access bitfield register"""
+        return self._io[reg_name]
 
     def get_version(self):
         """Get SWD driver version

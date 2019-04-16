@@ -1,54 +1,67 @@
 """Cortex-Mx definitions
 """
 
+import time
+import swd.io.cortexm as _io_cm
+
 
 class CortexMException(Exception):
     """CortexM general exception"""
 
 
-class CortexM():
+class CortexMNotDetected(Exception):
+    """Exception"""
+
+
+class CortexM:
     """Definitions for Cortex-M MCUs"""
+
     REGISTERS = [
         'R0', 'R1', 'R2', 'R3', 'R4', 'R5',
         'R6', 'R7', 'R8', 'R9', 'R10', 'R11', 'R12',
         'SP', 'LR', 'PC', 'PSR', 'MSP', 'PSP']
 
-    AIRCR_REG = 0xe000ed0c
-    DHCSR_REG = 0xe000edf0
-    DEMCR_REG = 0xe000edfc
-    DWTCTRL_REG = 0xe0001000
-    BPCTRL_REG = 0xe0002000
-    BPCOMP0_REG = 0xe0002008
-    BPCOMP1_REG = 0xe000200c
-    BPCOMP2_REG = 0xe0002010
-    BPCOMP3_REG = 0xe0002014
-
-    BPCTRL_KEY = 0x00000002
-    BPCTRL_ENABLE = BPCTRL_KEY | 0x00000001
-    BPCTRL_DISABLE = BPCTRL_KEY | 0x00000000
-
-    BPCTRL_ENABLE = BPCTRL_KEY | 0x00000001
-    BPCTRL_DISABLE = BPCTRL_KEY | 0x00000000
-
-    AIRCR_KEY = 0x05fa0000
-    AIRCR_SYSRESETREQ_BIT = 0x00000004
-    AIRCR_SYSRESETREQ = AIRCR_KEY | AIRCR_SYSRESETREQ_BIT
-
-    DHCSR_KEY = 0xa05f0000
-    DHCSR_DEBUGEN_BIT = 0x00000001
-    DHCSR_HALT_BIT = 0x00000002
-    DHCSR_STEP_BIT = 0x00000004
-    DHCSR_STATUS_HALT_BIT = 0x00020000
-    DHCSR_DEBUGDIS = DHCSR_KEY
-    DHCSR_DEBUGEN = DHCSR_KEY | DHCSR_DEBUGEN_BIT
-    DHCSR_HALT = DHCSR_KEY | DHCSR_DEBUGEN_BIT | DHCSR_HALT_BIT
-    DHCSR_STEP = DHCSR_KEY | DHCSR_DEBUGEN_BIT | DHCSR_STEP_BIT
-
-    DEMCR_RUN_AFTER_RESET = 0x00000000
-    DEMCR_HALT_AFTER_RESET = 0x00000001
+    def create_io(self):
+        """Create IO registers"""
+        cpuid = _io_cm.Cpuid(self._swd)
+        implementer = cpuid.cached.get_named('IMPLEMENTER')
+        partno = cpuid.cached.get_named('PARTNO')
+        if implementer != 'ARM' or partno is None:
+            raise CortexMNotDetected(
+                "Unknown MCU with CPUID: 0x%08x" % cpuid.cached.raw)
+        self._swd.append_io({
+            'CPUID': cpuid,
+            'AIRCR': _io_cm.Aircr(self._swd),
+            'DHCSR_W': _io_cm.DhcsrWrite(self._swd),
+            'DHCSR_R': _io_cm.DhcsrRead(self._swd),
+            'DEMCR': _io_cm.Demcr(self._swd),
+        })
 
     def __init__(self, swd):
         self._swd = swd
+        self.create_io()
+        cpuid = self._swd.reg('CPUID')
+        self._implementer = cpuid.cached.get_named('IMPLEMENTER')
+        self._core = cpuid.cached.get_named('PARTNO')
+
+    @property
+    def swd(self):
+        """Return instance of SWD"""
+        return self._swd
+
+    @property
+    def implementer(self):
+        """Return implementer name"""
+        return self._implementer
+
+    @property
+    def core(self):
+        """Return core name"""
+        return self._core
+
+    def info_str(self):
+        """Return controller info string"""
+        return "%s/%s" % (self._implementer, self._core)
 
     @classmethod
     def _get_reg_index(cls, reg):
@@ -70,41 +83,49 @@ class CortexM():
 
     def reset(self):
         """Reset"""
-        self._swd.set_mem32(CortexM.DEMCR_REG, CortexM.DEMCR_RUN_AFTER_RESET)
-        self._swd.set_mem32(CortexM.AIRCR_REG, CortexM.AIRCR_SYSRESETREQ)
-        # self._swd.get_mem32(CortexM.AIRCR_REG)
+        self._swd.reg('DEMCR').set_bits({
+            'VC_CORERESET': False})
+        self._swd.reg('AIRCR').set_bits({
+            'VECTKEY': 'KEY',
+            'SYSRESETREQ': True})
+        time.sleep(.01)
 
     def reset_halt(self):
         """Reset and halt"""
-        self._swd.set_mem32(CortexM.DHCSR_REG, CortexM.DHCSR_HALT)
-        self._swd.set_mem32(CortexM.DEMCR_REG, CortexM.DEMCR_HALT_AFTER_RESET)
-        self._swd.set_mem32(CortexM.AIRCR_REG, CortexM.AIRCR_SYSRESETREQ)
-        # self._swd.get_mem32(CortexM.AIRCR_REG)
+        self.halt()
+        self._swd.reg('DEMCR').set_bits({
+            'VC_CORERESET': True})
+        self._swd.reg('AIRCR').set_bits({
+            'VECTKEY': 'KEY',
+            'SYSRESETREQ': True})
+        time.sleep(.01)
 
     def halt(self):
         """Halt"""
-        self._swd.set_mem32(CortexM.DHCSR_REG, CortexM.DHCSR_HALT)
+        self._swd.reg('DHCSR_W').set_bits({
+            'DBGKEY': 'KEY',
+            'C_DEBUGEN': True,
+            'C_HALT': True})
 
     def step(self):
         """Step"""
-        self._swd.set_mem32(CortexM.DHCSR_REG, CortexM.DHCSR_STEP)
+        self._swd.reg('DHCSR_W').set_bits({
+            'DBGKEY': 'KEY',
+            'C_DEBUGEN': True,
+            'C_STEP': True})
 
     def run(self):
         """Enable debug"""
-        self._swd.set_mem32(CortexM.DHCSR_REG, CortexM.DHCSR_DEBUGEN)
+        self._swd.reg('DHCSR_W').set_bits({
+            'DBGKEY': 'KEY',
+            'C_DEBUGEN': True})
 
     def nodebug(self):
         """Disable debug"""
-        self._swd.set_mem32(CortexM.DHCSR_REG, CortexM.DHCSR_DEBUGDIS)
+        self._swd.reg('DHCSR_W').set_bits({
+            'DBGKEY': 'KEY',
+            'C_DEBUGEN': False})
 
     def is_halted(self):
         """check if core is halted"""
-        return self._swd.get_mem32(
-            CortexM.DHCSR_REG) & CortexM.DHCSR_STATUS_HALT_BIT > 0
-
-    # def get_num_breakpoints(self):
-    #     """Return number of HW break points"""
-    #     return (self._swd.get_mem32(CortexM.BPCTRL_REG) >> 4) & 0x0f
-
-    # def break_point(self, id, address=None, enable=True):
-    #     pass
+        return self._swd.reg('DHCSR_R').get('S_HALT')
