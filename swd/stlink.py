@@ -27,18 +27,17 @@ class Stlink:
 
         class Dfu:
             """Stlink commands"""
-            COMMAND = 0xf3
             EXIT = 0x07
+            COMMAND = 0xf3
 
         class Swim:
             """Stlink commands"""
-            COMMAND = 0xf4
             ENTER = 0x00
             EXIT = 0x01
+            COMMAND = 0xf4
 
         class Debug:
             """Stlink commands"""
-            COMMAND = 0xf2
             ENTER_JTAG = 0x00
             STATUS = 0x01
             FORCEDEBUG = 0x02
@@ -52,6 +51,7 @@ class Stlink:
             READCOREID = 0x22
             SYNC = 0x3e
             ENTER_SWD = 0xa3
+            COMMAND = 0xf2
 
             class Apiv1:
                 """Stlink commands"""
@@ -67,6 +67,9 @@ class Stlink:
 
             class Apiv2:
                 """Stlink commands"""
+                NRST_LOW = 0x00
+                NRST_HIGH = 0x01
+                NRST_PULSE = 0x02
                 ENTER = 0x30
                 READ_IDCODES = 0x31
                 RESETSYS = 0x32
@@ -81,9 +84,6 @@ class Stlink:
                 STOP_TRACE_RX = 0x41
                 GET_TRACE_NB = 0x42
                 SWD_SET_FREQ = 0x43
-                NRST_LOW = 0x00
-                NRST_HIGH = 0x01
-                NRST_PULSE = 0x02
 
     _SWD_FREQ = (
         (4000000, 0, ),
