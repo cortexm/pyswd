@@ -75,22 +75,22 @@ class StlinkComBase:
             return True
         return False
 
-    def write(self, data, tout=200):
+    def write(self, data, timeout=200):
         """Write data to USB pipe"""
         _logging.debug("data: %s", _hex_data(data))
         try:
-            count = self._dev.write(self.PIPE_OUT, data, tout)
+            count = self._dev.write(self.PIPE_OUT, data, timeout)
         except _usb.USBError as err:
             self._dev = None
             raise StlinkComException("USB Error: %s" % err)
         if count != len(data):
             raise StlinkComException("Error Sending data")
 
-    def read(self, size, tout=200):
+    def read(self, size, timeout=200):
         """Read data from USB pipe"""
         read_size = max(size, 16)
         try:
-            data = self._dev.read(self.PIPE_IN, read_size, tout).tolist()
+            data = self._dev.read(self.PIPE_IN, read_size, timeout).tolist()
         except _usb.USBError as err:
             self._dev = None
             raise StlinkComException("USB Error: %s" % err)
@@ -158,7 +158,7 @@ class StlinkCom:
         """property with device version"""
         return self._dev.DEV_NAME
 
-    def xfer(self, command, data=None, rx_length=0, tout=200):
+    def xfer(self, command, data=None, rx_length=0, timeout=200):
         """Transfer command between ST-Link
 
         Arguments:
@@ -166,7 +166,7 @@ class StlinkCom:
             data: data will be sent after command
             rx_length: number of expected data to receive after command
                 and data transfer
-            tout: maximum waiting time for received data in ms
+            timeout: maximum waiting time for received data in ms
 
         Return:
             received data
@@ -181,10 +181,10 @@ class StlinkCom:
                 % self._STLINK_CMD_SIZE)
         # pad to _STLINK_CMD_SIZE
         command += [0] * (self._STLINK_CMD_SIZE - len(command))
-        self._dev.write(command, tout)
+        self._dev.write(command, timeout)
         if data:
             _logging.info("write: %s", _hex_data(data))
-            self._dev.write(data, tout)
+            self._dev.write(data, timeout)
         if rx_length:
             data = self._dev.read(rx_length)
             _logging.info("read: %s", _hex_data(data))
