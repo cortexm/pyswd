@@ -454,9 +454,9 @@ class Application:
                         self.print_noquite("Core stay halted.")
                     else:
                         self.print_noquite("Core is running.")
-        except swd.stlinkcom.StlinkComNotFound:
+        except swd.stlinkcom.NoDeviceFoundException:
             logging.error("ST-Link not connected.")
-        except swd.stlinkcom.StlinkComMoreDevices as err:
+        except swd.stlinkcom.MoreDevicesException as err:
             logging.error(
                 "ST-Link Found more devices with these serial numbers:\n  %s",
                 "\n  ".join(err.serial_numbers))

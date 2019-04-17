@@ -6,15 +6,15 @@ import usb.core as _usb
 
 
 class StlinkComException(Exception):
-    """Exception"""
+    """StlinkCom general exception"""
 
 
-class StlinkComNotFound(Exception):
-    """Exception"""
+class NoDeviceFoundException(StlinkComException):
+    """Exception raised when no STLink device is connected"""
 
 
-class StlinkComMoreDevices(Exception):
-    """Exception"""
+class MoreDevicesException(StlinkComException):
+    """Exception raised when more devices was detected"""
 
     def __init__(self, devices):
         super().__init__("More than one device found.")
@@ -148,9 +148,9 @@ class StlinkCom:
         if serial_no:
             devices = StlinkCom._filter_devices(devices, serial_no)
         if not devices:
-            raise StlinkComNotFound()
+            raise NoDeviceFoundException()
         if len(devices) > 1:
-            raise StlinkComMoreDevices(devices)
+            raise MoreDevicesException(devices)
         self._dev = devices[0]
 
     @property
