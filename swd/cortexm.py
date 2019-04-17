@@ -3,7 +3,7 @@
 
 
 class CortexMException(Exception):
-    """Exception"""
+    """CortexM general exception"""
 
 
 class CortexM():
