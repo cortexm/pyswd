@@ -5,7 +5,7 @@ from swd.stlinkcom import StlinkCom as _StlinkCom
 
 
 class StlinkException(Exception):
-    """Exception"""
+    """Stlink general exception"""
 
 
 class Stlink:
