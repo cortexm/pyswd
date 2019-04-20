@@ -5,6 +5,14 @@ class BitfieldException(Exception):
     """Custom exception for bitfield"""
 
 
+class BitfieldRegisterValueNotExist(BitfieldException):
+    """Raised if invalidated cache has been accessed"""
+
+
+class BitfieldCacheIsNotValid(BitfieldException):
+    """Raised if invalidated cache has been accessed"""
+
+
 class _Field:
     """Bits in register"""
 
@@ -31,7 +39,7 @@ class _Field:
         if isinstance(val, str):
             if val in self._name_val:
                 return self._name_val[val]
-        raise BitfieldException("Register value not found.")
+        raise BitfieldRegisterValueNotExist()
 
     def is_name(self, val):
         """Test if named value exists"""
@@ -124,11 +132,14 @@ class BitfieldMem(_Bitfield):
     _BITS = 32
     _ADDRESS = None
 
-    def __init__(self, mem_drv):
+    def __init__(self, mem_drv, address=None):
         if self._REGISTERS is None:
             raise BitfieldException("_REGISTERS is not defined")
-        if self._ADDRESS is None:
-            raise BitfieldException("ADDRESS is not defined")
+        self._address = self._ADDRESS
+        if address is not None:
+            self._address = address
+        if self._address is None:
+            raise BitfieldException("address is not set")
         super().__init__(self._REGISTERS, self._BITS)
         self._mem_drv = mem_drv
         self._cached = Bitfield(self._REGISTERS, self._BITS, None)
@@ -136,12 +147,12 @@ class BitfieldMem(_Bitfield):
     @property
     def raw(self):
         """Property to read raw value"""
-        return self._mem_drv.get_mem32(self._ADDRESS)
+        return self._mem_drv.get_mem32(self._address)
 
     @raw.setter
     def raw(self, raw):
         """Property to set raw value"""
-        self._mem_drv.set_mem32(self._ADDRESS, raw)
+        self._mem_drv.set_mem32(self._address, raw)
 
     @property
     def cached(self):
@@ -162,7 +173,7 @@ class BitfieldMem(_Bitfield):
     def write_cache(self):
         """Write cache"""
         if self._cached.raw is None:
-            raise BitfieldException('cache is invalid')
+            raise BitfieldCacheIsNotValid()
         self.raw = self._cached.raw
 
     def get(self, reg):
