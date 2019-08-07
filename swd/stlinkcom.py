@@ -121,10 +121,19 @@ class StlinkComV21Usb(StlinkComBase):
     DEV_NAME = "V2-1"
 
 
+class StlinkComV3Usb(StlinkComBase):
+    """ST-Link/V3 USB communication"""
+    ID_VENDOR = 0x0483
+    ID_PRODUCT = 0x374e
+    PIPE_OUT = 0x01
+    PIPE_IN = 0x81
+    DEV_NAME = "V3"
+
+
 class StlinkCom:
     """ST-Link communication class"""
     _STLINK_CMD_SIZE = 16
-    _COM_CLASSES = [StlinkComV2Usb, StlinkComV21Usb]
+    _COM_CLASSES = [StlinkComV2Usb, StlinkComV21Usb, StlinkComV3Usb]
 
     @classmethod
     def _find_all_devices(cls):
