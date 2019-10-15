@@ -440,6 +440,59 @@ class Stlink:
         cmd.extend(list(len(data).to_bytes(4, byteorder='little')))
         self._com.xfer(cmd, data=data)
 
+    def read_mem16(self, address, size):
+        """Read data from memory with 16 bit memory access.
+
+        Maximum number of bytes for one read can be 1024.
+        Address and size must be aligned to 2 Bytes.
+
+        Arguments:
+            address: address in memory
+            size: number of bytes to read from memory
+
+        Return:
+            list of read data
+        """
+        if address % 2:
+            raise StlinkException('Address is not aligned to 2 Bytes')
+        if size % 2:
+            raise StlinkException('Size is not aligned to 2 Bytes')
+        if size > Stlink._STLINK_MAXIMUM_TRANSFER_SIZE:
+            raise StlinkException(
+                'Too many Bytes to read (maximum is %d Bytes)'
+                % Stlink._STLINK_MAXIMUM_TRANSFER_SIZE)
+        cmd = [
+            Stlink._Cmd.Debug.COMMAND,
+            Stlink._Cmd.Debug.Apiv2.READMEM_16BIT]
+        cmd.extend(list(address.to_bytes(4, byteorder='little')))
+        cmd.extend(list(size.to_bytes(4, byteorder='little')))
+        return self._com.xfer(cmd, rx_length=size)
+
+    def write_mem16(self, address, data):
+        """Write data into memory with 16 bit memory access.
+
+        Maximum number of bytes for one write can be 1024.
+        Address and number of bytes must be aligned to 2 Bytes.
+
+        Arguments:
+            address: address in memory
+            data: list of bytes to write into memory
+        """
+        if address % 2:
+            raise StlinkException('Address is not aligned to 2 Bytes')
+        if len(data) % 2:
+            raise StlinkException('Size is not aligned to 2 Bytes')
+        if len(data) > Stlink._STLINK_MAXIMUM_TRANSFER_SIZE:
+            raise StlinkException(
+                'Too many Bytes to write (maximum is %d Bytes)'
+                % Stlink._STLINK_MAXIMUM_TRANSFER_SIZE)
+        cmd = [
+            Stlink._Cmd.Debug.COMMAND,
+            Stlink._Cmd.Debug.Apiv2.WRITEMEM_16BIT]
+        cmd.extend(list(address.to_bytes(4, byteorder='little')))
+        cmd.extend(list(len(data).to_bytes(4, byteorder='little')))
+        self._com.xfer(cmd, data=data)
+
     def read_mem32(self, address, size):
         """Read data from memory with 32 bit memory access.
 
