@@ -1,6 +1,6 @@
 # PYSWD
 
-Is a python module for debugging microcontrollers with SWD using ST-Link/V2 (/V2-1) debugger.
+Is a python module for debugging microcontrollers with SWD using ST-Link/V2 (/V2-1) or V3 debugger.
 
 This package also contain small command line tool.
 
@@ -15,7 +15,7 @@ Main purpose of python module is to create automated functional and hardware tes
 ### OS
 PYSWD will work on Linux, Mac and Windows.
 ### Python
-Python 3.4+ (Development is under python 3.6)
+Python 3.7+
 ### Dependencies
 - [pyusb](https://github.com/walac/pyusb) - is installed automatically as dependency with pip
 - [libusb](https://github.com/libusb/libusb)
@@ -48,7 +48,7 @@ make uninstall
 ## Python SWD module documentation
 
 ### swd.Swd:
-`swd.Swd(swd_frequency=1800000, logger=None, serial_no='')`
+`swd.Swd(swd_frequency=4000000, logger=None, serial_no='')`
 
 #### Arguments:
 - swd_frequency: SWD communication frequency

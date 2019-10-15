@@ -8,7 +8,7 @@ from swd.stlink import Stlink as _Stlink
 class Swd():
     """Swd class"""
 
-    def __init__(self, swd_frequency=1800000, driver=None, serial_no=''):
+    def __init__(self, swd_frequency=4000000, driver=None, serial_no=''):
         if driver is None:
             # default SWD driver is Stlink
             driver = _Stlink(swd_frequency=swd_frequency, serial_no=serial_no)
