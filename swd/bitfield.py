@@ -147,12 +147,19 @@ class BitfieldMem(_Bitfield):
     @property
     def raw(self):
         """Property to read raw value"""
+        if self._address % 4:
+            data = self._mem_drv.read_mem(self._address, self._BITS // 8)
+            return int.from_bytes(data, byteorder='little')
         return self._mem_drv.get_mem32(self._address)
 
     @raw.setter
     def raw(self, raw):
         """Property to set raw value"""
-        self._mem_drv.set_mem32(self._address, raw)
+        if self._address % 4:
+            data = raw.to_bytes(self._BITS // 8, byteorder='little')
+            self._mem_drv.write_mem(self._address, data)
+        else:
+            self._mem_drv.set_mem32(self._address, raw)
 
     @property
     def cached(self):

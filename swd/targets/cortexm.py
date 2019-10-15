@@ -3,6 +3,10 @@
 
 import time
 import swd.io.cortexm as _io_cm
+import swd.targets.stm32 as _stm32
+import swd.targets.cortexm0 as _cortexm0
+import swd.targets.cortexm4 as _cortexm4
+import swd.targets.cortexm7 as _cortexm7
 
 
 class CortexMException(Exception):
@@ -21,6 +25,16 @@ class CortexM:
         'R6', 'R7', 'R8', 'R9', 'R10', 'R11', 'R12',
         'SP', 'LR', 'PC', 'PSR', 'MSP', 'PSP']
 
+    _TARGETS = {
+        'Cortex-M0': _cortexm0,
+        # 'Cortex-M0+': _cortexm0p,
+        # 'Cortex-M3': _cortexm3,
+        'Cortex-M4': _cortexm4,
+        'Cortex-M7': _cortexm7,
+        # 'Cortex-M23': _cortexm23,
+        # 'Cortex-M33': _cortexm33,
+    }
+
     def create_io(self):
         """Create IO registers"""
         cpuid = _io_cm.Cpuid(self._swd)
@@ -37,17 +51,43 @@ class CortexM:
             'DEMCR': _io_cm.Demcr(self._swd),
         })
 
-    def __init__(self, swd):
+    def __init__(self, swd, expected_parts):
         self._swd = swd
         self.create_io()
         cpuid = self._swd.reg('CPUID')
         self._implementer = cpuid.cached.get_named('IMPLEMENTER')
         self._core = cpuid.cached.get_named('PARTNO')
 
+        devices = self._TARGETS[self._core].DEVICES
+
+        self._device = None
+        for device in devices:
+            family = device.get_family()
+            try:
+                parts = []
+                if expected_parts:
+                    for part in expected_parts:
+                        if part.startswith(family):
+                            parts.append(part)
+                    if not parts:
+                        continue
+                print(family)  # TODO: remove it
+                self._device = device(self, parts)
+            except _stm32.UnknownDevice:
+                continue
+            break
+        if not self._device:
+            print("no target device selected")
+
     @property
     def swd(self):
         """Return instance of SWD"""
         return self._swd
+
+    @property
+    def device(self):
+        """Return instance of device"""
+        return self._device
 
     @property
     def implementer(self):

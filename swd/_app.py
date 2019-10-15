@@ -87,6 +87,9 @@ def _configure_argparse():
         "-s", "--serial", type=str, default='',
         help="select ST-Link by serial number")
     parser.add_argument(
+        "-c", "--cpu", type=str, action='append',
+        help='set expected CPU type [eg: STM32F031G6, STM32H75]')
+    parser.add_argument(
         'action', nargs='*',
         help='actions will be processed sequentially')
     return parser.parse_args()
@@ -183,6 +186,7 @@ class Application:
         self._actions = args.action
         self._swd_frequency = args.freq
         self._serial_no = args.serial
+        self._expected_devices = args.cpu
 
     def print_info(self, msg, level=1, prefix="I: "):
         """Print info string"""
@@ -438,7 +442,7 @@ class Application:
             if idcode == 0:
                 raise PyswdException(
                     "No IDCODE, probably MCU is not connected")
-            self._cortexm = swd.CortexM(self._swd)
+            self._cortexm = swd.CortexM(self._swd, self._expected_devices)
             self.print_info(self._cortexm.info_str())
             was_halted = self._cortexm.is_halted()
             if was_halted:

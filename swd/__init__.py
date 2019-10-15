@@ -2,6 +2,6 @@
 """
 
 from swd.swd import Swd
-from swd.cortexm import CortexM
+from swd.targets.cortexm import CortexM
 
 __all__ = ["Swd", "CortexM"]
