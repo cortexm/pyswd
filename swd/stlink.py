@@ -1,6 +1,7 @@
 """ST-Link/V2 driver
 """
 
+import logging as _logging
 from swd.stlinkcom import StlinkCom as _StlinkCom
 
 
@@ -16,6 +17,7 @@ class Stlink:
         GET_VERSION = 0xf1
         GET_CURRENT_MODE = 0xf5
         GET_TARGET_VOLTAGE = 0xf7
+        GET_VERSION_EX = 0xfb  # for V3
 
         class Mode:
             """Stlink commands"""
@@ -84,6 +86,13 @@ class Stlink:
                 STOP_TRACE_RX = 0x41
                 GET_TRACE_NB = 0x42
                 SWD_SET_FREQ = 0x43
+                READMEM_16BIT = 0x47
+                WRITEMEM_16BIT = 0x48
+
+            class Apiv3:
+                """Stlink commands"""
+                SET_COM_FREQ = 0x61
+                GET_COM_FREQ = 0x62
 
     _SWD_FREQ = (
         (4000000, 0, ),
@@ -109,18 +118,36 @@ class Stlink:
 
     class StlinkVersion:
         """ST-Link version holder class"""
-        def __init__(self, dev_ver, ver):
+        def __init__(self, dev_ver, ver, ver_ex=None):
             self._stlink = (ver >> 12) & 0xf
-            self._jtag = (ver >> 6) & 0x3f
-            self._swim = ver & 0x3f if dev_ver == 'V2' else None
-            self._mass = ver & 0x3f if dev_ver == 'V2-1' else None
-            self._api = 2 if self._jtag > 11 else 1
-            self._str = "ST-Link/%s V%dJ%d" % (
-                dev_ver, self._stlink, self._jtag)
-            if dev_ver == 'V2':
-                self._str += "S%d" % self._swim
-            if dev_ver == 'V2-1':
-                self._str += "M%d" % self._mass
+            self._jtag = None
+            self._swim = None
+            self._mass = None
+            self._api = None
+            self._bridge = None
+            if self._stlink == 2:
+                self._jtag = (ver >> 6) & 0x3f
+                if dev_ver == 'V2':
+                    self._swim = ver & 0x3f
+                elif dev_ver == 'V2-1':
+                    self._mass = ver & 0x3f
+                self._api = 2 if self._jtag > 11 else 1
+            elif self._stlink == 3:
+                self._api = 3
+                self._swim = int(ver_ex[1])
+                self._jtag = int(ver_ex[2])
+                self._mass = int(ver_ex[3])
+                self._bridge = int(ver_ex[4])
+            self._str = f"ST-Link/{dev_ver}"
+            self._str += f" V{self._stlink}"
+            if self._jtag:
+                self._str += f"J{self._jtag}"
+            if self._swim:
+                self._str += f"S{self._swim}"
+            if self._mass:
+                self._str += f"M{self._mass}"
+            if self._bridge:
+                self._str += f"M{self._bridge}"
 
         def __str__(self):
             """String representation"""
@@ -147,6 +174,11 @@ class Stlink:
             return self._mass
 
         @property
+        def bridge(self):
+            """Bridge version"""
+            return self._bridge
+
+        @property
         def api(self):
             """API version"""
             return self._api
@@ -163,30 +195,38 @@ class Stlink:
         self._com = com
         self._version = self._get_version()
         self._leave_state()
-        if self._version.jtag >= 22:
-            self._set_swd_freq(swd_frequency)
+        self._set_swd_freq(swd_frequency)
         self._enter_debug_swd()
 
     def _get_version(self):
         res = self._com.xfer([Stlink._Cmd.GET_VERSION, 0x80], rx_length=6)
         ver = int.from_bytes(res[:2], byteorder='big')
-        return Stlink.StlinkVersion(self._com.version, ver)
+        ver_ex = None
+        if self._com.version == 'V3':
+            ver_ex = self._com.xfer(
+                [Stlink._Cmd.GET_VERSION_EX, 0x80],
+                rx_length=16)
+        return Stlink.StlinkVersion(self._com.version, ver, ver_ex)
 
     def _leave_state(self):
         res = self._com.xfer([Stlink._Cmd.GET_CURRENT_MODE], rx_length=2)
         if res[0] == Stlink._Cmd.Mode.DFU:
-            cmd = [Stlink._Cmd.Dfu.COMMAND, Stlink._Cmd.Dfu.EXIT]
+            self._com.xfer([Stlink._Cmd.Dfu.COMMAND, Stlink._Cmd.Dfu.EXIT])
         elif res[0] == Stlink._Cmd.Mode.DEBUG:
-            cmd = [Stlink._Cmd.Debug.COMMAND, Stlink._Cmd.Debug.EXIT]
+            self._com.xfer([Stlink._Cmd.Debug.COMMAND, Stlink._Cmd.Debug.EXIT])
         elif res[0] == Stlink._Cmd.Mode.SWIM:
-            cmd = [Stlink._Cmd.Swim.COMMAND, Stlink._Cmd.Swim.EXIT]
-        else:
-            return
-        self._com.xfer(cmd)
+            self._com.xfer([Stlink._Cmd.Swim.COMMAND, Stlink._Cmd.Swim.EXIT])
 
-    def _set_swd_freq(self, frequency=1800000):
+    def _set_swd_freq(self, swd_frequency):
+        if self._version.stlink == 2:
+            if self._version.jtag >= 22:
+                self._set_swd_freq_v2(swd_frequency)
+        if self._version.stlink == 3:
+            self._set_swd_freq_v3(swd_frequency)
+
+    def _set_swd_freq_v2(self, swd_frequency):
         for freq, data in Stlink._SWD_FREQ:
-            if frequency >= freq:
+            if swd_frequency >= freq:
                 cmd = [
                     Stlink._Cmd.Debug.COMMAND,
                     Stlink._Cmd.Debug.Apiv2.SWD_SET_FREQ,
@@ -196,6 +236,33 @@ class Stlink:
                     raise StlinkException("Error switching SWD frequency")
                 return
         raise StlinkException("Selected SWD frequency is too low")
+
+    def _set_swd_freq_v3(self, swd_frequency):
+        res = self._com.xfer([
+            Stlink._Cmd.Debug.COMMAND,
+            Stlink._Cmd.Debug.Apiv3.GET_COM_FREQ,
+            0], rx_length=52)
+        i = 0
+        freq_khz = 0
+        while i < res[8]:
+            freq_khz = int.from_bytes(
+                res[12 + 4 * i: 15 + 4 * i],
+                byteorder='little')
+            if swd_frequency // 1000 >= freq_khz:
+                break
+            i = i + 1
+        _logging.info(
+            f"Using {freq_khz} khz for {swd_frequency // 1000} kHz requested")
+        if i == res[8]:
+            raise StlinkException("Requested SWD frequency is too low")
+        cmd = [
+            Stlink._Cmd.Debug.COMMAND,
+            Stlink._Cmd.Debug.Apiv3.SET_COM_FREQ,
+            0x00, 0x00]
+        cmd.extend(list(freq_khz.to_bytes(4, byteorder='little')))
+        res = self._com.xfer(cmd, rx_length=2)
+        if res[0] != 0x80:
+            raise StlinkException("Error switching SWD frequency")
 
     def _enter_debug_swd(self):
         cmd = [
