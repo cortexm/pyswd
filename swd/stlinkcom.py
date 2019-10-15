@@ -183,7 +183,7 @@ class StlinkCom:
         Raises:
             StlinkComException
         """
-        _logging.info("command: %s", _hex_data(command))
+        _logging.debug("command: %s", _hex_data(command))
         if len(command) > self._STLINK_CMD_SIZE:
             raise StlinkComException(
                 "Error too many Bytes in command (maximum is %d Bytes)"
@@ -192,10 +192,10 @@ class StlinkCom:
         command += [0] * (self._STLINK_CMD_SIZE - len(command))
         self._dev.write(command, timeout)
         if data:
-            _logging.info("write: %s", _hex_data(data))
+            _logging.debug("write: %s", _hex_data(data))
             self._dev.write(data, timeout)
         if rx_length:
             data = self._dev.read(rx_length)
-            _logging.info("read: %s", _hex_data(data))
+            _logging.debug("read: %s", _hex_data(data))
             return data
         return None

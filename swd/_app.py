@@ -82,7 +82,7 @@ def _configure_argparse():
         "-v", "--verbose", action="count", default=0,
         help="increase verbose output")
     parser.add_argument(
-        "-f", "--freq", type=int, default=1800000,
+        "-f", "--freq", type=int, default=4000000,
         help="set SWD frequency")
     parser.add_argument(
         "-s", "--serial", type=str, default='',
@@ -212,7 +212,7 @@ class Application:
         elif args.debug > 0:
             logging_level = logging.INFO
         logging.basicConfig(
-            format='%(levelname)s:%(module)s:%(funcName)s:%(message)s',
+            format='%(levelname)s:%(module)s:%(funcName)s: %(message)s',
             level=logging_level)
 
     def print_info(self, msg):
@@ -464,9 +464,9 @@ class Application:
         except PyswdException as err:
             logging.error("pyswd error: %s.", err)
         except swd.stlink.StlinkException as err:
-            logging.critical("Stlink error: %s.", err)
+            logging.error("Stlink error: %s.", err)
         except swd.stlinkcom.StlinkComException as err:
-            logging.critical("StlinkCom error: %s.", err)
+            logging.error("StlinkCom error: %s.", err)
         else:
             return 0
         return 1
