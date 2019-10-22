@@ -30,7 +30,7 @@ def _hex_data(data):
     """Return hexadecimal representation of array of bytes"""
     if data is None:
         return None
-    return "[%s]" % ', '.join(['0x%02x' % i for i in data])
+    return ' '.join([f'{i:02x}' for i in data])
 
 
 class StlinkComBase:
@@ -80,7 +80,7 @@ class StlinkComBase:
 
     def write(self, data, timeout=200):
         """Write data to USB pipe"""
-        _logging.debug("data: %s", _hex_data(data))
+        _logging.debug("write: %s", _hex_data(data))
         try:
             count = self._dev.write(self.PIPE_OUT, data, timeout)
         except _usb.USBError as err:
@@ -97,7 +97,7 @@ class StlinkComBase:
         except _usb.USBError as err:
             self._dev = None
             raise StlinkComException("USB Error: %s" % err)
-        _logging.debug("data: %s", _hex_data(data))
+        _logging.debug("read: %s", _hex_data(data))
         data = data[:size]
         return data
 
@@ -135,6 +135,7 @@ class StlinkComV3Usb(StlinkComBase):
 
 class StlinkCom:
     """ST-Link communication class"""
+    STLINK_MAXIMUM_TRANSFER_SIZE = 1024  # probably will work 6144
     _STLINK_CMD_SIZE = 16
     _COM_CLASSES = [StlinkComV2Usb, StlinkComV21Usb, StlinkComV3Usb]
 
@@ -195,10 +196,10 @@ class StlinkCom:
         command += [0] * (self._STLINK_CMD_SIZE - len(command))
         self._dev.write(command, timeout)
         if data:
-            _logging.debug("write: %s", _hex_data(data))
+            # _logging.debug("write: %s", _hex_data(data))
             self._dev.write(data, timeout)
         if rx_length:
             data = self._dev.read(rx_length)
-            _logging.debug("read: %s", _hex_data(data))
+            # _logging.debug("read: %s", _hex_data(data))
             return data
         return None

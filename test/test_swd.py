@@ -36,15 +36,29 @@ class FncMock():
 class DrvMock():
     """Com Mock class for testing Stlink class"""
 
-    MAXIMUM_8BIT_DATA = 64
-    MAXIMUM_32BIT_DATA = 1024
+    _STLINK_MAXIMUM_8BIT_DATA = 64
+    _STLINK_MAXIMUM_TRANSFER_SIZE = 1024
 
     def __init__(self):
         """MOCK CONSTRUCTOR"""
-        self.read_mem8_mock = FncMock(list())
+        self.read_mem8_mock = FncMock([])
         self.write_mem8_mock = FncMock()
-        self.read_mem32_mock = FncMock(list())
+        self.read_mem16_mock = FncMock([])
+        self.write_mem16_mock = FncMock()
+        self.read_mem32_mock = FncMock([])
         self.write_mem32_mock = FncMock()
+
+    @property
+    def maximum_8bit_data(self):
+        return self._STLINK_MAXIMUM_8BIT_DATA
+
+    @property
+    def maximum_16bit_data(self):
+        return self._STLINK_MAXIMUM_TRANSFER_SIZE
+
+    @property
+    def maximum_32bit_data(self):
+        return self._STLINK_MAXIMUM_TRANSFER_SIZE
 
     def read_mem8(self, address, size):
         """Mock read_mem8"""
@@ -55,6 +69,18 @@ class DrvMock():
     def write_mem8(self, address, data):
         """Mock write_mem8"""
         return self.write_mem8_mock.fnc(
+            address=address,
+            data=data)
+
+    def read_mem16(self, address, size):
+        """Mock read_mem16"""
+        return self.read_mem16_mock.fnc(
+            address=address,
+            size=size)
+
+    def write_mem16(self, address, data):
+        """Mock write_mem16"""
+        return self.write_mem16_mock.fnc(
             address=address,
             data=data)
 
@@ -245,10 +271,10 @@ class TestReadMemUnalignedSize(_TestSwd):
         data = list(range(1087))
         self._drv.read_mem8_mock.set_return_data([
             data[1024:],
-        ])
+        ], [])
         self._drv.read_mem32_mock.set_return_data([
             data[:1024],
-        ])
+        ], [])
         ret_data = list(self._swd.read_mem(0x0a000028, 1087))
         self.assertEqual(self._drv.read_mem8_mock.get_call_log(), [
             {'address': 0x0a000428, 'size': 63},
@@ -262,7 +288,7 @@ class TestReadMemUnalignedSize(_TestSwd):
 class TestReadMemUnalignedAddress(_TestSwd):
     """Tests for Swd.read_mem class with unaligned address"""
 
-    def test_1bytes1(self):
+    def test_1byte1(self):
         """Test reading memory"""
         data = list(range(1))
         self._drv.read_mem8_mock.set_return_data([
@@ -274,7 +300,7 @@ class TestReadMemUnalignedAddress(_TestSwd):
         ])
         self.assertEqual(ret_data, data)
 
-    def test_1bytes2(self):
+    def test_1byte2(self):
         """Test reading memory"""
         data = list(range(1))
         self._drv.read_mem8_mock.set_return_data([
@@ -286,7 +312,7 @@ class TestReadMemUnalignedAddress(_TestSwd):
         ])
         self.assertEqual(ret_data, data)
 
-    def test_1bytes3(self):
+    def test_1byte3(self):
         """Test reading memory"""
         data = list(range(1))
         self._drv.read_mem8_mock.set_return_data([
@@ -327,7 +353,7 @@ class TestReadMemUnalignedAddress(_TestSwd):
         data = list(range(2))
         self._drv.read_mem8_mock.set_return_data([
             data,
-        ])
+        ], [])
         ret_data = list(self._swd.read_mem(0x10000003, 2))
         self.assertEqual(self._drv.read_mem8_mock.get_call_log(), [
             {'address': 0x10000003, 'size': 2},
@@ -351,7 +377,7 @@ class TestReadMemUnalignedAddress(_TestSwd):
         data = list(range(3))
         self._drv.read_mem8_mock.set_return_data([
             data,
-        ])
+        ], [])
         ret_data = list(self._swd.read_mem(0x10000002, 3))
         self.assertEqual(self._drv.read_mem8_mock.get_call_log(), [
             {'address': 0x10000002, 'size': 3},
@@ -363,7 +389,7 @@ class TestReadMemUnalignedAddress(_TestSwd):
         data = list(range(3))
         self._drv.read_mem8_mock.set_return_data([
             data,
-        ])
+        ], [])
         ret_data = list(self._swd.read_mem(0x10000003, 3))
         self.assertEqual(self._drv.read_mem8_mock.get_call_log(), [
             {'address': 0x10000003, 'size': 3},
@@ -473,10 +499,10 @@ class TestReadMemUnalignedAddress(_TestSwd):
         data = list(range(1087))
         self._drv.read_mem8_mock.set_return_data([
             data[:63],
-        ])
+        ], [])
         self._drv.read_mem32_mock.set_return_data([
             data[63:],
-        ])
+        ], [])
         ret_data = list(self._swd.read_mem(0xe5000015, 1087))
         self.assertEqual(self._drv.read_mem8_mock.get_call_log(), [
             {'address': 0xe5000015, 'size': 63},
@@ -492,10 +518,10 @@ class TestReadMemUnalignedAddress(_TestSwd):
         self._drv.read_mem8_mock.set_return_data([
             data[:63],
             data[1087:],
-        ])
+        ], [])
         self._drv.read_mem32_mock.set_return_data([
             data[63:1087],
-        ])
+        ], [])
         ret_data = list(self._swd.read_mem(0x16000019, 1150))
         self.assertEqual(self._drv.read_mem8_mock.get_call_log(), [
             {'address': 0x16000019, 'size': 63},
@@ -895,3 +921,105 @@ class TestFillMemUnalignedAddress(_TestSwd):
         self.assertEqual(self._drv.write_mem32_mock.get_call_log(), [
             {'address': 0x76000058, 'data': data[63:1087]},
         ])
+
+
+class TestFillMem8(_TestSwd):
+    """Tests for Swd.fill_mem8 class"""
+    _MAXIMUM_8BIT_DATA = 64
+
+    def _test_fill_mem8(self, address, pattern, size):
+        data = (pattern * (size // len(pattern) + 1))[:size]
+        expected = []
+        index = 0
+        while index < size:
+            chunk_size = min(size, self._MAXIMUM_8BIT_DATA)
+            expected.append({
+                'address': address + index,
+                'data': data[index:index + self._MAXIMUM_8BIT_DATA]})
+            index += chunk_size
+        self._swd.fill_mem8(address, pattern, size)
+        self.assertEqual(self._drv.write_mem8_mock.get_call_log(), expected)
+
+    def test_1byte(self):
+        """Test filling memory"""
+        self._test_fill_mem8(0x50000000, [0x42, ], 1)
+
+    def test_64bytes(self):
+        """Test filling memory"""
+        self._test_fill_mem8(0x50000004, [0x42, 0x43, ], 64)
+
+    def test_65bytes(self):
+        """Test filling memory"""
+        self._test_fill_mem8(0x52000008, [0x42, 0x43, 0x44, ], 65)
+
+    def test_128bytes(self):
+        """Test filling memory"""
+        self._test_fill_mem8(0xa300000c, [0x42, 0x43, 0x44, 0x45, ], 128)
+
+
+class TestFillMem16(_TestSwd):
+    """Tests for Swd.fill_mem16 class"""
+    _MAXIMUM_16BIT_DATA = 1024
+
+    def _test_fill_mem16(self, address, pattern, size):
+        data = (pattern * (size // len(pattern) + 1))[:size]
+        expected = []
+        index = 0
+        while index < size:
+            chunk_size = min(size, self._MAXIMUM_16BIT_DATA)
+            expected.append({
+                'address': address + index,
+                'data': data[index:index + self._MAXIMUM_16BIT_DATA]})
+            index += chunk_size
+        self._swd.fill_mem16(address, pattern, size)
+        self.assertEqual(self._drv.write_mem16_mock.get_call_log(), expected)
+
+    def test_2bytes(self):
+        """Test filling memory"""
+        self._test_fill_mem16(0x50000000, [0x42, ], 2)
+
+    def test_1024bytes(self):
+        """Test filling memory"""
+        self._test_fill_mem16(0x50000004, [0x42, 0x43, ], 1024)
+
+    def test_1026bytes(self):
+        """Test filling memory"""
+        self._test_fill_mem16(0x52000008, [0x42, 0x43, 0x44, ], 1026)
+
+    def test_2048bytes(self):
+        """Test filling memory"""
+        self._test_fill_mem16(0xa300000c, [0x42, 0x43, 0x44, 0x45, ], 2048)
+
+
+class TestFillMem32(_TestSwd):
+    """Tests for Swd.fill_mem32 class"""
+    _MAXIMUM_32BIT_DATA = 1024
+
+    def _test_fill_mem32(self, address, pattern, size):
+        data = (pattern * (size // len(pattern) + 1))[:size]
+        expected = []
+        index = 0
+        while index < size:
+            chunk_size = min(size, self._MAXIMUM_32BIT_DATA)
+            expected.append({
+                'address': address + index,
+                'data': data[index:index + self._MAXIMUM_32BIT_DATA]})
+            index += chunk_size
+        self._swd.fill_mem32(address, pattern, size)
+        self.assertEqual(self._drv.write_mem32_mock.get_call_log(), expected)
+
+    def test_4bytes(self):
+        """Test filling memory"""
+        self._test_fill_mem32(0x50000000, [0x42, ], 4)
+
+    def test_1024bytes(self):
+        """Test filling memory"""
+        self._test_fill_mem32(0x50000004, [0x42, 0x43, ], 1024)
+
+    def test_1028bytes(self):
+        """Test filling memory"""
+        self._test_fill_mem32(0x52000008, [0x42, 0x43, 0x44, ], 1028)
+
+    def test_2048bytes(self):
+        """Test filling memory"""
+        self._test_fill_mem32(0xa300000c, [0x42, 0x43, 0x44, 0x45, ], 2048)

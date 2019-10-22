@@ -103,15 +103,15 @@ class Swd():
         self._drv.set_mem32(address, data)
 
     def _get_chunk_size_to_align_size(self, address, size):
-        if size > self._drv.MAXIMUM_8BIT_DATA:
-            return min(size, self._drv.MAXIMUM_8BIT_DATA - (address % 4))
+        if size > self._drv.maximum_8bit_data:
+            return min(size, self._drv.maximum_8bit_data - (address % 4))
         return size
 
     def _get_chunk_size_to_align_address(self, address, size):
         if address % 4:
-            if size == self._drv.MAXIMUM_8BIT_DATA:
+            if size == self._drv.maximum_8bit_data:
                 return size
-            return min(size, self._drv.MAXIMUM_8BIT_DATA - (address % 4))
+            return min(size, self._drv.maximum_8bit_data - (address % 4))
         return 0
 
     def read_mem(self, address, size):
@@ -133,10 +133,10 @@ class Swd():
             size -= chunk_size
         while size:
             chunk_size = size
-            if chunk_size < self._drv.MAXIMUM_8BIT_DATA and chunk_size % 4:
+            if chunk_size < self._drv.maximum_8bit_data and chunk_size % 4:
                 yield from self._drv.read_mem8(address, chunk_size)
             else:
-                chunk_size = min(chunk_size, self._drv.MAXIMUM_32BIT_DATA)
+                chunk_size = min(chunk_size, self._drv.maximum_32bit_data)
                 chunk_size -= chunk_size % 4
                 yield from self._drv.read_mem32(address, chunk_size)
             address += chunk_size
@@ -154,7 +154,7 @@ class Swd():
         data = iter(data)
         # first chunk to align address
         if address % 4:
-            chunk_size_max = self._drv.MAXIMUM_8BIT_DATA - (address % 4)
+            chunk_size_max = self._drv.maximum_8bit_data - (address % 4)
             chunk = list(_itertools.islice(data, 0, chunk_size_max))
             if not chunk:
                 return
@@ -163,14 +163,14 @@ class Swd():
         # write remained data, here is address always aligned
         while True:
             chunk = list(
-                _itertools.islice(data, 0, self._drv.MAXIMUM_32BIT_DATA))
+                _itertools.islice(data, 0, self._drv.maximum_32bit_data))
             if not chunk:
                 return
             if len(chunk) % 4 == 0:
                 self._drv.write_mem32(address, chunk)
                 address += len(chunk)
                 continue
-            if len(chunk) > self._drv.MAXIMUM_8BIT_DATA:
+            if len(chunk) > self._drv.maximum_8bit_data:
                 chunk_size32 = len(chunk) & 0xfffffffc
                 self._drv.write_mem32(address, chunk[:chunk_size32])
                 del chunk[:chunk_size32]
@@ -190,17 +190,164 @@ class Swd():
         """
         index = 0
         data = pattern * (
-            (min(size, self._drv.MAXIMUM_32BIT_DATA)) // len(pattern) + 1)
+            (min(size, self._drv.maximum_32bit_data) // len(pattern)) + 1)
         while size:
             chunk_size = size
-            if address % 4 or (chunk_size < self._drv.MAXIMUM_8BIT_DATA and chunk_size % 4):
-                if chunk_size > self._drv.MAXIMUM_8BIT_DATA:
-                    chunk_size = min(chunk_size, self._drv.MAXIMUM_8BIT_DATA - (address % 4))
+            if address % 4 or (chunk_size < self._drv.maximum_8bit_data and chunk_size % 4):
+                if chunk_size > self._drv.maximum_8bit_data:
+                    chunk_size = min(chunk_size, self._drv.maximum_8bit_data - (address % 4))
                 self._drv.write_mem8(address, data[index:index + chunk_size])
             else:
-                chunk_size = min(chunk_size, self._drv.MAXIMUM_32BIT_DATA)
+                chunk_size = min(chunk_size, self._drv.maximum_32bit_data)
                 chunk_size -= chunk_size % 4
                 self._drv.write_mem32(address, data[index:index + chunk_size])
+            index = (index + chunk_size) % len(pattern)
+            address += chunk_size
+            size -= chunk_size
+
+    def read_mem8(self, address, size):
+        """Read memory with 8 bit access
+
+        Arguments:
+            address: address in memory
+            size: number of bytes to read
+
+        Return:
+            iterable of read data
+        """
+        while size:
+            chunk_size = min(size, self._drv.maximum_8bit_data)
+            yield from self._drv.read_mem8(address, chunk_size)
+            address += chunk_size
+            size -= chunk_size
+
+    def write_mem8(self, address, data):
+        """Write memory with 8 bit access
+
+        Arguments:
+            address: address in memory
+            data: list or iterable of bytes to write into memory
+        """
+        data = iter(data)
+        while True:
+            chunk = list(
+                _itertools.islice(data, 0, self._drv.maximum_8bit_data))
+            if not chunk:
+                return
+            self._drv.write_mem8(address, chunk)
+            address += len(chunk)
+
+    def fill_mem8(self, address, pattern, size):
+        """Fill memory with pattern using 8 bit access
+
+        Arguments:
+            address: address in memory
+            pattern: list of bytes to fill
+            size: number of bytes to fill
+        """
+        index = 0
+        data = pattern * ((min(size, self._drv.maximum_8bit_data) // len(pattern)) + 1)
+        while size:
+            chunk_size = min(size, self._drv.maximum_8bit_data)
+            self._drv.write_mem8(address, data[index:index + chunk_size])
+            index = (index + chunk_size) % len(pattern)
+            address += chunk_size
+            size -= chunk_size
+
+    def read_mem16(self, address, size):
+        """Read memory with 16 bit access
+
+        Arguments:
+            address: address in memory
+            size: number of bytes to read
+
+        Return:
+            iterable of read data
+        """
+        while size:
+            chunk_size = min(size, self._drv.maximum_16bit_data)
+            yield from self._drv.read_mem16(address, chunk_size)
+            address += chunk_size
+            size -= chunk_size
+
+    def write_mem16(self, address, data):
+        """Write memory with 16 bit access
+
+        Arguments:
+            address: address in memory
+            data: list or iterable of bytes to write into memory
+        """
+        data = iter(data)
+        while True:
+            chunk = list(
+                _itertools.islice(data, 0, self._drv.maximum_16bit_data))
+            if not chunk:
+                return
+            self._drv.write_mem16(address, chunk)
+            address += len(chunk)
+
+    def fill_mem16(self, address, pattern, size):
+        """Fill memory with pattern using 16 bit access
+
+        Arguments:
+            address: address in memory
+            pattern: list of bytes to fill
+            size: number of bytes to fill
+        """
+        index = 0
+        data = pattern * ((min(size, self._drv.maximum_16bit_data) // len(pattern)) + 1)
+        while size:
+            chunk_size = min(size, self._drv.maximum_16bit_data)
+            self._drv.write_mem16(address, data[index:index + chunk_size])
+            index = (index + chunk_size) % len(pattern)
+            address += chunk_size
+            size -= chunk_size
+
+    def read_mem32(self, address, size):
+        """Read memory with 32 bit access
+
+        Arguments:
+            address: address in memory
+            size: number of bytes to read
+
+        Return:
+            iterable of read data
+        """
+        while size:
+            chunk_size = min(size, self._drv.maximum_32bit_data)
+            yield from self._drv.read_mem32(address, chunk_size)
+            address += chunk_size
+            size -= chunk_size
+
+    def write_mem32(self, address, data):
+        """Write memory with 32 bit access
+
+        Arguments:
+            address: address in memory
+            data: list or iterable of bytes to write into memory
+        """
+        data = iter(data)
+        while True:
+            chunk = list(
+                _itertools.islice(data, 0, self._drv.maximum_32bit_data))
+            if not chunk:
+                return
+            self._drv.write_mem32(address, chunk)
+            address += len(chunk)
+
+    def fill_mem32(self, address, pattern, size):
+        """Fill memory with pattern using 32 bit access
+
+        Arguments:
+            address: address in memory
+            pattern: list of bytes to fill
+            size: number of bytes to fill
+        """
+        index = 0
+        data = pattern * ((min(size, self._drv.maximum_32bit_data) // len(pattern)) + 1)
+        while size:
+            chunk_size = min(size, self._drv.maximum_32bit_data)
+            self._drv.write_mem32(address, data[index:index + chunk_size])
             index = (index + chunk_size) % len(pattern)
             address += chunk_size
             size -= chunk_size

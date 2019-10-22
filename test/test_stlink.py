@@ -33,8 +33,9 @@ class FncMock():
 
 class ComMock():
     """Com Mock class for testing Stlink class"""
+    STLINK_MAXIMUM_TRANSFER_SIZE = 1024
+
     def __init__(self):
-        """MOCK CONSTRUCTOR"""
         self.xfer_mock = FncMock()
 
     @property
