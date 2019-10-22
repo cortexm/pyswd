@@ -121,7 +121,10 @@ Get MCU ID code
 ```
 
 ### Read memory
-`read_mem(address, size)`
+- `read_mem(address, size)` - automatically select read access
+- `read_mem8(address, size)` - read using 8 bit access
+- `read_mem16(address, size)` - read using 16 bit access
+- `read_mem32(address, size)` - read using 32 bit access
 
 #### Arguments:
 - address: address in memory
@@ -137,7 +140,10 @@ Get MCU ID code
 ```
 
 ### Write memory
-`write_mem(address, data)`
+- `write_mem(address, data)` - automatically select write access
+- `write_mem8(address, data)` - write using 8 bit access
+- `write_mem16(address, data)` - write using 16 bit access
+- `write_mem32(address, data)` - write using 32 bit access
 
 #### Arguments:
 - address: address in memory
@@ -151,7 +157,10 @@ Get MCU ID code
 ```
 
 ### Fill memory
-`write_mem(address, pattern, size)`
+- `fill_mem(address, pattern, size)` - automatically select fill access
+- `fill_mem8(address, pattern, size)` - fill using 8 bit access
+- `fill_mem16(address, pattern, size)` - fill using 16 bit access
+- `fill_mem32(address, pattern, size)` - fill using 32 bit access
 
 #### Arguments:
 - address: address in memory
