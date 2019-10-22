@@ -67,7 +67,7 @@ property with ST-Link version
   instance of StlinkVersion
 
 ```Python
->>> dev.version.str
+>>> dev.get_version().str
 'ST-Link/V2 V2J27S6'
 ```
 
