@@ -18,9 +18,9 @@ class Swd():
         """Get SWD driver version
 
         Return:
-            driver version string
+            device version instance
         """
-        return str(self._drv.get_version())
+        return self._drv.get_version()
 
     def get_target_voltage(self):
         """Get target voltage from debugger
