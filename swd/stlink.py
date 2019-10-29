@@ -114,27 +114,14 @@ class Stlink:
 
     class StlinkVersion:
         """ST-Link version holder class"""
-        def __init__(self, dev_ver, ver, ver_ex=None):
-            self._stlink = (ver >> 12) & 0xf
-            self._jtag = None
-            self._swim = None
-            self._mass = None
-            self._api = None
-            self._bridge = None
-            if self._stlink == 2:
-                self._jtag = (ver >> 6) & 0x3f
-                if dev_ver == 'V2':
-                    self._swim = ver & 0x3f
-                elif dev_ver == 'V2-1':
-                    self._mass = ver & 0x3f
-                self._api = 2 if self._jtag > 11 else 1
-            elif self._stlink == 3:
-                self._api = 3
-                self._swim = int(ver_ex[1])
-                self._jtag = int(ver_ex[2])
-                self._mass = int(ver_ex[3])
-                self._bridge = int(ver_ex[4])
-            self._str = f"ST-Link/{dev_ver}"
+        def __init__(self, version):
+            self._stlink = version.get('stlink')
+            self._jtag = version.get('jtag')
+            self._swim = version.get('swim')
+            self._mass = version.get('mass')
+            self._api = version.get('api')
+            self._bridge = version.get('bridge')
+            self._str = f"ST-Link/{version.get('drv')}"
             self._str += f" V{self._stlink}"
             if self._jtag:
                 self._str += f"J{self._jtag}"
@@ -143,7 +130,7 @@ class Stlink:
             if self._mass:
                 self._str += f"M{self._mass}"
             if self._bridge:
-                self._str += f"M{self._bridge}"
+                self._str += f"B{self._bridge}"
 
         def __str__(self):
             """String representation"""
@@ -189,7 +176,7 @@ class Stlink:
             # default com driver is StlinkCom
             com = _StlinkCom(serial_no)
         self._com = com
-        self._version = self._get_version()
+        self._version = self._read_version()
         self._leave_state()
         self._set_swd_freq(swd_frequency)
         self._enter_debug_swd()
@@ -206,15 +193,31 @@ class Stlink:
     def maximum_32bit_data(self):
         return self._com.STLINK_MAXIMUM_TRANSFER_SIZE
 
-    def _get_version(self):
+    def _read_version(self):
         res = self._com.xfer([Stlink._Cmd.GET_VERSION, 0x80], rx_length=6)
         ver = int.from_bytes(res[:2], byteorder='big')
-        ver_ex = None
-        if self._com.version == 'V3':
+        ver_stlink = (ver >> 12) & 0xf
+        version = {
+            'stlink': ver_stlink,
+            'drv': self._com.version,
+        }
+        if ver_stlink == 2:
+            version['jtag'] = (ver >> 6) & 0x3f
+            version['api'] = 1 if version['jtag'] <= 11 else 2
+            if self._com.version == 'V2':
+                version['swim'] = ver & 0x3f
+            elif self._com.version == 'V2-1':
+                version['mass'] = ver & 0x3f
+        elif ver_stlink == 3:
             ver_ex = self._com.xfer(
                 [Stlink._Cmd.GET_VERSION_EX, 0x80],
                 rx_length=16)
-        return Stlink.StlinkVersion(self._com.version, ver, ver_ex)
+            version['api'] = 3
+            version['swim'] = int(ver_ex[1])
+            version['jtag'] = int(ver_ex[2])
+            version['mass'] = int(ver_ex[3])
+            version['bridge'] = int(ver_ex[4])
+        return Stlink.StlinkVersion(version)
 
     def _leave_state(self):
         res = self._com.xfer([Stlink._Cmd.GET_CURRENT_MODE], rx_length=2)
