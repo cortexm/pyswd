@@ -16,6 +16,25 @@ class OutdatedStlinkFirmware(StlinkException):
             f"Outdated FW: {current_version}, require: {minimal_version}.")
 
 
+def check_alignment(alignment, **values):
+    """Check alignment of values
+
+    Arguments:
+        alignment: number of bytes to align
+        **values: values for align checking
+
+    Raise:
+        StlinkException: if value is not aligned
+
+    Example:
+        check_alignment(4, address=offset, size=len(data))
+    """
+    for key, value in values.items():
+        if value % alignment:
+            raise StlinkException(
+                f'{key.capitalize()} is not aligned to {alignment} Bytes')
+
+
 class Stlink:
     """ST-Link class"""
 
@@ -231,9 +250,7 @@ class Stlink:
         return self._com.STLINK_MAXIMUM_TRANSFER_SIZE
 
     def _read_version(self):
-        cmd = Stlink.CmdBuilder(Stlink.CMD.GET_VERSION)
-        cmd.add_u8(0x80)
-        res = self._com.xfer(cmd.cmd, rx_length=6)
+        res = self._com.xfer([Stlink.CMD.GET_VERSION, 0x80], rx_length=6)
         ver = int.from_bytes(res[:2], byteorder='big')
         ver_stlink = (ver >> 12) & 0xf
         version = {
@@ -278,13 +295,13 @@ class Stlink:
     def _set_swd_freq_v2(self, swd_frequency):
         if self._version.jtag < 22:
             raise OutdatedStlinkFirmware(self._version.str, "J22")
-        for freq, data in Stlink._SWD_FREQ:
+        for freq, val in Stlink._SWD_FREQ:
             if swd_frequency >= freq:
-                cmd = [
+                cmd = Stlink.CmdBuilder([
                     Stlink.CMD.DEBUG.COMMAND,
-                    Stlink.CMD.DEBUG.APIV2.SWD_SET_FREQ,
-                    data]
-                res = self._com.xfer(cmd, rx_length=2)
+                    Stlink.CMD.DEBUG.APIV2.SWD_SET_FREQ])
+                cmd.add_u16(val)
+                res = self._com.xfer(cmd.cmd, rx_length=2)
                 if res[0] != 0x80:
                     raise StlinkException("Error switching SWD frequency")
                 return
@@ -310,12 +327,12 @@ class Stlink:
             f"Using {freq_khz} khz for {swd_frequency // 1000} kHz requested")
         if i == res[8]:
             raise StlinkException("Requested SWD frequency is too low")
-        cmd = [
+        cmd = Stlink.CmdBuilder([
             Stlink.CMD.DEBUG.COMMAND,
             Stlink.CMD.DEBUG.APIV3.SET_COM_FREQ,
-            0x00, 0x00]
-        cmd.extend(list(freq_khz.to_bytes(4, byteorder='little')))
-        res = self._com.xfer(cmd, rx_length=2)
+            0x00, 0x00])
+        cmd.add_u32(freq_khz)
+        res = self._com.xfer(cmd.cmd, rx_length=2)
         if res[0] != 0x80:
             raise StlinkException("Error switching SWD frequency")
 
@@ -373,11 +390,11 @@ class Stlink:
         Return:
             32 bit number
         """
-        cmd = [
+        cmd = Stlink.CmdBuilder([
             Stlink.CMD.DEBUG.COMMAND,
-            Stlink.CMD.DEBUG.APIV2.READREG,
-            register]
-        res = self._com.xfer(cmd, rx_length=8)
+            Stlink.CMD.DEBUG.APIV2.READREG])
+        cmd.add_u8(register)
+        res = self._com.xfer(cmd.cmd, rx_length=8)
         return int.from_bytes(res[4:8], byteorder='little')
 
     def get_reg_all(self):
@@ -411,12 +428,12 @@ class Stlink:
             register: register ID
             data: 32 bit number
         """
-        cmd = [
+        cmd = Stlink.CmdBuilder([
             Stlink.CMD.DEBUG.COMMAND,
-            Stlink.CMD.DEBUG.APIV2.WRITEREG,
-            register]
-        cmd.extend(list(data.to_bytes(4, byteorder='little')))
-        self._com.xfer(cmd, rx_length=2)
+            Stlink.CMD.DEBUG.APIV2.WRITEREG])
+        cmd.add_u8(register)
+        cmd.add_u32(data)
+        self._com.xfer(cmd.cmd, rx_length=2)
 
     def get_mem32(self, address):
         """Get 32 bit memory register with 32 bit memory access.
@@ -429,13 +446,12 @@ class Stlink:
         Return:
             return 32 bit number
         """
-        if address % 4:
-            raise StlinkException('Address is not aligned to 4 Bytes')
-        cmd = [
+        check_alignment(4, address=address)
+        cmd = Stlink.CmdBuilder([
             Stlink.CMD.DEBUG.COMMAND,
-            Stlink.CMD.DEBUG.APIV2.READDEBUGREG]
-        cmd.extend(list(address.to_bytes(4, byteorder='little')))
-        res = self._com.xfer(cmd, rx_length=8)
+            Stlink.CMD.DEBUG.APIV2.READDEBUGREG])
+        cmd.add_u32(address)
+        res = self._com.xfer(cmd.cmd, rx_length=8)
         return int.from_bytes(res[4:8], byteorder='little')
 
     def set_mem32(self, address, data):
@@ -447,14 +463,13 @@ class Stlink:
             address: address in memory
             data: 32 bit number
         """
-        if address % 4:
-            raise StlinkException('Address is not aligned to 4 Bytes')
-        cmd = [
+        check_alignment(4, address=address)
+        cmd = Stlink.CmdBuilder([
             Stlink.CMD.DEBUG.COMMAND,
-            Stlink.CMD.DEBUG.APIV2.WRITEDEBUGREG]
-        cmd.extend(list(address.to_bytes(4, byteorder='little')))
-        cmd.extend(list(data.to_bytes(4, byteorder='little')))
-        self._com.xfer(cmd, rx_length=2)
+            Stlink.CMD.DEBUG.APIV2.WRITEDEBUGREG])
+        cmd.add_u32(address)
+        cmd.add_u32(data)
+        self._com.xfer(cmd.cmd, rx_length=2)
 
     def read_mem8(self, address, size):
         """Read data from memory with 8 bit memory access.
@@ -472,10 +487,12 @@ class Stlink:
             raise StlinkException(
                 'Too many Bytes to read (maximum is %d Bytes)'
                 % self.maximum_8bit_data)
-        cmd = [Stlink.CMD.DEBUG.COMMAND, Stlink.CMD.DEBUG.READMEM_8BIT]
-        cmd.extend(list(address.to_bytes(4, byteorder='little')))
-        cmd.extend(list(size.to_bytes(4, byteorder='little')))
-        return self._com.xfer(cmd, rx_length=size)
+        cmd = Stlink.CmdBuilder([
+            Stlink.CMD.DEBUG.COMMAND,
+            Stlink.CMD.DEBUG.READMEM_8BIT])
+        cmd.add_u32(address)
+        cmd.add_u32(size)
+        return self._com.xfer(cmd.cmd, rx_length=size)
 
     def write_mem8(self, address, data):
         """Write data into memory with 8 bit memory access.
@@ -490,10 +507,12 @@ class Stlink:
             raise StlinkException(
                 'Too many Bytes to write (maximum is %d Bytes)'
                 % self.maximum_8bit_data)
-        cmd = [Stlink.CMD.DEBUG.COMMAND, Stlink.CMD.DEBUG.WRITEMEM_8BIT]
-        cmd.extend(list(address.to_bytes(4, byteorder='little')))
-        cmd.extend(list(len(data).to_bytes(4, byteorder='little')))
-        self._com.xfer(cmd, data=data)
+        cmd = Stlink.CmdBuilder([
+            Stlink.CMD.DEBUG.COMMAND,
+            Stlink.CMD.DEBUG.WRITEMEM_8BIT])
+        cmd.add_u32(address)
+        cmd.add_u32(len(data))
+        self._com.xfer(cmd.cmd, data=data)
 
     def read_mem16(self, address, size):
         """Read data from memory with 16 bit memory access.
@@ -510,20 +529,17 @@ class Stlink:
         """
         if self._version.api <= 2 and self._version.jtag < 29:
             raise StlinkException(self._version.str, "J29")
-        if address % 2:
-            raise StlinkException('Address is not aligned to 2 Bytes')
-        if size % 2:
-            raise StlinkException('Size is not aligned to 2 Bytes')
+        check_alignment(2, address=address, size=size)
         if size > self.maximum_16bit_data:
             raise StlinkException(
                 'Too many Bytes to read (maximum is %d Bytes)'
                 % self.maximum_16bit_data)
-        cmd = [
+        cmd = Stlink.CmdBuilder([
             Stlink.CMD.DEBUG.COMMAND,
-            Stlink.CMD.DEBUG.APIV2.READMEM_16BIT]
-        cmd.extend(list(address.to_bytes(4, byteorder='little')))
-        cmd.extend(list(size.to_bytes(4, byteorder='little')))
-        return self._com.xfer(cmd, rx_length=size)
+            Stlink.CMD.DEBUG.APIV2.READMEM_16BIT])
+        cmd.add_u32(address)
+        cmd.add_u32(size)
+        return self._com.xfer(cmd.cmd, rx_length=size)
 
     def write_mem16(self, address, data):
         """Write data into memory with 16 bit memory access.
@@ -537,20 +553,17 @@ class Stlink:
         """
         if self._version.api <= 2 and self._version.jtag < 29:
             raise StlinkException(self._version.str, "J29")
-        if address % 2:
-            raise StlinkException('Address is not aligned to 2 Bytes')
-        if len(data) % 2:
-            raise StlinkException('Size is not aligned to 2 Bytes')
+        check_alignment(2, address=address, size=len(data))
         if len(data) > self.maximum_16bit_data:
             raise StlinkException(
                 'Too many Bytes to write (maximum is %d Bytes)'
                 % self.maximum_16bit_data)
-        cmd = [
+        cmd = Stlink.CmdBuilder([
             Stlink.CMD.DEBUG.COMMAND,
-            Stlink.CMD.DEBUG.APIV2.WRITEMEM_16BIT]
-        cmd.extend(list(address.to_bytes(4, byteorder='little')))
-        cmd.extend(list(len(data).to_bytes(4, byteorder='little')))
-        self._com.xfer(cmd, data=data)
+            Stlink.CMD.DEBUG.APIV2.WRITEMEM_16BIT])
+        cmd.add_u32(address)
+        cmd.add_u32(len(data))
+        self._com.xfer(cmd.cmd, data=data)
 
     def read_mem32(self, address, size):
         """Read data from memory with 32 bit memory access.
@@ -573,12 +586,12 @@ class Stlink:
             raise StlinkException(
                 'Too many Bytes to read (maximum is %d Bytes)'
                 % self.maximum_32bit_data)
-        cmd = [
+        cmd = Stlink.CmdBuilder([
             Stlink.CMD.DEBUG.COMMAND,
-            Stlink.CMD.DEBUG.READMEM_32BIT]
-        cmd.extend(list(address.to_bytes(4, byteorder='little')))
-        cmd.extend(list(size.to_bytes(4, byteorder='little')))
-        return self._com.xfer(cmd, rx_length=size)
+            Stlink.CMD.DEBUG.READMEM_32BIT])
+        cmd.add_u32(address)
+        cmd.add_u32(size)
+        return self._com.xfer(cmd.cmd, rx_length=size)
 
     def write_mem32(self, address, data):
         """Write data into memory with 32 bit memory access.
@@ -598,9 +611,9 @@ class Stlink:
             raise StlinkException(
                 'Too many Bytes to write (maximum is %d Bytes)'
                 % self.maximum_32bit_data)
-        cmd = [
+        cmd = Stlink.CmdBuilder([
             Stlink.CMD.DEBUG.COMMAND,
-            Stlink.CMD.DEBUG.WRITEMEM_32BIT]
-        cmd.extend(list(address.to_bytes(4, byteorder='little')))
-        cmd.extend(list(len(data).to_bytes(4, byteorder='little')))
-        self._com.xfer(cmd, data=data)
+            Stlink.CMD.DEBUG.WRITEMEM_32BIT])
+        cmd.add_u32(address)
+        cmd.add_u32(len(data))
+        self._com.xfer(cmd.cmd, data=data)
