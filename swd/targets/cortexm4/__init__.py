@@ -1,4 +1,4 @@
-"""Swd package
+"""Cortex-M4 package
 """
 
 from swd.targets.cortexm4.stm32f3 import Stm32f3
@@ -14,5 +14,5 @@ DEVICES = [
 __all__ = [
     "Stm32f3",
     "Stm32f4",
-    "Stm32l4"
+    "Stm32l4",
 ]

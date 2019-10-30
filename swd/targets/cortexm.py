@@ -5,6 +5,8 @@ import time
 import swd.io.cortexm as _io_cm
 import swd.targets.stm32 as _stm32
 import swd.targets.cortexm0 as _cortexm0
+import swd.targets.cortexm0p as _cortexm0p
+import swd.targets.cortexm3 as _cortexm3
 import swd.targets.cortexm4 as _cortexm4
 import swd.targets.cortexm7 as _cortexm7
 
@@ -27,7 +29,7 @@ class CortexM:
 
     _TARGETS = {
         'Cortex-M0': _cortexm0,
-        # 'Cortex-M0+': _cortexm0p,
+        'Cortex-M0+': _cortexm0p,
         # 'Cortex-M3': _cortexm3,
         'Cortex-M4': _cortexm4,
         'Cortex-M7': _cortexm7,
@@ -42,7 +44,7 @@ class CortexM:
         partno = cpuid.cached.get_named('PARTNO')
         if implementer != 'ARM' or partno is None:
             raise CortexMNotDetected(
-                "Unknown MCU with CPUID: 0x%08x" % cpuid.cached.raw)
+                f"Unknown MCU with CPUID: 0x{cpuid.cached.raw:08x}")
         self._swd.append_io({
             'CPUID': cpuid,
             'AIRCR': _io_cm.Aircr(self._swd),
@@ -58,6 +60,10 @@ class CortexM:
         self._implementer = cpuid.cached.get_named('IMPLEMENTER')
         self._core = cpuid.cached.get_named('PARTNO')
 
+        if self._core not in self._TARGETS:
+            raise CortexMNotDetected(
+                f"Unsupported MCU with core: {self._core}")
+
         devices = self._TARGETS[self._core].DEVICES
 
         self._device = None
@@ -71,13 +77,10 @@ class CortexM:
                             parts.append(part)
                     if not parts:
                         continue
-                print(family)  # TODO: remove it
                 self._device = device(self, parts)
             except _stm32.UnknownDevice:
                 continue
             break
-        if not self._device:
-            print("no target device selected")
 
     @property
     def swd(self):
@@ -99,9 +102,9 @@ class CortexM:
         """Return core name"""
         return self._core
 
-    def info_str(self):
+    def name(self):
         """Return controller info string"""
-        return "%s/%s" % (self._implementer, self._core)
+        return f"{self._implementer}/{self._core}"
 
     @classmethod
     def _get_reg_index(cls, reg):

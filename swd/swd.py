@@ -1,11 +1,11 @@
-"""SWD protocol
+"""SWD interface
 """
 
 import itertools as _itertools
 from swd.stlink import Stlink as _Stlink
 
 
-class Swd():
+class Swd:
     """Swd class"""
 
     def __init__(self, swd_frequency=None, driver=None, serial_no='', debug=0):

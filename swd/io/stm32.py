@@ -1,4 +1,4 @@
-"""IO registers for STM32F0xx
+"""IO registers for STM32
 """
 
 # pylint: disable=too-few-public-methods

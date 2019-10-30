@@ -213,6 +213,21 @@ class Application:
         """Print info string"""
         sys.stderr.write(f"{prefix}{msg}\n")
 
+    @property
+    def cortexm(self):
+        """return instance of CortexM or raise Error."""
+        if not self._cortexm:
+            raise PyswdException("This is not CortexM")
+        return self._cortexm
+
+    def print_io(self, reg_name):
+        """Print IO register content"""
+        bitf_reg = self._swd.reg(reg_name)
+        bitf_reg.tmp_load()
+        print("%s:" % reg_name)
+        for reg in bitf_reg.tmp.get_registers():
+            print("%16s: %8x" % (reg, bitf_reg.tmp.get(reg)))
+
     def print_buffer(self, addr, data, hex_line=hex_line8):
         """Print buffer in hex and ASCII"""
         prev_chunk = []
@@ -355,30 +370,30 @@ class Application:
         """Read/Write core register"""
         if not params:
             raise PyswdException("no parameters")
-        halted = self._cortexm.is_halted()
+        halted = self.cortexm.is_halted()
         if not halted:
-            self._cortexm.halt()
+            self.cortexm.halt()
         if len(params) == 1:
             if params[0] == 'all':
-                for reg, val in self._cortexm.get_reg_all().items():
+                for reg, val in self.cortexm.get_reg_all().items():
                     print("%s: %08x" % (reg, val))
             else:
-                val = self._cortexm.get_reg(params[0])
+                val = self.cortexm.get_reg(params[0])
                 print("%s: %08x" % (params[0], val))
         elif len(params) == 2:
             val = convert_numeric(params[1])
-            self._cortexm.set_reg(params[0], val)
+            self.cortexm.set_reg(params[0], val)
         else:
             raise PyswdException("too many parameters")
         if not halted:
-            self._cortexm.run()
+            self.cortexm.run()
 
     def action_reset(self, params):
         """Reset MCU"""
         if not params:
-            self._cortexm.reset()
+            self.cortexm.reset()
         elif params[0] == 'halt':
-            self._cortexm.reset_halt()
+            self.cortexm.reset_halt()
         else:
             raise PyswdException("Wrong parameter")
         time.sleep(.05)
@@ -386,23 +401,23 @@ class Application:
     def action_run(self, params):
         """Run core"""
         if not params:
-            self._cortexm.run()
+            self.cortexm.run()
         elif params[0] == 'nodebug':
-            self._cortexm.nodebug()
+            self.cortexm.nodebug()
         else:
             raise PyswdException("Wrong parameter")
 
     def action_step(self, params):
         """Run core"""
         if not params:
-            self._cortexm.step()
+            self.cortexm.step()
         else:
             for _ in range(convert_numeric(params[0])):
-                self._cortexm.step()
+                self.cortexm.step()
 
     def action_halt(self, unused_params):
         """Run core"""
-        self._cortexm.halt()
+        self.cortexm.halt()
 
     @staticmethod
     def action_sleep(params):
@@ -442,14 +457,25 @@ class Application:
             if idcode == 0:
                 raise PyswdException(
                     "No IDCODE, probably MCU is not connected")
-            self._cortexm = swd.CortexM(self._swd, self._expected_devices)
-            self.print_info(self._cortexm.info_str())
-            was_halted = self._cortexm.is_halted()
-            if was_halted:
-                self.print_info("Core is halted.")
+            was_halted = None
+            try:
+                self.cortexm = swd.CortexM(self._swd, self._expected_devices)
+            except swd.targets.cortexm.CortexMNotDetected as err:
+                self.print_warning(err)
+            else:
+                self.print_info(f"CORE: {self.cortexm.name()}")
+                if self.cortexm.device:
+                    dev = self.cortexm.device
+                    self.print_info(
+                        f"PART: {' / '.join(dev.get_part_names())}")
+                else:
+                    self.print_warning("Unsupported part detected.")
+                was_halted = self.cortexm.is_halted()
+                if was_halted:
+                    self.print_info("Core is halted.")
             if self._actions:
                 self.process_actions()
-                is_halted = self._cortexm.is_halted()
+                is_halted = self.cortexm.is_halted()
                 if was_halted != is_halted:
                     if is_halted:
                         self.print_info("Core stay halted.")

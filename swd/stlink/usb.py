@@ -1,4 +1,4 @@
-"""ST-Link/V2 USB communication
+"""ST-Link USB communication
 """
 
 import sys as _sys
@@ -22,12 +22,12 @@ class MoreDevicesException(StlinkUsbException):
 
     def __init__(self, devices):
         super().__init__("More than one device found.")
-        self._serial_numbers = [dev.serial_no for dev in devices]
+        self._devices = devices
 
     @property
     def serial_numbers(self):
         """return list of serial numbers"""
-        return self._serial_numbers
+        return [f"{dev.serial_no} : {dev.DEV_NAME}" for dev in self._devices]
 
 
 class StlinkUsbBase:

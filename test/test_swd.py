@@ -5,7 +5,7 @@ import unittest
 import swd
 
 
-class FncMock():
+class FncMock:
     """Function mock"""
     def __init__(self, default_return=None):
         self._return_data = []
@@ -33,7 +33,7 @@ class FncMock():
         return self._return_data_default
 
 
-class DrvMock():
+class DrvMock:
     """Com Mock class for testing Stlink class"""
 
     _STLINK_MAXIMUM_8BIT_DATA = 64

@@ -5,7 +5,7 @@ import unittest
 import swd.stlink
 
 
-class FncMock():
+class FncMock:
     """Function mock"""
     def __init__(self):
         self._return_data = []
@@ -31,7 +31,7 @@ class FncMock():
         return None
 
 
-class ComMock():
+class ComMock:
     """Com Mock class for testing Stlink class"""
     STLINK_MAXIMUM_TRANSFER_SIZE = 1024
 

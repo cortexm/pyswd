@@ -1,6 +1,5 @@
 """STM32F0xx"""
 
-# import swd.io.stm32 as _io_stm32
 import swd.targets.stm32 as _stm32
 
 

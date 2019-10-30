@@ -1,4 +1,4 @@
-"""STM32F0xx"""
+"""STM32"""
 
 import swd.io.stm32 as _io_stm32
 
@@ -168,7 +168,6 @@ class Stm32:
         self._cortexm = cortexm
         idcode_reg = self._create_idcode_reg()
         self._dev_id = idcode_reg.cached.get('DEV_ID')
-        print("%08x" % idcode_reg.cached.raw)
         flash_size_reg = self._create_flash_size_reg()
         self._flash_size = flash_size_reg.cached.get('FLASH_SIZE') * KILO
         self._supposed_devices = self._find_devices(
@@ -194,10 +193,8 @@ class Stm32:
             }
         ]
 
-        print([dev['part_no'] for dev in self._supposed_devices])
-        print("STM32: REV_ID: %s" % self.get_revision())
-        for memory_region in self.get_memory_regions():
-            print(memory_region)
+        # for memory_region in self.get_memory_regions():
+        #     print(memory_region)
         # print("STM32: FLASH_SIZE: %d KB" % (self.get_flash_size() // KILO))
         # print("STM32: SRAM_SIZE: %d KB" % (self.get_sram_size() // KILO))
 
