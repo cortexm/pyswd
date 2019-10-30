@@ -39,6 +39,7 @@ class StlinkComBase:
     ID_PRODUCT = None
     PIPE_OUT = None
     PIPE_IN = None
+    DEV_NAME = None
 
     def __init__(self, dev):
         self._dev = dev
@@ -153,7 +154,7 @@ class StlinkComV3Usb(StlinkComBase):
 
 class StlinkCom:
     """ST-Link communication class"""
-    STLINK_MAXIMUM_TRANSFER_SIZE = 1024  # probably will work 6144
+    STLINK_MAXIMUM_TRANSFER_SIZE = 6144
     _STLINK_CMD_SIZE = 16
     _COM_CLASSES = [
         StlinkComV2Usb,

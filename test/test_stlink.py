@@ -68,7 +68,7 @@ class _TestStlink(unittest.TestCase):
         self._ctor_call_log = self._com.xfer_mock.get_call_log()
 
 
-class TestStlinkCotor(_TestStlink):
+class TestStlinkCtor(_TestStlink):
     """Tests for Stlink class"""
 
     def test_com_xfer_call(self):
@@ -88,11 +88,6 @@ class TestStlinkCotor(_TestStlink):
                 'command': [0xf2, 0x21],
                 'data': None,
                 'rx_length': 0,
-                'tout': 200},
-            {
-                'command': [0xf2, 0x43, 0x01],
-                'data': None,
-                'rx_length': 2,
                 'tout': 200},
             {
                 'command': [0xf2, 0x30, 0xa3],

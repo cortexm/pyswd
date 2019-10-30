@@ -9,17 +9,25 @@ class StlinkException(Exception):
     """Stlink general exception"""
 
 
+class OutdatedStlinkFirmware(StlinkException):
+    """Stlink general exception"""
+    def __init__(self, current_version, minimal_version):
+        super().__init__(
+            f"Outdated FW: {current_version}, require: {minimal_version}.")
+
+
 class Stlink:
     """ST-Link class"""
 
-    class _Cmd:  # pylint: disable=R0903
+    class CMD:  # pylint: disable=too-few-public-methods
         """Stlink commands"""
+
         GET_VERSION = 0xf1
         GET_CURRENT_MODE = 0xf5
         GET_TARGET_VOLTAGE = 0xf7
         GET_VERSION_EX = 0xfb  # for V3
 
-        class Mode:
+        class MODE:
             """Stlink commands"""
             DFU = 0x00
             MASS = 0x01
@@ -27,18 +35,18 @@ class Stlink:
             SWIM = 0x03
             BOOTLOADER = 0x04
 
-        class Dfu:
+        class DFU:
             """Stlink commands"""
             EXIT = 0x07
             COMMAND = 0xf3
 
-        class Swim:
+        class SWIM:
             """Stlink commands"""
             ENTER = 0x00
             EXIT = 0x01
             COMMAND = 0xf4
 
-        class Debug:
+        class DEBUG:
             """Stlink commands"""
             ENTER_JTAG = 0x00
             STATUS = 0x01
@@ -55,7 +63,7 @@ class Stlink:
             ENTER_SWD = 0xa3
             COMMAND = 0xf2
 
-            class Apiv1:
+            class APIV1:
                 """Stlink commands"""
                 RESETSYS = 0x03
                 READALLREGS = 0x04
@@ -67,7 +75,7 @@ class Stlink:
                 SETWATCHPOINT = 0x10
                 ENTER = 0x20
 
-            class Apiv2:
+            class APIV2:
                 """Stlink commands"""
                 NRST_LOW = 0x00
                 NRST_HIGH = 0x01
@@ -89,10 +97,35 @@ class Stlink:
                 READMEM_16BIT = 0x47
                 WRITEMEM_16BIT = 0x48
 
-            class Apiv3:
+            class APIV3:
                 """Stlink commands"""
                 SET_COM_FREQ = 0x61
                 GET_COM_FREQ = 0x62
+
+    class CmdBuilder:
+        """CMD builder"""
+        def __init__(self, cmd):
+            if isinstance(cmd, int):
+                self._cmd = [cmd]
+            elif isinstance(cmd, list):
+                self._cmd = cmd
+
+        def add_u8(self, number):
+            """add 8 bit unsigned number"""
+            self._cmd.append(number)
+
+        def add_u16(self, number):
+            """add 16 bit unsigned number"""
+            self._cmd.extend(list(number.to_bytes(2, byteorder='little')))
+
+        def add_u32(self, number):
+            """add 32 bit unsigned number"""
+            self._cmd.extend(list(number.to_bytes(4, byteorder='little')))
+
+        @property
+        def cmd(self):
+            """return command"""
+            return self._cmd
 
     _SWD_FREQ = (
         (4000000, 0, ),
@@ -121,7 +154,7 @@ class Stlink:
             self._mass = version.get('mass')
             self._api = version.get('api')
             self._bridge = version.get('bridge')
-            self._str = f"ST-Link/{version.get('drv')}"
+            self._str = f"ST-Link/{version.get('dev')}"
             self._str += f" V{self._stlink}"
             if self._jtag:
                 self._str += f"J{self._jtag}"
@@ -171,35 +204,41 @@ class Stlink:
             """String representation"""
             return self._str
 
-    def __init__(self, swd_frequency=1800000, com=None, serial_no=''):
+    def __init__(self, swd_frequency=None, com=None, serial_no=''):
         if com is None:
             # default com driver is StlinkCom
             com = _StlinkCom(serial_no)
         self._com = com
         self._version = self._read_version()
         self._leave_state()
-        self._set_swd_freq(swd_frequency)
+        if swd_frequency:
+            self._set_swd_freq(swd_frequency)
         self._enter_debug_swd()
 
     @property
     def maximum_8bit_data(self):
+        """Maximum transfer size for 8 bit data"""
         return self._STLINK_MAXIMUM_8BIT_DATA
 
     @property
     def maximum_16bit_data(self):
+        """Maximum transfer size for 16 bit data"""
         return self._com.STLINK_MAXIMUM_TRANSFER_SIZE
 
     @property
     def maximum_32bit_data(self):
+        """Maximum transfer size for 32 bit data"""
         return self._com.STLINK_MAXIMUM_TRANSFER_SIZE
 
     def _read_version(self):
-        res = self._com.xfer([Stlink._Cmd.GET_VERSION, 0x80], rx_length=6)
+        cmd = Stlink.CmdBuilder(Stlink.CMD.GET_VERSION)
+        cmd.add_u8(0x80)
+        res = self._com.xfer(cmd.cmd, rx_length=6)
         ver = int.from_bytes(res[:2], byteorder='big')
         ver_stlink = (ver >> 12) & 0xf
         version = {
             'stlink': ver_stlink,
-            'drv': self._com.version,
+            'dev': self._com.version,
         }
         if ver_stlink == 2:
             version['jtag'] = (ver >> 6) & 0x3f
@@ -210,37 +249,40 @@ class Stlink:
                 version['mass'] = ver & 0x3f
         elif ver_stlink == 3:
             ver_ex = self._com.xfer(
-                [Stlink._Cmd.GET_VERSION_EX, 0x80],
+                [Stlink.CMD.GET_VERSION_EX, 0x80],
                 rx_length=16)
-            version['api'] = 3
-            version['swim'] = int(ver_ex[1])
-            version['jtag'] = int(ver_ex[2])
-            version['mass'] = int(ver_ex[3])
-            version['bridge'] = int(ver_ex[4])
+            version.update({
+                'api': 3,
+                'swim': int(ver_ex[1]),
+                'jtag': int(ver_ex[2]),
+                'mass': int(ver_ex[3]),
+                'bridge': int(ver_ex[4]),
+            })
         return Stlink.StlinkVersion(version)
 
     def _leave_state(self):
-        res = self._com.xfer([Stlink._Cmd.GET_CURRENT_MODE], rx_length=2)
-        if res[0] == Stlink._Cmd.Mode.DFU:
-            self._com.xfer([Stlink._Cmd.Dfu.COMMAND, Stlink._Cmd.Dfu.EXIT])
-        elif res[0] == Stlink._Cmd.Mode.DEBUG:
-            self._com.xfer([Stlink._Cmd.Debug.COMMAND, Stlink._Cmd.Debug.EXIT])
-        elif res[0] == Stlink._Cmd.Mode.SWIM:
-            self._com.xfer([Stlink._Cmd.Swim.COMMAND, Stlink._Cmd.Swim.EXIT])
+        res = self._com.xfer([Stlink.CMD.GET_CURRENT_MODE], rx_length=2)
+        if res[0] == Stlink.CMD.MODE.DFU:
+            self._com.xfer([Stlink.CMD.DFU.COMMAND, Stlink.CMD.DFU.EXIT])
+        elif res[0] == Stlink.CMD.MODE.DEBUG:
+            self._com.xfer([Stlink.CMD.DEBUG.COMMAND, Stlink.CMD.DEBUG.EXIT])
+        elif res[0] == Stlink.CMD.MODE.SWIM:
+            self._com.xfer([Stlink.CMD.SWIM.COMMAND, Stlink.CMD.SWIM.EXIT])
 
     def _set_swd_freq(self, swd_frequency):
         if self._version.stlink == 2:
-            if self._version.jtag >= 22:
-                self._set_swd_freq_v2(swd_frequency)
-        if self._version.stlink == 3:
+            self._set_swd_freq_v2(swd_frequency)
+        elif self._version.stlink == 3:
             self._set_swd_freq_v3(swd_frequency)
 
     def _set_swd_freq_v2(self, swd_frequency):
+        if self._version.jtag < 22:
+            raise OutdatedStlinkFirmware(self._version.str, "J22")
         for freq, data in Stlink._SWD_FREQ:
             if swd_frequency >= freq:
                 cmd = [
-                    Stlink._Cmd.Debug.COMMAND,
-                    Stlink._Cmd.Debug.Apiv2.SWD_SET_FREQ,
+                    Stlink.CMD.DEBUG.COMMAND,
+                    Stlink.CMD.DEBUG.APIV2.SWD_SET_FREQ,
                     data]
                 res = self._com.xfer(cmd, rx_length=2)
                 if res[0] != 0x80:
@@ -249,9 +291,11 @@ class Stlink:
         raise StlinkException("Selected SWD frequency is too low")
 
     def _set_swd_freq_v3(self, swd_frequency):
+        if self._version.api < 3:
+            raise OutdatedStlinkFirmware(self._version.str, "V3")
         res = self._com.xfer([
-            Stlink._Cmd.Debug.COMMAND,
-            Stlink._Cmd.Debug.Apiv3.GET_COM_FREQ,
+            Stlink.CMD.DEBUG.COMMAND,
+            Stlink.CMD.DEBUG.APIV3.GET_COM_FREQ,
             0], rx_length=52)
         i = 0
         freq_khz = 0
@@ -267,8 +311,8 @@ class Stlink:
         if i == res[8]:
             raise StlinkException("Requested SWD frequency is too low")
         cmd = [
-            Stlink._Cmd.Debug.COMMAND,
-            Stlink._Cmd.Debug.Apiv3.SET_COM_FREQ,
+            Stlink.CMD.DEBUG.COMMAND,
+            Stlink.CMD.DEBUG.APIV3.SET_COM_FREQ,
             0x00, 0x00]
         cmd.extend(list(freq_khz.to_bytes(4, byteorder='little')))
         res = self._com.xfer(cmd, rx_length=2)
@@ -277,9 +321,9 @@ class Stlink:
 
     def _enter_debug_swd(self):
         cmd = [
-            Stlink._Cmd.Debug.COMMAND,
-            Stlink._Cmd.Debug.Apiv2.ENTER,
-            Stlink._Cmd.Debug.ENTER_SWD]
+            Stlink.CMD.DEBUG.COMMAND,
+            Stlink.CMD.DEBUG.APIV2.ENTER,
+            Stlink.CMD.DEBUG.ENTER_SWD]
         self._com.xfer(cmd, rx_length=2)
 
     def get_version(self):
@@ -296,7 +340,7 @@ class Stlink:
         Return:
             measured voltage
         """
-        res = self._com.xfer([Stlink._Cmd.GET_TARGET_VOLTAGE], rx_length=8)
+        res = self._com.xfer([Stlink.CMD.GET_TARGET_VOLTAGE], rx_length=8)
         an0 = int.from_bytes(res[:4], byteorder='little')
         an1 = int.from_bytes(res[4:8], byteorder='little')
         return round(2 * an1 * 1.2 / an0, 2) if an0 != 0 else None
@@ -308,8 +352,8 @@ class Stlink:
             32 bit number
         """
         cmd = [
-            Stlink._Cmd.Debug.COMMAND,
-            Stlink._Cmd.Debug.Apiv2.READ_IDCODES]
+            Stlink.CMD.DEBUG.COMMAND,
+            Stlink.CMD.DEBUG.APIV2.READ_IDCODES]
         res = self._com.xfer(cmd, rx_length=12)
         idcode = int.from_bytes(res[4:8], byteorder='little')
         if idcode == 0:
@@ -330,8 +374,8 @@ class Stlink:
             32 bit number
         """
         cmd = [
-            Stlink._Cmd.Debug.COMMAND,
-            Stlink._Cmd.Debug.Apiv2.READREG,
+            Stlink.CMD.DEBUG.COMMAND,
+            Stlink.CMD.DEBUG.APIV2.READREG,
             register]
         res = self._com.xfer(cmd, rx_length=8)
         return int.from_bytes(res[4:8], byteorder='little')
@@ -347,8 +391,8 @@ class Stlink:
             list of 32 bit numbers
         """
         cmd = [
-            Stlink._Cmd.Debug.COMMAND,
-            Stlink._Cmd.Debug.Apiv2.READALLREGS]
+            Stlink.CMD.DEBUG.COMMAND,
+            Stlink.CMD.DEBUG.APIV2.READALLREGS]
         res = self._com.xfer(cmd, rx_length=88)
         data = []
         for index in range(4, len(res), 4):
@@ -368,8 +412,8 @@ class Stlink:
             data: 32 bit number
         """
         cmd = [
-            Stlink._Cmd.Debug.COMMAND,
-            Stlink._Cmd.Debug.Apiv2.WRITEREG,
+            Stlink.CMD.DEBUG.COMMAND,
+            Stlink.CMD.DEBUG.APIV2.WRITEREG,
             register]
         cmd.extend(list(data.to_bytes(4, byteorder='little')))
         self._com.xfer(cmd, rx_length=2)
@@ -388,8 +432,8 @@ class Stlink:
         if address % 4:
             raise StlinkException('Address is not aligned to 4 Bytes')
         cmd = [
-            Stlink._Cmd.Debug.COMMAND,
-            Stlink._Cmd.Debug.Apiv2.READDEBUGREG]
+            Stlink.CMD.DEBUG.COMMAND,
+            Stlink.CMD.DEBUG.APIV2.READDEBUGREG]
         cmd.extend(list(address.to_bytes(4, byteorder='little')))
         res = self._com.xfer(cmd, rx_length=8)
         return int.from_bytes(res[4:8], byteorder='little')
@@ -406,8 +450,8 @@ class Stlink:
         if address % 4:
             raise StlinkException('Address is not aligned to 4 Bytes')
         cmd = [
-            Stlink._Cmd.Debug.COMMAND,
-            Stlink._Cmd.Debug.Apiv2.WRITEDEBUGREG]
+            Stlink.CMD.DEBUG.COMMAND,
+            Stlink.CMD.DEBUG.APIV2.WRITEDEBUGREG]
         cmd.extend(list(address.to_bytes(4, byteorder='little')))
         cmd.extend(list(data.to_bytes(4, byteorder='little')))
         self._com.xfer(cmd, rx_length=2)
@@ -428,7 +472,7 @@ class Stlink:
             raise StlinkException(
                 'Too many Bytes to read (maximum is %d Bytes)'
                 % self.maximum_8bit_data)
-        cmd = [Stlink._Cmd.Debug.COMMAND, Stlink._Cmd.Debug.READMEM_8BIT]
+        cmd = [Stlink.CMD.DEBUG.COMMAND, Stlink.CMD.DEBUG.READMEM_8BIT]
         cmd.extend(list(address.to_bytes(4, byteorder='little')))
         cmd.extend(list(size.to_bytes(4, byteorder='little')))
         return self._com.xfer(cmd, rx_length=size)
@@ -446,7 +490,7 @@ class Stlink:
             raise StlinkException(
                 'Too many Bytes to write (maximum is %d Bytes)'
                 % self.maximum_8bit_data)
-        cmd = [Stlink._Cmd.Debug.COMMAND, Stlink._Cmd.Debug.WRITEMEM_8BIT]
+        cmd = [Stlink.CMD.DEBUG.COMMAND, Stlink.CMD.DEBUG.WRITEMEM_8BIT]
         cmd.extend(list(address.to_bytes(4, byteorder='little')))
         cmd.extend(list(len(data).to_bytes(4, byteorder='little')))
         self._com.xfer(cmd, data=data)
@@ -464,6 +508,8 @@ class Stlink:
         Return:
             list of read data
         """
+        if self._version.api <= 2 and self._version.jtag < 29:
+            raise StlinkException(self._version.str, "J29")
         if address % 2:
             raise StlinkException('Address is not aligned to 2 Bytes')
         if size % 2:
@@ -473,8 +519,8 @@ class Stlink:
                 'Too many Bytes to read (maximum is %d Bytes)'
                 % self.maximum_16bit_data)
         cmd = [
-            Stlink._Cmd.Debug.COMMAND,
-            Stlink._Cmd.Debug.Apiv2.READMEM_16BIT]
+            Stlink.CMD.DEBUG.COMMAND,
+            Stlink.CMD.DEBUG.APIV2.READMEM_16BIT]
         cmd.extend(list(address.to_bytes(4, byteorder='little')))
         cmd.extend(list(size.to_bytes(4, byteorder='little')))
         return self._com.xfer(cmd, rx_length=size)
@@ -489,6 +535,8 @@ class Stlink:
             address: address in memory
             data: list of bytes to write into memory
         """
+        if self._version.api <= 2 and self._version.jtag < 29:
+            raise StlinkException(self._version.str, "J29")
         if address % 2:
             raise StlinkException('Address is not aligned to 2 Bytes')
         if len(data) % 2:
@@ -498,8 +546,8 @@ class Stlink:
                 'Too many Bytes to write (maximum is %d Bytes)'
                 % self.maximum_16bit_data)
         cmd = [
-            Stlink._Cmd.Debug.COMMAND,
-            Stlink._Cmd.Debug.Apiv2.WRITEMEM_16BIT]
+            Stlink.CMD.DEBUG.COMMAND,
+            Stlink.CMD.DEBUG.APIV2.WRITEMEM_16BIT]
         cmd.extend(list(address.to_bytes(4, byteorder='little')))
         cmd.extend(list(len(data).to_bytes(4, byteorder='little')))
         self._com.xfer(cmd, data=data)
@@ -526,8 +574,8 @@ class Stlink:
                 'Too many Bytes to read (maximum is %d Bytes)'
                 % self.maximum_32bit_data)
         cmd = [
-            Stlink._Cmd.Debug.COMMAND,
-            Stlink._Cmd.Debug.READMEM_32BIT]
+            Stlink.CMD.DEBUG.COMMAND,
+            Stlink.CMD.DEBUG.READMEM_32BIT]
         cmd.extend(list(address.to_bytes(4, byteorder='little')))
         cmd.extend(list(size.to_bytes(4, byteorder='little')))
         return self._com.xfer(cmd, rx_length=size)
@@ -551,8 +599,8 @@ class Stlink:
                 'Too many Bytes to write (maximum is %d Bytes)'
                 % self.maximum_32bit_data)
         cmd = [
-            Stlink._Cmd.Debug.COMMAND,
-            Stlink._Cmd.Debug.WRITEMEM_32BIT]
+            Stlink.CMD.DEBUG.COMMAND,
+            Stlink.CMD.DEBUG.WRITEMEM_32BIT]
         cmd.extend(list(address.to_bytes(4, byteorder='little')))
         cmd.extend(list(len(data).to_bytes(4, byteorder='little')))
         self._com.xfer(cmd, data=data)
