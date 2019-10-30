@@ -58,7 +58,7 @@ class _TestStlink(unittest.TestCase):
     def setUp(self):
         self._com = ComMock()
         self._com.xfer_mock.set_return_data([
-            [0x26, 0xc6, 0x83, 0x04, 0x48, 0x37],
+            [0x28, 0xc7, 0x83, 0x04, 0x48, 0x37],
             [0x02, 0x00],
             None,
             [0x80, 0x00],
@@ -102,7 +102,7 @@ class TestStlinkVersion(_TestStlink):
 
     def test_str(self):
         """test version string"""
-        self.assertEqual(self._stlink.get_version().str, 'ST-Link/V2 V2J27S6')
+        self.assertEqual(self._stlink.get_version().str, 'ST-Link/V2 V2J35S7')
 
     def test_stlink(self):
         """test version string"""
@@ -110,11 +110,11 @@ class TestStlinkVersion(_TestStlink):
 
     def test_jtag(self):
         """test version string"""
-        self.assertEqual(self._stlink.get_version().jtag, 27)
+        self.assertEqual(self._stlink.get_version().jtag, 35)
 
     def test_swim(self):
         """test version string"""
-        self.assertEqual(self._stlink.get_version().swim, 6)
+        self.assertEqual(self._stlink.get_version().swim, 7)
 
     def test_mass(self):
         """test version string"""
@@ -318,6 +318,113 @@ class TestStlinkWriteMem8(_TestStlink):
         self.assertEqual(
             str(context.exception),
             'Too many Bytes to write (maximum is 64 Bytes)')
+
+
+class TestStlinkReadMem16(_TestStlink):
+    """Tests for Stlink.read_mem16()"""
+
+    def test_4bytes(self):
+        """test reading emory with 16 bit access"""
+        data = list(range(4))
+        self._com.xfer_mock.set_return_data([
+            data,
+        ])
+        ret_data = self._stlink.read_mem16(0x08000000, 4)
+        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+            {'command': [
+                0xf2, 0x47, 0x00, 0x00, 0x00, 0x08, 0x04, 0x00, 0x00, 0x00
+            ], 'data': None, 'rx_length': 4, 'tout': 200},
+        ])
+        self.assertEqual(ret_data, data)
+
+    def test_1024bytes(self):
+        """test reading memory with 16 bit access"""
+        data = list(range(4))
+        self._com.xfer_mock.set_return_data([
+            data,
+        ])
+        ret_data = self._stlink.read_mem16(0x08000000, 1024)
+        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+            {'command': [
+                0xf2, 0x47, 0x00, 0x00, 0x00, 0x08, 0x00, 0x04, 0x00, 0x00
+            ], 'data': None, 'rx_length': 1024, 'tout': 200},
+        ])
+        self.assertEqual(ret_data, data)
+
+    def test_oversize(self):
+        """test setting memory register with unaligned address"""
+        with self.assertRaises(swd.stlink.StlinkException) as context:
+            self._stlink.read_mem16(0x20000000, 1028)
+        self.assertEqual(
+            str(context.exception),
+            'Too many Bytes to read (maximum is 1024 Bytes)')
+
+    def test_unaligned_address(self):
+        """test setting memory register with unaligned address"""
+        with self.assertRaises(swd.stlink.StlinkException) as context:
+            self._stlink.read_mem16(0x20000001, 12)
+        self.assertEqual(
+            str(context.exception),
+            'Address is not aligned to 2 Bytes')
+
+    def test_unaligned_size(self):
+        """test setting memory register with unaligned address"""
+        with self.assertRaises(swd.stlink.StlinkException) as context:
+            self._stlink.read_mem16(0x20000000, 13)
+        self.assertEqual(
+            str(context.exception),
+            'Size is not aligned to 2 Bytes')
+
+
+class TestStlinkWriteMem16(_TestStlink):
+    """Tests for Stlink.write_mem16()"""
+
+    def test_4bytes(self):
+        """test writing memory with 16 bit access"""
+        data = list(range(4))
+        self._stlink.write_mem16(0x20001000, data)
+        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+            {'command': [
+                0xf2, 0x48, 0x00, 0x10, 0x00, 0x20, 0x04, 0x00, 0x00, 0x00
+            ], 'data': data, 'rx_length': 0, 'tout': 200},
+        ])
+
+    def test_1024bytes(self):
+        """test writing memory with 16 bit access"""
+        data = list(range(1024))
+        self._stlink.write_mem16(0x20001000, data)
+        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+            {'command': [
+                0xf2, 0x48, 0x00, 0x10, 0x00, 0x20, 0x00, 0x04, 0x00, 0x00
+            ], 'data': data, 'rx_length': 0, 'tout': 200},
+        ])
+
+    def test_over_size(self):
+        """test setting memory register with unaligned address"""
+        data = list(range(1028))
+        with self.assertRaises(swd.stlink.StlinkException) as context:
+            self._stlink.write_mem16(0x20000000, data)
+        self.assertEqual(
+            str(context.exception),
+            'Too many Bytes to write (maximum is 1024 Bytes)')
+
+    def test_unaligned_address(self):
+        """test setting memory register with unaligned address"""
+        data = list(range(12))
+        with self.assertRaises(swd.stlink.StlinkException) as context:
+            self._stlink.write_mem16(0x20000001, data)
+        self.assertEqual(
+            str(context.exception),
+            'Address is not aligned to 2 Bytes')
+
+    def test_unaligned_size(self):
+        """test setting memory register with unaligned address"""
+        data = list(range(13))
+        with self.assertRaises(swd.stlink.StlinkException) as context:
+            self._stlink.write_mem16(0x20000000, data)
+        self.assertEqual(
+            str(context.exception),
+            'Size is not aligned to 2 Bytes')
 
 
 class TestStlinkReadMem32(_TestStlink):
