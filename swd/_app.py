@@ -82,7 +82,7 @@ def _configure_argparse():
         "-v", "--verbose", action="count", default=0,
         help="increase verbose output")
     parser.add_argument(
-        "-f", "--freq", type=int, default=4000000,
+        "-f", "--freq", type=int,
         help="set SWD frequency")
     parser.add_argument(
         "-s", "--serial", type=str, default='',
