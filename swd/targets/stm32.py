@@ -176,8 +176,8 @@ class Stm32:
             expected_parts)
         self._sram_sizes = {dev['sram_size'] for dev in self._supposed_devices}
         self.swd.append_io({
-            'IDCODE': idcode_reg,
-            'FLASH_SIZE': flash_size_reg,
+            idcode_reg,
+            flash_size_reg,
         })
         self._memory_regions = [
             {

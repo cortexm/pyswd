@@ -9,6 +9,8 @@ import swd.targets.cortexm0p as _cortexm0p
 import swd.targets.cortexm3 as _cortexm3
 import swd.targets.cortexm4 as _cortexm4
 import swd.targets.cortexm7 as _cortexm7
+import swd.targets.cortexm23 as _cortexm23
+import swd.targets.cortexm33 as _cortexm33
 
 
 class CortexMException(Exception):
@@ -30,11 +32,11 @@ class CortexM:
     _TARGETS = {
         'Cortex-M0': _cortexm0,
         'Cortex-M0+': _cortexm0p,
-        # 'Cortex-M3': _cortexm3,
+        'Cortex-M3': _cortexm3,
         'Cortex-M4': _cortexm4,
         'Cortex-M7': _cortexm7,
-        # 'Cortex-M23': _cortexm23,
-        # 'Cortex-M33': _cortexm33,
+        'Cortex-M23': _cortexm23,
+        'Cortex-M33': _cortexm33,
     }
 
     def create_io(self):
@@ -46,11 +48,11 @@ class CortexM:
             raise CortexMNotDetected(
                 f"Unknown MCU with CPUID: 0x{cpuid.cached.raw:08x}")
         self._swd.append_io({
-            'CPUID': cpuid,
-            'AIRCR': _io_cm.Aircr(self._swd),
-            'DHCSR_W': _io_cm.DhcsrWrite(self._swd),
-            'DHCSR_R': _io_cm.DhcsrRead(self._swd),
-            'DEMCR': _io_cm.Demcr(self._swd),
+            cpuid,
+            _io_cm.Aircr(self._swd),
+            _io_cm.DhcsrWrite(self._swd),
+            _io_cm.DhcsrRead(self._swd),
+            _io_cm.Demcr(self._swd),
         })
 
     def __init__(self, swd, expected_parts):

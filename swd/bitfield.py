@@ -18,6 +18,7 @@ class _Field:
 
     def __init__(self, reg_offset, reg_bits, bits, names=None):
         self._offset = reg_offset
+        self._reg_bits = reg_bits
         self._mask = 2 ** reg_bits - 1
         self._mask_off = self._mask << self._offset
         self._mask_off_inv = (2 ** bits - 1) ^ self._mask_off
@@ -60,6 +61,10 @@ class _Field:
     def update(self, raw, val):
         """Update value into bitfield"""
         return (raw & self._mask_off_inv) | self.get_bits(val)
+
+    def hex_val(self, raw):
+        """Return string representation of value"""
+        return f"0x{self.get(raw):0{(self._reg_bits + 3) // 4}x}"
 
 
 class _Bitfield:
@@ -115,6 +120,10 @@ class Bitfield(_Bitfield):
         """Get register value"""
         return self._reg_bits[reg].get(self._raw)
 
+    def hex_val(self, reg):
+        """return readable value of bits"""
+        return self._reg_bits[reg].hex_val(self._raw)
+
     def get_named(self, reg, default_val=False):
         """Get register named value"""
         return self._reg_bits[reg].get_named(self._raw, default_val)
@@ -145,9 +154,13 @@ class BitfieldMem(_Bitfield):
         self._cached = Bitfield(self._REGISTERS, self._BITS, None)
 
     @property
+    def address(self):
+        return self._address
+
+    @property
     def raw(self):
         """Property to read raw value"""
-        if self._address % 4:
+        if self._address % 4 or self._BITS != 32:
             data = self._mem_drv.read_mem(self._address, self._BITS // 8)
             return int.from_bytes(data, byteorder='little')
         return self._mem_drv.get_mem32(self._address)
@@ -187,6 +200,10 @@ class BitfieldMem(_Bitfield):
         """Get register value"""
         return self._reg_bits[reg].get(self.raw)
 
+    def hex_val(self, reg):
+        """return readable value of bits"""
+        return self._reg_bits[reg].hex_val(self.raw)
+
     def get_named(self, reg, default_val=False):
         """Get register named value"""
         return self._reg_bits[reg].get_named(self.raw, default_val)
@@ -202,3 +219,8 @@ class BitfieldMem(_Bitfield):
     def get_name(self):
         """Get register name"""
         return self._NAME
+
+    @property
+    def bits(self):
+        """return total number of bits in register"""
+        return self._BITS

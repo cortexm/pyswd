@@ -223,10 +223,28 @@ class Application:
     def print_io(self, reg_name):
         """Print IO register content"""
         bitf_reg = self._swd.reg(reg_name)
-        bitf_reg.tmp_load()
-        print("%s:" % reg_name)
-        for reg in bitf_reg.tmp.get_registers():
-            print("%16s: %8x" % (reg, bitf_reg.tmp.get(reg)))
+        bitf_reg.discard_cache()
+        print(f"{(' ' + reg_name):_>16s} : value ____")
+        for reg in bitf_reg.get_registers():
+            print(f"{reg:>16s} : {bitf_reg.cached.hex_val(reg):>10s}")
+
+    def print_io_registers(self):
+        """Print IO register content"""
+        print("__ register name : _ address  : value ____")
+        for reg_name in sorted(self._swd.reg_list()):
+            self._swd.reg(reg_name).discard_cache()
+            address = self._swd.reg(reg_name).address
+            value = self._swd.reg(reg_name).raw
+            bits4 = (self._swd.reg(reg_name).bits + 3) // 4
+            print(f"{reg_name:>16s} : 0x{address:08x} : 0x{value:0{bits4}x}")
+
+    def action_dumpio(self, params):
+        """Dump memory 32 bit"""
+        if params:
+            for reg_name in params:
+                self.print_io(reg_name)
+        else:
+            self.print_io_registers()
 
     def print_buffer(self, addr, data, hex_line=hex_line8):
         """Print buffer in hex and ASCII"""
@@ -490,7 +508,9 @@ class Application:
                 self.print_error(serial_number, prefix="  ")
             self.print_error("Use parameter: -s serial_no", prefix="")
         except PyswdException as err:
-            self.print_error(f"pyswd error: {err}.")
+            self.print_error(f"Pyswd error: {err}.")
+        except swd.swd.SwdException as err:
+            self.print_error(f"Swd error: {err}.")
         except swd.stlink.StlinkException as err:
             self.print_error(f"Stlink error: {err}.")
         except swd.stlink.usb.StlinkUsbException as err:

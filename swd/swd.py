@@ -5,6 +5,10 @@ import itertools as _itertools
 from swd.stlink import Stlink as _Stlink
 
 
+class SwdException(Exception):
+    """Stlink general exception"""
+
+
 class Swd:
     """Swd class"""
 
@@ -21,11 +25,19 @@ class Swd:
 
     def append_io(self, registers):
         """Append bitfield registers"""
-        self._io.update(registers)
+        for register in registers:
+            self._io[register.get_name()] = register
+        # self._io.update(registers)
 
     def reg(self, reg_name):
         """Access bitfield register"""
+        if reg_name not in self._io:
+            raise SwdException(f"Register {reg_name} is not defined")
         return self._io[reg_name]
+
+    def reg_list(self):
+        """Access bitfield register"""
+        return self._io.keys()
 
     def get_version(self):
         """Get SWD driver version

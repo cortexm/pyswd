@@ -8,7 +8,7 @@ from swd.bitfield import BitfieldMem as _BitfieldMem
 
 class Idcode(_BitfieldMem):
     """CPUID register definition"""
-    NAME = 'DBGMCU_IDCODE'
+    _NAME = 'DBGMCU_IDCODE'
     _REGISTERS = (
         ('DEV_ID', 12, (
             (0xc20, "Cortex-M0"),
@@ -27,7 +27,7 @@ class Idcode(_BitfieldMem):
 
 class FlashSize(_BitfieldMem):
     """CPUID register definition"""
-    NAME = 'FLASH_SIZE'
+    _NAME = 'FLASH_SIZE'
     _REGISTERS = (
         ('FLASH_SIZE', 16),
     )

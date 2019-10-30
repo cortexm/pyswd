@@ -8,7 +8,7 @@ from swd.bitfield import BitfieldMem as _BitfieldMem
 
 class Cpuid(_BitfieldMem):
     """CPUID register definition"""
-    NAME = 'CPUID'
+    _NAME = 'CPUID'
     _REGISTERS = (
         ('REVISION', 4),
         ('PARTNO', 12, (
@@ -64,6 +64,7 @@ class Dhcsr(_BitfieldMem):
 
 class DhcsrWrite(Dhcsr):
     """DHCSR register definition write access"""
+    _NAME = 'DHCSR_W'
     _REGISTERS = Dhcsr._REGISTERS_COMMON + (
         ('DBGKEY', 16, (
             (0xa05f, 'KEY'),
@@ -73,6 +74,7 @@ class DhcsrWrite(Dhcsr):
 
 class DhcsrRead(Dhcsr):
     """DHCSR register definition read access"""
+    _NAME = 'DHCSR_R'
     _REGISTERS = Dhcsr._REGISTERS_COMMON + (
         ('S_REGRDY', 1),
         ('S_HALT', 1),
