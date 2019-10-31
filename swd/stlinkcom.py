@@ -1,8 +1,8 @@
 """ST-Link/V2 USB communication
 """
 
-import logging as _logging
-import usb.core as _usb
+import sys as _sys
+import usb as _usb
 
 
 class StlinkComException(Exception):
@@ -26,13 +26,6 @@ class MoreDevicesException(StlinkComException):
         return self._serial_numbers
 
 
-def _hex_data(data):
-    """Return hexadecimal representation of array of bytes"""
-    if data is None:
-        return None
-    return ' '.join([f'{i:02x}' for i in data])
-
-
 class StlinkComBase:
     """ST link comm base class"""
     ID_VENDOR = None
@@ -49,7 +42,7 @@ class StlinkComBase:
         """return all devices with this idVendor and idProduct"""
         devices = []
         try:
-            usb_devices = _usb.find(
+            usb_devices = _usb.core.find(
                 idVendor=cls.ID_VENDOR,
                 idProduct=cls.ID_PRODUCT,
                 find_all=True)
@@ -68,8 +61,7 @@ class StlinkComBase:
                 return serial_no
             return ''.join(['%02X' % ord(c) for c in serial_no])
         except NotImplementedError as err:
-            _logging.warning("Getting version is not implemented: %s", err)
-            return ""
+            return "unknown"
 
     def compare_serial_no(self, serial_no):
         """Compare device serial no with selected serial number"""
@@ -81,7 +73,6 @@ class StlinkComBase:
 
     def write(self, data, timeout=200):
         """Write data to USB pipe"""
-        _logging.debug("write: %s", _hex_data(data))
         try:
             count = self._dev.write(self.PIPE_OUT, data, timeout)
         except _usb.USBError as err:
@@ -92,14 +83,11 @@ class StlinkComBase:
 
     def read(self, size, timeout=200):
         """Read data from USB pipe"""
-        read_size = max(size, 16)
         try:
-            data = self._dev.read(self.PIPE_IN, read_size, timeout).tolist()
+            data = self._dev.read(self.PIPE_IN, size, timeout).tolist()
         except _usb.USBError as err:
             self._dev = None
             raise StlinkComException("USB Error: %s" % err)
-        _logging.debug("read: %s", _hex_data(data))
-        data = data[:size]
         return data
 
     def __del__(self):
@@ -180,8 +168,22 @@ class StlinkCom:
                 filtered_devices.append(dev)
         return filtered_devices
 
-    def __init__(self, serial_no=''):
+    def print_debug(self, msg, level=0):
+        """Print info string"""
+        if self._debug >= level:
+            _sys.stderr.write(f"D: {msg}\n")
+
+    def print_debug_data(self, msg, data, level=0):
+        if self._debug >= level:
+            if data is None:
+                _sys.stderr.write(f"{msg}\n")
+            else:
+                _sys.stderr.write(
+                    f"{msg}: {' '.join([f'{i:02x}' for i in data])}\n")
+
+    def __init__(self, serial_no='', debug=0):
         self._dev = None
+        self._debug = debug
         devices = StlinkCom._find_all_devices()
         if serial_no:
             devices = StlinkCom._filter_devices(devices, serial_no)
@@ -212,7 +214,7 @@ class StlinkCom:
         Raises:
             StlinkComException
         """
-        _logging.debug("command: %s", _hex_data(command))
+        self.print_debug_data("command", command, level=3)
         if len(command) > self._STLINK_CMD_SIZE:
             raise StlinkComException(
                 "Error too many Bytes in command (maximum is %d Bytes)"
@@ -221,10 +223,10 @@ class StlinkCom:
         command += [0] * (self._STLINK_CMD_SIZE - len(command))
         self._dev.write(command, timeout)
         if data:
-            # _logging.debug("write: %s", _hex_data(data))
+            self.print_debug_data("write", data, level=4)
             self._dev.write(data, timeout)
         if rx_length:
             data = self._dev.read(rx_length)
-            # _logging.debug("read: %s", _hex_data(data))
+            self.print_debug_data("read", data, level=4)
             return data
         return None

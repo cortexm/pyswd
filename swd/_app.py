@@ -4,7 +4,6 @@
 import sys
 import time
 import argparse
-import logging
 import itertools
 import swd
 import swd.stlink
@@ -73,14 +72,14 @@ def _configure_argparse():
         "-q", "--quite", action="store_true",
         help="quite output")
     parser.add_argument(
-        "-d", "--debug", action="count", default=0,
-        help="increase debug output")
-    parser.add_argument(
-        "-i", "--info", action="count", default=0,
+        "-i", "--info", action="count", default=1,
         help="increase info output")
     parser.add_argument(
         "-v", "--verbose", action="count", default=0,
         help="increase verbose output")
+    parser.add_argument(
+        "-d", "--debug", action="count", default=0,
+        help="increase debug output")
     parser.add_argument(
         "-f", "--freq", type=int,
         help="set SWD frequency")
@@ -134,30 +133,6 @@ def ascii_line(chunk):
         for d in chunk])
 
 
-def print_buffer(addr, data, hex_line=hex_line8, verbose=0):
-    """Print buffer in hex and ASCII"""
-    prev_chunk = []
-    same_chunk = False
-    for chunk in chunks(data, 16):
-        if verbose > 0 or prev_chunk != chunk:
-            print('%08x  %s  %s' % (
-                addr,
-                hex_line(chunk),
-                ascii_line(chunk),
-            ))
-            prev_chunk = chunk
-            same_chunk = False
-        elif not same_chunk:
-            print('*')
-            same_chunk = True
-        elif sys.stdout.isatty() and addr % 0x1000 == 0:
-            sys.stderr.write('%08x\r' % addr)
-            sys.stderr.flush()
-        addr += len(chunk)
-    if same_chunk or verbose > 1:
-        print('%08x' % addr)
-
-
 def test_alignment(num, param_name, align):
     """Test if number is aligned"""
     if num % align:
@@ -200,35 +175,38 @@ class Application:
         self._cortexm = None
         self._info = args.info
         self._verbose = args.verbose
-        self._quite = args.quite
+        self._debug = args.debug
+        if args.quite:
+            self._info = -1
+            self._verbose = -1
+            self._debug = -1
         self._actions = args.action
         self._swd_frequency = args.freq
         self._serial_no = args.serial
-        logging_level = logging.WARNING
-        if args.quite:
-            logging_level = logging.ERROR
-        elif args.debug > 1:
-            logging_level = logging.DEBUG
-        elif args.debug > 0:
-            logging_level = logging.INFO
-        logging.basicConfig(
-            format='%(levelname)s:%(module)s:%(funcName)s: %(message)s',
-            level=logging_level)
 
-    def print_info(self, msg):
+    def print_info(self, msg, level=1, prefix="I: "):
         """Print info string"""
-        if self._info:
-            sys.stderr.write("%s\n" % msg)
+        if self._info >= level:
+            sys.stderr.write(f"{prefix}{msg}\n")
 
-    def print_verbose(self, msg):
+    def print_verbose(self, msg, level=1, prefix="V: "):
         """Print info string"""
-        if self._verbose:
-            sys.stderr.write("%s\n" % msg)
+        if self._verbose >= level:
+            sys.stderr.write(f"{prefix}{msg}\n")
 
-    def print_noquite(self, msg):
+    def print_debug(self, msg, level=1, prefix="D: "):
         """Print info string"""
-        if not self._quite:
-            sys.stderr.write("%s\n" % msg)
+        if self._debug >= level:
+            sys.stderr.write(f"{prefix}{msg}\n")
+
+    def print_warning(self, msg, prefix="W: "):
+        """Print info string"""
+        if self._info >= 0:
+            sys.stderr.write(f"{prefix}{msg}\n")
+
+    def print_error(self, msg, prefix="E: "):
+        """Print info string"""
+        sys.stderr.write(f"{prefix}{msg}\n")
 
     def print_io(self, reg_name):
         """Print IO register content"""
@@ -237,6 +215,30 @@ class Application:
         print("%s:" % reg_name)
         for reg in bitf_reg.tmp.get_registers():
             print("%16s: %8x" % (reg, bitf_reg.tmp.get(reg)))
+
+    def print_buffer(self, addr, data, hex_line=hex_line8):
+        """Print buffer in hex and ASCII"""
+        prev_chunk = []
+        same_chunk = False
+        for chunk in chunks(data, 16):
+            if self._verbose > 0 or prev_chunk != chunk:
+                print('%08x  %s  %s' % (
+                    addr,
+                    hex_line(chunk),
+                    ascii_line(chunk),
+                ))
+                prev_chunk = chunk
+                same_chunk = False
+            elif not same_chunk:
+                print('*')
+                same_chunk = True
+            elif sys.stdout.isatty() and addr % 0x1000 == 0:
+                sys.stderr.write('%08x\r' % addr)
+                sys.stderr.flush()
+            addr += len(chunk)
+        if same_chunk or self._verbose > 1:
+            print('%08x' % addr)
+
 
     def action_dump32(self, params):
         """Dump memory 32 bit"""
@@ -254,7 +256,7 @@ class Application:
             size = convert_numeric(params[1])
             test_alignment(size, "Size", 4)
             data = self._swd.read_mem(addr, size)
-            print_buffer(addr, data, hex_line32, verbose=self._verbose)
+            self.print_buffer(addr, data, hex_line32)
         else:
             raise PyswdException("too many parameters")
 
@@ -271,7 +273,7 @@ class Application:
             size = convert_numeric(params[1])
             test_alignment(size, "Size", 2)
             data = self._swd.read_mem(addr, size)
-            print_buffer(addr, data, hex_line16, verbose=self._verbose)
+            self.print_buffer(addr, data, hex_line16)
         else:
             raise PyswdException("too many parameters")
 
@@ -286,7 +288,7 @@ class Application:
         elif len(params) == 2:
             size = convert_numeric(params[1])
             data = self._swd.read_mem(addr, size)
-            print_buffer(addr, data, hex_line8, verbose=self._verbose)
+            self.print_buffer(addr, data, hex_line8)
         else:
             raise PyswdException("too many parameters")
 
@@ -422,8 +424,7 @@ class Application:
     def process_actions(self):
         """Process all actions"""
         for action in self._actions:
-            self.print_verbose("ACTION: %s" % action)
-            logging.debug(action)
+            self.print_debug("ACTION: %s" % action)
             action_parts = action.split(":")
             action_name = "action_" + action_parts[0]
             if not hasattr(self, action_name):
@@ -438,36 +439,38 @@ class Application:
         try:
             self._swd = swd.Swd(
                 swd_frequency=self._swd_frequency,
-                serial_no=self._serial_no)
+                serial_no=self._serial_no,
+                debug=self._debug)
             # reading ID code can generate exception
             # and stop pyswd if no MCU is connected
-            self.print_info(self._swd.get_version())
+            self.print_info(self._swd.get_version(), level=2)
             self._swd.get_idcode()
             self._cortexm = swd.CortexM(self._swd)
             was_halted = self._cortexm.is_halted()
             if was_halted:
-                self.print_noquite("Core is halted.")
+                self.print_info("Core is halted.")
             if self._actions:
                 self.process_actions()
                 is_halted = self._cortexm.is_halted()
                 if was_halted != is_halted:
                     if is_halted:
-                        self.print_noquite("Core stay halted.")
+                        self.print_info("Core stay halted.")
                     else:
-                        self.print_noquite("Core is running.")
+                        self.print_info("Core is running.")
         except swd.stlinkcom.NoDeviceFoundException:
-            logging.error("ST-Link not connected.")
+            self.print_error("ST-Link not connected.")
         except swd.stlinkcom.MoreDevicesException as err:
-            logging.error(
-                "ST-Link Found more devices with these serial numbers:\n  %s",
-                "\n  ".join(err.serial_numbers))
-            logging.error("Use parameter: -s serial_no")
+            self.print_error(
+                f"ST-Link Found more devices with these serial numbers:")
+            for serial_number in err.serial_numbers:
+                self.print_error(serial_number, prefix="  ")
+            self.print_error("Use parameter: -s serial_no", prefix="")
         except PyswdException as err:
-            logging.error("pyswd error: %s.", err)
+            self.print_error(f"pyswd error: {err}.")
         except swd.stlink.StlinkException as err:
-            logging.error("Stlink error: %s.", err)
+            self.print_error(f"Stlink error: {err}.")
         except swd.stlinkcom.StlinkComException as err:
-            logging.error("StlinkCom error: %s.", err)
+            self.print_error(f"StlinkCom error: {err}.")
         else:
             return 0
         return 1
