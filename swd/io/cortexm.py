@@ -3,13 +3,14 @@
 
 # pylint: disable=too-few-public-methods
 
-from swd.bitfield import BitfieldMem as _BitfieldMem
+from swd.bitfield import MemRegister as _MemRegister
 
 
-class Cpuid(_BitfieldMem):
+class Cpuid(_MemRegister):
     """CPUID register definition"""
     _NAME = 'CPUID'
-    _REGISTERS = (
+    _ADDRESS = 0xe000ed00
+    _FIELDS = (
         ('REVISION', 4),
         ('PARTNO', 12, (
             (0xc20, "Cortex-M0"),
@@ -26,13 +27,13 @@ class Cpuid(_BitfieldMem):
             (0x41, "ARM"),
         ), ),
     )
-    _ADDRESS = 0xe000ed00
 
 
-class Aircr(_BitfieldMem):
+class Aircr(_MemRegister):
     """AIRCR register definition"""
     _NAME = 'AIRCR'
-    _REGISTERS = (
+    _ADDRESS = 0xe000ed0c
+    _FIELDS = (
         ('VECTRESET', 1),
         ('VECTCLRACTIVE', 1),
         ('SYSRESETREQ', 1),
@@ -44,13 +45,13 @@ class Aircr(_BitfieldMem):
             (0x05fa, 'KEY'),
         ), ),
     )
-    _ADDRESS = 0xe000ed0c
 
 
-class Dhcsr(_BitfieldMem):
+class Dhcsr(_MemRegister):
     """DHCSR register definition"""
     _NAME = 'DHCSR'
-    _REGISTERS_COMMON = (
+    _ADDRESS = 0xe000edf0
+    _FIELDS = (
         ('C_DEBUGEN', 1),
         ('C_HALT', 1),
         ('C_STEP', 1),
@@ -59,13 +60,12 @@ class Dhcsr(_BitfieldMem):
         ('C_SNAPSTALL', 1),
         (None, 10),
     )
-    _ADDRESS = 0xe000edf0
 
 
 class DhcsrWrite(Dhcsr):
     """DHCSR register definition write access"""
     _NAME = 'DHCSR_W'
-    _REGISTERS = Dhcsr._REGISTERS_COMMON + (
+    _FIELDS = Dhcsr._FIELDS + (
         ('DBGKEY', 16, (
             (0xa05f, 'KEY'),
         ), ),
@@ -75,7 +75,7 @@ class DhcsrWrite(Dhcsr):
 class DhcsrRead(Dhcsr):
     """DHCSR register definition read access"""
     _NAME = 'DHCSR_R'
-    _REGISTERS = Dhcsr._REGISTERS_COMMON + (
+    _FIELDS = Dhcsr._FIELDS + (
         ('S_REGRDY', 1),
         ('S_HALT', 1),
         ('S_SLEEP', 1),
@@ -87,10 +87,11 @@ class DhcsrRead(Dhcsr):
     )
 
 
-class Demcr(_BitfieldMem):
+class Demcr(_MemRegister):
     """DEMCR register definition"""
     _NAME = 'DEMCR'
-    _REGISTERS = (
+    _ADDRESS = 0xe000edfc
+    _FIELDS = (
         ('VC_CORERESET', 1),
         (None, 3),
         ('VC_MMERR', 1),
@@ -109,4 +110,3 @@ class Demcr(_BitfieldMem):
         ('TRCENA', 1),
         (None, 7),
     )
-    _ADDRESS = 0xe000edfc

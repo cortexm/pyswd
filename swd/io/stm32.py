@@ -3,13 +3,13 @@
 
 # pylint: disable=too-few-public-methods
 
-from swd.bitfield import BitfieldMem as _BitfieldMem
+from swd.bitfield import MemRegister as _MemRegister
 
 
-class Idcode(_BitfieldMem):
+class Idcode(_MemRegister):
     """CPUID register definition"""
     _NAME = 'DBGMCU_IDCODE'
-    _REGISTERS = (
+    _FIELDS = (
         ('DEV_ID', 12, (
             (0xc20, "Cortex-M0"),
             (0xc60, "Cortex-M0+"),
@@ -25,10 +25,10 @@ class Idcode(_BitfieldMem):
     )
 
 
-class FlashSize(_BitfieldMem):
+class FlashSize(_MemRegister):
     """CPUID register definition"""
     _NAME = 'FLASH_SIZE'
-    _REGISTERS = (
+    _FIELDS = (
         ('FLASH_SIZE', 16),
     )
-    _BITS = 16
+    _SIZE = 16

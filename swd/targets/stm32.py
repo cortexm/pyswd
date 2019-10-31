@@ -167,9 +167,9 @@ class Stm32:
     def __init__(self, cortexm, expected_parts=None):
         self._cortexm = cortexm
         idcode_reg = self._create_idcode_reg()
-        self._dev_id = idcode_reg.cached.get('DEV_ID')
+        self._dev_id = idcode_reg.cached.value('DEV_ID')
         flash_size_reg = self._create_flash_size_reg()
-        self._flash_size = flash_size_reg.cached.get('FLASH_SIZE') * KILO
+        self._flash_size = flash_size_reg.cached.value('FLASH_SIZE') * KILO
         self._supposed_devices = self._find_devices(
             self._dev_id,
             self._flash_size,

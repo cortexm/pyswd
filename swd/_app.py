@@ -225,8 +225,8 @@ class Application:
         bitf_reg = self._swd.reg(reg_name)
         bitf_reg.discard_cache()
         print(f"{(' ' + reg_name):_>16s} : value ____")
-        for reg in bitf_reg.get_registers():
-            print(f"{reg:>16s} : {bitf_reg.cached.hex_val(reg):>10s}")
+        for reg in bitf_reg.field_names:
+            print(f"{reg:>16s} : {str(bitf_reg.cached.string_value(reg)):>10s}")
 
     def print_io_registers(self):
         """Print IO register content"""
@@ -235,7 +235,7 @@ class Application:
             self._swd.reg(reg_name).discard_cache()
             address = self._swd.reg(reg_name).address
             value = self._swd.reg(reg_name).raw
-            bits4 = (self._swd.reg(reg_name).bits + 3) // 4
+            bits4 = (self._swd.reg(reg_name).size + 3) // 4
             print(f"{reg_name:>16s} : 0x{address:08x} : 0x{value:0{bits4}x}")
 
     def action_dumpio(self, params):

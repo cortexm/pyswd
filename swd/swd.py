@@ -26,7 +26,7 @@ class Swd:
     def append_io(self, registers):
         """Append bitfield registers"""
         for register in registers:
-            self._io[register.get_name()] = register
+            self._io[register.name] = register
         # self._io.update(registers)
 
     def reg(self, reg_name):

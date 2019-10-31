@@ -42,8 +42,8 @@ class CortexM:
     def create_io(self):
         """Create IO registers"""
         cpuid = _io_cm.Cpuid(self._swd)
-        implementer = cpuid.cached.get_named('IMPLEMENTER')
-        partno = cpuid.cached.get_named('PARTNO')
+        implementer = cpuid.cached.named_value('IMPLEMENTER')
+        partno = cpuid.cached.named_value('PARTNO')
         if implementer != 'ARM' or partno is None:
             raise CortexMNotDetected(
                 f"Unknown MCU with CPUID: 0x{cpuid.cached.raw:08x}")
@@ -59,8 +59,8 @@ class CortexM:
         self._swd = swd
         self.create_io()
         cpuid = self._swd.reg('CPUID')
-        self._implementer = cpuid.cached.get_named('IMPLEMENTER')
-        self._core = cpuid.cached.get_named('PARTNO')
+        self._implementer = cpuid.cached.named_value('IMPLEMENTER')
+        self._core = cpuid.cached.named_value('PARTNO')
 
         if self._core not in self._TARGETS:
             raise CortexMNotDetected(
@@ -173,4 +173,4 @@ class CortexM:
 
     def is_halted(self):
         """check if core is halted"""
-        return self._swd.reg('DHCSR_R').get('S_HALT')
+        return self._swd.reg('DHCSR_R').value('S_HALT')

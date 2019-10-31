@@ -14,96 +14,107 @@ class BitfieldCacheIsNotValid(BitfieldException):
 
 
 class _Field:
-    """Bits in register"""
+    """Bits in register
 
-    def __init__(self, reg_offset, reg_bits, bits, names=None):
-        self._offset = reg_offset
-        self._reg_bits = reg_bits
-        self._mask = 2 ** reg_bits - 1
+    Arguments:
+        offset: offset of field
+        size: size of field
+        parent_mask: mask of parent register
+        named_values: named values (like enum)
+    """
+
+    def __init__(self, offset, size, parent_mask, named_values=None):
+        self._offset = offset
+        self._size = size
+        self._mask = 2 ** size - 1
         self._mask_off = self._mask << self._offset
-        self._mask_off_inv = (2 ** bits - 1) ^ self._mask_off
-        self._val_name = {}
-        self._name_val = {}
-        if names:
-            for val, name in names:
-                self._val_name[val] = name
-                self._name_val[name] = val
+        self._mask_off_inv = parent_mask ^ self._mask_off
+        self._value_name = {}
+        self._name_value = {}
+        if named_values:
+            for val, name in named_values:
+                self._value_name[val] = name
+                self._name_value[name] = val
 
-    def _to_name(self, val, default_val=False):
-        return self._val_name.get(val, val if default_val else None)
+    def _to_name(self, val):
+        return self._value_name.get(val)
 
-    def _to_val(self, val):
+    @staticmethod
+    def _to_bool(val):
+        return str(bool(val))
+
+    def _to_hex(self, val):
+        return f"0x{val:0{(self._size + 3) // 4}x}"
+
+    def _to_str(self, val):
+        value = self._to_name(val)
+        if value is None:
+            if self._size == 1:
+                value = self._to_bool(val)
+            else:
+                value = self._to_hex(val)
+        return value
+
+    def _to_value(self, val):
         if isinstance(val, int):
             return val
         if isinstance(val, bool):
             return int(val)
         if isinstance(val, str):
-            if val in self._name_val:
-                return self._name_val[val]
+            if val in self._name_value:
+                return self._name_value[val]
         raise BitfieldRegisterValueNotExist()
+
+    def raw_value(self, val):
+        """Get register bits value"""
+        return (self._to_value(val) & self._mask) << self._offset
+
+    def value(self, raw):
+        """Get numeric value from field"""
+        return (raw >> self._offset) & self._mask
+
+    def update_raw(self, raw, val):
+        """Update value into field
+
+        Attributes:
+            raw: raw register value
+            val: new value
+        """
+        return (raw & self._mask_off_inv) | self.raw_value(val)
+
+    def named_value(self, raw):
+        """Get named from field"""
+        return self._to_name((raw >> self._offset) & self._mask)
+
+    def string_value(self, raw):
+        """Return string representation of value"""
+        return self._to_str(self.value(raw))
 
     def is_name(self, val):
         """Test if named value exists"""
-        return val in self._name_val
-
-    def get(self, raw):
-        """Get value from bitfield"""
-        return (raw >> self._offset) & self._mask
-
-    def get_named(self, raw, default_val=False):
-        """Get value from bitfield"""
-        return self._to_name((raw >> self._offset) & self._mask, default_val)
-
-    def get_bits(self, val):
-        """Get bits value"""
-        return (self._to_val(val) & self._mask) << self._offset
-
-    def update(self, raw, val):
-        """Update value into bitfield"""
-        return (raw & self._mask_off_inv) | self.get_bits(val)
-
-    def hex_val(self, raw):
-        """Return string representation of value"""
-        return f"0x{self.get(raw):0{(self._reg_bits + 3) // 4}x}"
+        return val in self._name_value
 
 
-class _Bitfield:
-    """Bits representation of register"""
-
-    def __init__(self, description, bits):
-        offset = 0
-        self._reg_bits = {}
-        for reg_descr in description:
-            reg = reg_descr[0]
-            reg_bits = reg_descr[1]
-            names = None
-            if reg is not None:
-                if len(reg_descr) > 2:
-                    names = reg_descr[2]
-                self._reg_bits[reg] = _Field(offset, reg_bits, bits, names)
-            offset += reg_bits
-        if offset != bits:
-            raise BitfieldException(
-                "Invalid number of bits in Bitfield (%d expected is %s)" % (
-                    offset, bits))
-
-    def get_registers(self):
-        """Return list of all registers"""
-        return self._reg_bits.keys()
-
-    def get_bits(self, values):
-        """Get bits value for one register"""
-        value = 0
-        for reg, val in values.items():
-            value |= self._reg_bits[reg].get_bits(val)
-        return value
-
-
-class Bitfield(_Bitfield):
+class Bitfield:
     """Bitfield storage"""
 
-    def __init__(self, description, bits=32, raw=0):
-        super().__init__(description, bits)
+    def __init__(self, description, size=32, raw=None):
+        offset = 0
+        self._fields = {}
+        mask = 2 ** size - 1
+        for field_descr in description:
+            field_name = field_descr[0]
+            field_size = field_descr[1]
+            names = None
+            if field_name is not None:
+                if len(field_descr) > 2:
+                    names = field_descr[2]
+                self._fields[field_name] = _Field(offset, field_size, mask, names)
+            offset += field_size
+        if offset != size:
+            raise BitfieldException(
+                "Invalid number of bits in Bitfield (%d expected is %s)" % (
+                    offset, size))
         self._raw = raw
 
     @property
@@ -116,111 +127,133 @@ class Bitfield(_Bitfield):
         """Property to set raw value"""
         self._raw = raw
 
-    def get(self, reg):
+    def value(self, field_name):
         """Get register value"""
-        return self._reg_bits[reg].get(self._raw)
+        return self._fields[field_name].value(self.raw)
 
-    def hex_val(self, reg):
-        """return readable value of bits"""
-        return self._reg_bits[reg].hex_val(self._raw)
+    def update_fields(self, **values):
+        """Set field value
+        Uses read-modify-write
 
-    def get_named(self, reg, default_val=False):
-        """Get register named value"""
-        return self._reg_bits[reg].get_named(self._raw, default_val)
+        Arguments:
+            field_name: field name
+            val: new value
+        """
+        for field_name, val in values.items():
+            self.raw = self._fields[field_name].update_raw(self.raw, val)
 
-    def set(self, reg, val):
-        """Set register value"""
-        self._raw = self._reg_bits[reg].update(self._raw, val)
+    def set_fields(self, **values):
+        """Get bits value for one register
+        Uses only write with set values,
+        not set values will be zero
+
+        Arguments:
+            field_name: field name
+            val: new value
+        """
+        raw = 0
+        for field_name, val in values.items():
+            raw |= self._fields[field_name].raw_value(val)
+        self.raw = raw
+
+    def named_value(self, field_name):
+        """Named value of string
+        if value is not named, then return None
+
+        Arguments:
+            field_name: field name
+
+        Returns:
+            named value
+        """
+        return self._fields[field_name].named_value(self.raw)
+
+    def string_value(self, field_name):
+        """String representation of field value
+        Representation of value can be:
+        - named value
+        - boolean (True/False)
+        - hexadecimal representation
+
+        Arguments:
+            field_name: field name
+
+        Returns:
+            string representation of value
+        """
+        return self._fields[field_name].string_value(self.raw)
+
+    @property
+    def field_names(self):
+        """List if fields names"""
+        return self._fields.keys()
 
 
-class BitfieldMem(_Bitfield):
-    """Memory mapped bitfield storage"""
+class MemRegister(Bitfield):
+    """Memory mapped register"""
 
     _NAME = None
-    _REGISTERS = None
-    _BITS = 32
     _ADDRESS = None
+    _FIELDS = None
+    _SIZE = 32
 
     def __init__(self, mem_drv, address=None):
-        if self._REGISTERS is None:
-            raise BitfieldException("_REGISTERS is not defined")
+        if self._FIELDS is None:
+            raise BitfieldException("_FIELDS is not defined")
         self._address = self._ADDRESS
         if address is not None:
             self._address = address
         if self._address is None:
             raise BitfieldException("address is not set")
-        super().__init__(self._REGISTERS, self._BITS)
+        super().__init__(self._FIELDS, self._SIZE)
         self._mem_drv = mem_drv
-        self._cached = Bitfield(self._REGISTERS, self._BITS, None)
+        self._cached = Bitfield(self._FIELDS, self._SIZE, None)
 
     @property
-    def address(self):
-        return self._address
-
-    @property
-    def raw(self):
-        """Property to read raw value"""
-        if self._address % 4 or self._BITS != 32:
-            data = self._mem_drv.read_mem(self._address, self._BITS // 8)
+    def raw(self):  # override
+        """Read raw value from memory"""
+        if self._address % 4 or self._SIZE != 32:
+            data = self._mem_drv.read_mem(self._address, self._SIZE // 8)
             return int.from_bytes(data, byteorder='little')
         return self._mem_drv.get_mem32(self._address)
 
     @raw.setter
-    def raw(self, raw):
-        """Property to set raw value"""
+    def raw(self, raw):  # override
+        """Write raw value to memory"""
         if self._address % 4:
-            data = raw.to_bytes(self._BITS // 8, byteorder='little')
+            data = raw.to_bytes(self._SIZE // 8, byteorder='little')
             self._mem_drv.write_mem(self._address, data)
         else:
             self._mem_drv.set_mem32(self._address, raw)
 
     @property
     def cached(self):
-        """Access cached bitfield register or load current value"""
+        """Access cached memory register or load current value"""
         if self._cached.raw is None:
             self._cached.raw = self.raw
         return self._cached
-
-    @cached.setter
-    def cached(self, raw):
-        """Access cached bitfield register"""
-        self._cached.raw = raw
 
     def discard_cache(self):
         """Discard content of cache"""
         self._cached.raw = None
 
     def write_cache(self):
-        """Write cache"""
+        """Write cache to memory register"""
         if self._cached.raw is None:
             raise BitfieldCacheIsNotValid()
         self.raw = self._cached.raw
 
-    def get(self, reg):
-        """Get register value"""
-        return self._reg_bits[reg].get(self.raw)
-
-    def hex_val(self, reg):
-        """return readable value of bits"""
-        return self._reg_bits[reg].hex_val(self.raw)
-
-    def get_named(self, reg, default_val=False):
-        """Get register named value"""
-        return self._reg_bits[reg].get_named(self.raw, default_val)
-
-    def set(self, reg, val):
-        """Set register value"""
-        self.raw = self._reg_bits[reg].update(self.raw, val)
-
-    def set_bits(self, values):
-        """Get bits value for one register"""
-        self.raw = self.get_bits(values)
-
-    def get_name(self):
-        """Get register name"""
+    @property
+    def name(self):
+        """Register name"""
         return self._NAME
 
     @property
-    def bits(self):
+    def address(self):
+        """Register address"""
+        return self._address
+
+    @property
+    def size(self):
         """return total number of bits in register"""
-        return self._BITS
+        return self._SIZE
