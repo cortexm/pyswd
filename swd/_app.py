@@ -383,6 +383,7 @@ class Application:
             self._cortexm.reset_halt()
         else:
             raise PyswdException("Wrong parameter")
+        time.sleep(.05)
 
     def action_run(self, params):
         """Run core"""
