@@ -47,7 +47,7 @@ class Stlink:
         GET_VERSION_EX = 0xfb  # for V3
 
         class MODE:
-            """Stlink commands"""
+            """Mode"""
             DFU = 0x00
             MASS = 0x01
             DEBUG = 0x02
@@ -55,71 +55,144 @@ class Stlink:
             BOOTLOADER = 0x04
 
         class DFU:
-            """Stlink commands"""
+            """Dfu commands"""
             EXIT = 0x07
             COMMAND = 0xf3
 
         class SWIM:
-            """Stlink commands"""
+            """Swim commands"""
             ENTER = 0x00
             EXIT = 0x01
             COMMAND = 0xf4
 
         class DEBUG:
-            """Stlink commands"""
-            ENTER_JTAG = 0x00
+            """Debug commands"""
             STATUS = 0x01
-            FORCEDEBUG = 0x02
+            FORCE_DEBUG = 0x02
+            RESET_SYS = 0x03
+            READ_ALL_REGS = 0x04
+            READ_REG = 0x05
+            WRITE_REG = 0x06
             READMEM_32BIT = 0x07
             WRITEMEM_32BIT = 0x08
-            RUNCORE = 0x09
-            STEPCORE = 0x0a
+            RUN_CORE = 0x09
+            STEP_CORE = 0x0a
+            SETFP = 0x0b
             READMEM_8BIT = 0x0c
             WRITEMEM_8BIT = 0x0d
+            CLEAR_FP = 0x0e
+            WRITE_DEBUG_REG = 0x0f
+            SET_WATCH_POINT = 0x10
+            ENTER = 0x20
             EXIT = 0x21
-            READCOREID = 0x22
-            SYNC = 0x3e
+            READ_COREID = 0x22
             ENTER_SWD = 0xa3
+            ENTER_JTAG = 0xa4
             COMMAND = 0xf2
 
-            class APIV1:
-                """Stlink commands"""
-                RESETSYS = 0x03
-                READALLREGS = 0x04
-                READREG = 0x05
-                WRITEREG = 0x06
-                SETFP = 0x0b
-                CLEARFP = 0x0e
-                WRITEDEBUGREG = 0x0f
-                SETWATCHPOINT = 0x10
-                ENTER = 0x20
-
             class APIV2:
-                """Stlink commands"""
-                NRST_LOW = 0x00
-                NRST_HIGH = 0x01
-                NRST_PULSE = 0x02
+                """Commands for V2"""
                 ENTER = 0x30
                 READ_IDCODES = 0x31
-                RESETSYS = 0x32
-                READREG = 0x33
-                WRITEREG = 0x34
-                WRITEDEBUGREG = 0x35
-                READDEBUGREG = 0x36
-                READALLREGS = 0x3a
-                GETLASTRWSTAT = 0x3b
+                RESET_SYS = 0x32
+                READ_REG = 0x33
+                WRITE_REG = 0x34
+                WRITE_DEBUG_REG = 0x35
+                READ_DEBUG_REG = 0x36
+                READ_ALL_REGS = 0x3a
+                GET_LAST_RW_STATE = 0x3b
+                GET_LAST_RW_STATE_EX = 0x3e  # V2J15
                 DRIVE_NRST = 0x3c
                 START_TRACE_RX = 0x40
                 STOP_TRACE_RX = 0x41
                 GET_TRACE_NB = 0x42
-                SWD_SET_FREQ = 0x43
-                READMEM_16BIT = 0x47
-                WRITEMEM_16BIT = 0x48
+                SWD_SET_FREQ = 0x43  # V2J20
+                JTAG_SET_FREQ = 0x44  # V2J24
+                READ_AP_REG = 0x45  # V2J24
+                WRITE_AP_REG = 0x46  # V2J24
+                READ_MEM_16BIT = 0x47  # V2J26
+                WRITE_MEM_16BIT = 0x48  # V2J26
+                JTAG_INIT_AP = 0x4b  # V2J28
+                JTAG_CLOSE_AP = 0x4c  # V2J28
+
+                class NRST:
+                    """for DRIVE_NRST"""
+                    LOW = 0x00
+                    HIGH = 0x01
+                    PULSE = 0x02
 
             class APIV3:
-                """Stlink commands"""
-                SET_COM_FREQ = 0x61
-                GET_COM_FREQ = 0x62
+                """Commands for V3"""
+                SET_COM_FREQ = 0x61  # V3
+                GET_COM_FREQ = 0x62  # V3
+
+                class COM_FREQ:
+                    """Parameters for SET_COM_FREQ and GET_COM_FREQ"""
+                    SWD_COM = 0x00
+                    JTAG_COM = 0x01
+
+    class STATUS(object):
+        """STLink status codes"""
+        JTAG_OK = 0x80
+        JTAG_UNKNOWN_ERROR = 0x01
+        JTAG_SPI_ERROR = 0x02
+        JTAG_DMA_ERROR = 0x03
+        JTAG_UNKNOWN_JTAG_CHAIN = 0x04
+        JTAG_NO_DEVICE_CONNECTED = 0x05
+        JTAG_INTERNAL_ERROR = 0x06
+        JTAG_CMD_WAIT = 0x07
+        JTAG_CMD_ERROR = 0x08
+        JTAG_GET_IDCODE_ERROR = 0x09
+        JTAG_ALIGNMENT_ERROR = 0x0a
+        JTAG_DBG_POWER_ERROR = 0x0b
+        JTAG_WRITE_ERROR = 0x0c
+        JTAG_WRITE_VERIF_ERROR = 0x0d
+        JTAG_ALREADY_OPENED_IN_OTHER_MODE = 0x0e
+        SWD_AP_WAIT = 0x10
+        SWD_AP_FAULT = 0x11
+        SWD_AP_ERROR = 0x12
+        SWD_AP_PARITY_ERROR = 0x13
+        SWD_DP_WAIT = 0x14
+        SWD_DP_FAULT = 0x15
+        SWD_DP_ERROR = 0x16
+        SWD_DP_PARITY_ERROR = 0x17
+        SWD_AP_WDATA_ERROR = 0x18
+        SWD_AP_STICKY_ERROR = 0x19
+        SWD_AP_STICKY_OVERRUN_ERROR = 0x1a
+        SWV_NOT_AVAILABLE = 0x20
+        JTAG_FREQ_NOT_SUPPORTED = 0x41
+        JTAG_UNKNOWN_CMD = 0x42
+
+        MESSAGES = {
+            JTAG_UNKNOWN_ERROR : "Unknown error",
+            JTAG_SPI_ERROR : "SPI error",
+            JTAG_DMA_ERROR : "DMA error",
+            JTAG_UNKNOWN_JTAG_CHAIN : "Unknown JTAG chain",
+            JTAG_NO_DEVICE_CONNECTED : "No device connected",
+            JTAG_INTERNAL_ERROR : "Internal error",
+            JTAG_CMD_WAIT : "Command wait",
+            JTAG_CMD_ERROR : "Command error",
+            JTAG_GET_IDCODE_ERROR : "Get IDCODE error",
+            JTAG_ALIGNMENT_ERROR : "Alignment error",
+            JTAG_DBG_POWER_ERROR : "Debug power error",
+            JTAG_WRITE_ERROR : "Write error",
+            JTAG_WRITE_VERIF_ERROR : "Write verification error",
+            JTAG_ALREADY_OPENED_IN_OTHER_MODE : "Already opened in another mode",
+            SWD_AP_WAIT : "AP wait",
+            SWD_AP_FAULT : "AP fault",
+            SWD_AP_ERROR : "AP error",
+            SWD_AP_PARITY_ERROR : "AP parity error",
+            SWD_DP_WAIT : "DP wait",
+            SWD_DP_FAULT : "DP fault",
+            SWD_DP_ERROR : "DP error",
+            SWD_DP_PARITY_ERROR : "DP parity error",
+            SWD_AP_WDATA_ERROR : "AP WDATA error",
+            SWD_AP_STICKY_ERROR : "AP sticky error",
+            SWD_AP_STICKY_OVERRUN_ERROR : "AP sticky overrun error",
+            SWV_NOT_AVAILABLE : "SWV not available",
+            JTAG_FREQ_NOT_SUPPORTED : "Frequency not supported",
+            JTAG_UNKNOWN_CMD : "Unknown command",
+        }
 
     class CmdBuilder:
         """CMD builder"""
@@ -157,9 +230,8 @@ class Stlink:
         (100000, 40, ),
         (50000, 79, ),
         (25000, 158, ),
-        # 16-bit number is not currently supported
-        # (15000, 265, ),
-        # (5000, 798, ),
+        (15000, 265, ),
+        (5000, 798, ),
     )
 
     _STLINK_MAXIMUM_8BIT_DATA = 64
@@ -392,7 +464,7 @@ class Stlink:
         """
         cmd = Stlink.CmdBuilder([
             Stlink.CMD.DEBUG.COMMAND,
-            Stlink.CMD.DEBUG.APIV2.READREG])
+            Stlink.CMD.DEBUG.APIV2.READ_REG])
         cmd.add_u8(register)
         res = self._com.xfer(cmd.cmd, rx_length=8)
         return int.from_bytes(res[4:8], byteorder='little')
@@ -409,7 +481,7 @@ class Stlink:
         """
         cmd = [
             Stlink.CMD.DEBUG.COMMAND,
-            Stlink.CMD.DEBUG.APIV2.READALLREGS]
+            Stlink.CMD.DEBUG.APIV2.READ_ALL_REGS]
         res = self._com.xfer(cmd, rx_length=88)
         data = []
         for index in range(4, len(res), 4):
@@ -430,7 +502,7 @@ class Stlink:
         """
         cmd = Stlink.CmdBuilder([
             Stlink.CMD.DEBUG.COMMAND,
-            Stlink.CMD.DEBUG.APIV2.WRITEREG])
+            Stlink.CMD.DEBUG.APIV2.WRITE_REG])
         cmd.add_u8(register)
         cmd.add_u32(data)
         self._com.xfer(cmd.cmd, rx_length=2)
@@ -449,7 +521,7 @@ class Stlink:
         check_alignment(4, address=address)
         cmd = Stlink.CmdBuilder([
             Stlink.CMD.DEBUG.COMMAND,
-            Stlink.CMD.DEBUG.APIV2.READDEBUGREG])
+            Stlink.CMD.DEBUG.APIV2.READ_DEBUG_REG])
         cmd.add_u32(address)
         res = self._com.xfer(cmd.cmd, rx_length=8)
         return int.from_bytes(res[4:8], byteorder='little')
@@ -466,7 +538,7 @@ class Stlink:
         check_alignment(4, address=address)
         cmd = Stlink.CmdBuilder([
             Stlink.CMD.DEBUG.COMMAND,
-            Stlink.CMD.DEBUG.APIV2.WRITEDEBUGREG])
+            Stlink.CMD.DEBUG.APIV2.WRITE_DEBUG_REG])
         cmd.add_u32(address)
         cmd.add_u32(data)
         self._com.xfer(cmd.cmd, rx_length=2)
@@ -536,7 +608,7 @@ class Stlink:
                 % self.maximum_16bit_data)
         cmd = Stlink.CmdBuilder([
             Stlink.CMD.DEBUG.COMMAND,
-            Stlink.CMD.DEBUG.APIV2.READMEM_16BIT])
+            Stlink.CMD.DEBUG.APIV2.READ_MEM_16BIT])
         cmd.add_u32(address)
         cmd.add_u32(size)
         return self._com.xfer(cmd.cmd, rx_length=size)
@@ -560,7 +632,7 @@ class Stlink:
                 % self.maximum_16bit_data)
         cmd = Stlink.CmdBuilder([
             Stlink.CMD.DEBUG.COMMAND,
-            Stlink.CMD.DEBUG.APIV2.WRITEMEM_16BIT])
+            Stlink.CMD.DEBUG.APIV2.WRITE_MEM_16BIT])
         cmd.add_u32(address)
         cmd.add_u32(len(data))
         self._com.xfer(cmd.cmd, data=data)
