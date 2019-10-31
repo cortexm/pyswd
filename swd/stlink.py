@@ -295,10 +295,11 @@ class Stlink:
             """String representation"""
             return self._str
 
-    def __init__(self, swd_frequency=None, com=None, serial_no=''):
+    def __init__(self, swd_frequency=None, com=None, serial_no='', debug=0):
+        self._debug = debug
         if com is None:
             # default com driver is StlinkCom
-            com = _StlinkCom(serial_no)
+            com = _StlinkCom(serial_no, debug=debug)
         self._com = com
         self._version = self._read_version()
         self._leave_state()
