@@ -405,7 +405,7 @@ class Stlink:
             Stlink.CMD.DEBUG.APIV3.SET_COM_FREQ,
             0x00, 0x00])
         cmd.add_u32(freq_khz)
-        res = self._com.xfer(cmd.cmd, rx_length=2)
+        res = self._com.xfer(cmd.cmd, rx_length=8)
         if res[0] != 0x80:
             raise StlinkException("Error switching SWD frequency")
 
