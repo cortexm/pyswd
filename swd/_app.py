@@ -352,7 +352,7 @@ class Application:
             raise PyswdException("require at least 3 parameters")
         addr = convert_numeric(params[0])
         size = convert_numeric(params[1])
-        pattern = [convert_numeric(i, 8) for i in params[2:]]
+        pattern = bytes([convert_numeric(i, 8) for i in params[2:]])
         self._swd.fill_mem(addr, pattern, size)
 
     def action_reg(self, params):
@@ -441,10 +441,11 @@ class Application:
                 swd_frequency=self._swd_frequency,
                 serial_no=self._serial_no,
                 debug=self._debug)
-            # reading ID code can generate exception
-            # and stop pyswd if no MCU is connected
             self.print_info(self._swd.get_version(), level=2)
-            self._swd.get_idcode()
+            idcode = self._swd.get_idcode()
+            if idcode == 0:
+                raise PyswdException(
+                    "No IDCODE, probably MCU is not connected")
             self._cortexm = swd.CortexM(self._swd)
             was_halted = self._cortexm.is_halted()
             if was_halted:

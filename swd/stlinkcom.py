@@ -5,6 +5,10 @@ import sys as _sys
 import usb as _usb
 
 
+class StlinkComError(Exception):
+    """StlinkCom general errors"""
+
+
 class StlinkComException(Exception):
     """StlinkCom general exception"""
 
@@ -84,7 +88,7 @@ class StlinkComBase:
     def read(self, size, timeout=200):
         """Read data from USB pipe"""
         try:
-            data = self._dev.read(self.PIPE_IN, size, timeout).tolist()
+            data = self._dev.read(self.PIPE_IN, size, timeout).tobytes()
         except _usb.USBError as err:
             self._dev = None
             raise StlinkComException("USB Error: %s" % err)
@@ -174,6 +178,7 @@ class StlinkCom:
             _sys.stderr.write(f"D: {msg}\n")
 
     def print_debug_data(self, msg, data, level=0):
+        """Print info string with hexadecimal representation of data"""
         if self._debug >= level:
             if data is None:
                 _sys.stderr.write(f"{msg}\n")
@@ -214,19 +219,27 @@ class StlinkCom:
         Raises:
             StlinkComException
         """
+        if not isinstance(command, bytes):
+            raise StlinkComError("command is not type of bytes")
         self.print_debug_data("command", command, level=3)
         if len(command) > self._STLINK_CMD_SIZE:
-            raise StlinkComException(
+            raise StlinkComError(
                 "Error too many Bytes in command (maximum is %d Bytes)"
                 % self._STLINK_CMD_SIZE)
         # pad to _STLINK_CMD_SIZE
-        command += [0] * (self._STLINK_CMD_SIZE - len(command))
+        command += b'\x00' * (self._STLINK_CMD_SIZE - len(command))
+        self.print_debug_data("USB:WR", command, level=4)
         self._dev.write(command, timeout)
         if data:
-            self.print_debug_data("write", data, level=4)
+            if not isinstance(data, bytes):
+                raise StlinkComError("command is not type of bytes")
+            self.print_debug_data("USB:WR", data, level=4)
             self._dev.write(data, timeout)
         if rx_length:
-            data = self._dev.read(rx_length)
-            self.print_debug_data("read", data, level=4)
+            # minimum read length is 2 bytes
+            data = self._dev.read(max(2, rx_length))
+            self.print_debug_data("USB:RD", data, level=4)
+            if len(data) != rx_length:
+                data = data[:rx_length]
             return data
         return None
