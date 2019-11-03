@@ -204,17 +204,10 @@ class Application:
         if self._info >= 0:
             sys.stderr.write(f"{prefix}{msg}\n")
 
-    def print_error(self, msg, prefix="E: "):
+    @staticmethod
+    def print_error(msg, prefix="E: "):
         """Print info string"""
         sys.stderr.write(f"{prefix}{msg}\n")
-
-    def print_io(self, reg_name):
-        """Print IO register content"""
-        bitf_reg = self._swd.reg(reg_name)
-        bitf_reg.tmp_load()
-        print("%s:" % reg_name)
-        for reg in bitf_reg.tmp.get_registers():
-            print("%16s: %8x" % (reg, bitf_reg.tmp.get(reg)))
 
     def print_buffer(self, addr, data, hex_line=hex_line8):
         """Print buffer in hex and ASCII"""
@@ -238,7 +231,6 @@ class Application:
             addr += len(chunk)
         if same_chunk or self._verbose > 1:
             print('%08x' % addr)
-
 
     def action_dump32(self, params):
         """Dump memory 32 bit"""
@@ -468,9 +460,9 @@ class Application:
             self.print_error("Use parameter: -s serial_no", prefix="")
         except PyswdException as err:
             self.print_error(f"pyswd error: {err}.")
-        except swd.stlink.driver.StlinkException as err:
+        except swd.stlink.StlinkException as err:
             self.print_error(f"Stlink error: {err}.")
-        except swd.stlink.usb.StlinkComException as err:
+        except swd.stlink.usb.StlinkUsbException as err:
             self.print_error(f"StlinkCom error: {err}.")
         else:
             return 0
@@ -482,4 +474,4 @@ def main():
     args = _configure_argparse()
     app = Application(args)
     ret = app.start()
-    exit(ret)
+    sys.exit(ret)

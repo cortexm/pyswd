@@ -2,7 +2,7 @@
 """
 
 import itertools as _itertools
-from swd.stlink.driver import Stlink as _Stlink
+from swd.stlink import Stlink as _Stlink
 
 
 class Swd():

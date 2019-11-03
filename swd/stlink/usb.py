@@ -5,19 +5,19 @@ import sys as _sys
 import usb as _usb
 
 
-class StlinkComError(Exception):
-    """StlinkCom general errors"""
+class StlinkUsbError(Exception):
+    """StlinkUsb general errors"""
 
 
-class StlinkComException(Exception):
-    """StlinkCom general exception"""
+class StlinkUsbException(Exception):
+    """StlinkUsb general exception"""
 
 
-class NoDeviceFoundException(StlinkComException):
+class NoDeviceFoundException(StlinkUsbException):
     """Exception raised when no STLink device is connected"""
 
 
-class MoreDevicesException(StlinkComException):
+class MoreDevicesException(StlinkUsbException):
     """Exception raised when more devices was detected"""
 
     def __init__(self, devices):
@@ -30,7 +30,7 @@ class MoreDevicesException(StlinkComException):
         return self._serial_numbers
 
 
-class StlinkComBase:
+class StlinkUsbBase:
     """ST link comm base class"""
     ID_VENDOR = None
     ID_PRODUCT = None
@@ -52,8 +52,8 @@ class StlinkComBase:
                 find_all=True)
             for device in usb_devices:
                 devices.append(cls(device))
-        except _usb.NoBackendError as err:
-            raise StlinkComException("USB Error: %s" % err)
+        except _usb.core.NoBackendError as err:
+            raise StlinkUsbException("USB Error: %s" % err)
         return devices
 
     @property
@@ -64,7 +64,7 @@ class StlinkComBase:
             if serial_no.isalnum():
                 return serial_no
             return ''.join(['%02X' % ord(c) for c in serial_no])
-        except NotImplementedError as err:
+        except NotImplementedError:
             return "unknown"
 
     def compare_serial_no(self, serial_no):
@@ -81,9 +81,9 @@ class StlinkComBase:
             count = self._dev.write(self.PIPE_OUT, data, timeout)
         except _usb.USBError as err:
             self._dev = None
-            raise StlinkComException("USB Error: %s" % err)
+            raise StlinkUsbException("USB Error: %s" % err)
         if count != len(data):
-            raise StlinkComException("Error Sending data")
+            raise StlinkUsbException("Error Sending data")
 
     def read(self, size, timeout=200):
         """Read data from USB pipe"""
@@ -91,7 +91,7 @@ class StlinkComBase:
             data = self._dev.read(self.PIPE_IN, size, timeout).tobytes()
         except _usb.USBError as err:
             self._dev = None
-            raise StlinkComException("USB Error: %s" % err)
+            raise StlinkUsbException("USB Error: %s" % err)
         return data
 
     def __del__(self):
@@ -99,7 +99,7 @@ class StlinkComBase:
             self._dev.finalize()
 
 
-class StlinkComV2Usb(StlinkComBase):
+class StlinkUsbV2(StlinkUsbBase):
     """ST-Link/V2 USB communication class"""
     ID_VENDOR = 0x0483
     ID_PRODUCT = 0x3748
@@ -108,7 +108,7 @@ class StlinkComV2Usb(StlinkComBase):
     DEV_NAME = "V2"
 
 
-class StlinkComV21MUsb(StlinkComBase):
+class StlinkUsbV21M(StlinkUsbBase):
     """ST-Link/V2-1 USB communication"""
     ID_VENDOR = 0x0483
     ID_PRODUCT = 0x374b
@@ -117,7 +117,7 @@ class StlinkComV21MUsb(StlinkComBase):
     DEV_NAME = "V2-1"
 
 
-class StlinkComV21Usb(StlinkComBase):
+class StlinkUsbV21(StlinkUsbBase):
     """ST-Link/V2-1 USB communication"""
     ID_VENDOR = 0x0483
     ID_PRODUCT = 0x3752
@@ -126,7 +126,7 @@ class StlinkComV21Usb(StlinkComBase):
     DEV_NAME = "V2-1"
 
 
-class StlinkComV3EUsb(StlinkComBase):
+class StlinkUsbV3E(StlinkUsbBase):
     """ST-Link/V3 USB communication"""
     ID_VENDOR = 0x0483
     ID_PRODUCT = 0x374e
@@ -135,7 +135,7 @@ class StlinkComV3EUsb(StlinkComBase):
     DEV_NAME = "V3E"
 
 
-class StlinkComV3Usb(StlinkComBase):
+class StlinkUsbV3(StlinkUsbBase):
     """ST-Link/V3 USB communication"""
     ID_VENDOR = 0x0483
     ID_PRODUCT = 0x374f
@@ -144,16 +144,16 @@ class StlinkComV3Usb(StlinkComBase):
     DEV_NAME = "V3"
 
 
-class StlinkCom:
+class StlinkUsb:
     """ST-Link communication class"""
     STLINK_MAXIMUM_TRANSFER_SIZE = 6144
     _STLINK_CMD_SIZE = 16
     _COM_CLASSES = [
-        StlinkComV2Usb,
-        StlinkComV21MUsb,
-        StlinkComV21Usb,
-        StlinkComV3EUsb,
-        StlinkComV3Usb
+        StlinkUsbV2,
+        StlinkUsbV21M,
+        StlinkUsbV21,
+        StlinkUsbV3E,
+        StlinkUsbV3
     ]
 
     @classmethod
@@ -189,9 +189,9 @@ class StlinkCom:
     def __init__(self, serial_no='', debug=0):
         self._dev = None
         self._debug = debug
-        devices = StlinkCom._find_all_devices()
+        devices = StlinkUsb._find_all_devices()
         if serial_no:
-            devices = StlinkCom._filter_devices(devices, serial_no)
+            devices = StlinkUsb._filter_devices(devices, serial_no)
         if not devices:
             raise NoDeviceFoundException()
         if len(devices) > 1:
@@ -217,13 +217,13 @@ class StlinkCom:
             received data
 
         Raises:
-            StlinkComException
+            StlinkUsbException
         """
         if not isinstance(command, bytes):
-            raise StlinkComError("command is not type of bytes")
+            raise StlinkUsbError("command is not type of bytes")
         self.print_debug_data("command", command, level=3)
         if len(command) > self._STLINK_CMD_SIZE:
-            raise StlinkComError(
+            raise StlinkUsbError(
                 "Error too many Bytes in command (maximum is %d Bytes)"
                 % self._STLINK_CMD_SIZE)
         # pad to _STLINK_CMD_SIZE
@@ -232,7 +232,7 @@ class StlinkCom:
         self._dev.write(command, timeout)
         if data:
             if not isinstance(data, bytes):
-                raise StlinkComError("command is not type of bytes")
+                raise StlinkUsbError("command is not type of bytes")
             self.print_debug_data("USB:WR", data, level=4)
             self._dev.write(data, timeout)
         if rx_length:
