@@ -356,8 +356,8 @@ class Stlink:
         cmd = _struct.pack(
             '<BB',
             Stlink.CMD.GET_VERSION_EX,
-            0x80),
-        res = self._com.xfer(cmd, rx_length=6)
+            0x80)
+        res = self._com.xfer(cmd, rx_length=12)
         major, swim, jtag, msc, bridge, _vid, _pid = _struct.unpack(
             '<5B3xHH', res)
         return {
@@ -436,7 +436,7 @@ class Stlink:
         cmd = _struct.pack(
             '<BBB',
             Stlink.CMD.DEBUG.COMMAND,
-            Stlink.CMD.DEBUG.APIV3.SET_COM_FREQ,
+            Stlink.CMD.DEBUG.APIV3.GET_COM_FREQ,
             com)
         res = self._com.xfer(cmd, rx_length=52)
         status, current_freq, count, *frequencies = _struct.unpack(
@@ -452,10 +452,12 @@ class Stlink:
             Stlink.CMD.DEBUG.COMMAND,
             Stlink.CMD.DEBUG.APIV3.SET_COM_FREQ,
             com,
-            freq_khz),
+            freq_khz)
         res = self._com.xfer(cmd, rx_length=8)
-        status, = _struct.unpack('<H', res)
+        status, set_freq_khz = _struct.unpack('<HxxL', res)
         _check_status(status)
+        if freq_khz != set_freq_khz:
+            raise StlinkException("Error setting frequency.")
 
     def _set_swd_freq_v2(self, swd_frequency):
         if self._version.jtag < 22:
