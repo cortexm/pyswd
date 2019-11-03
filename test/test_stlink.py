@@ -2,7 +2,7 @@
 """
 
 import unittest
-import swd.stlink
+import swd.stlink.driver
 
 
 class FncMock():

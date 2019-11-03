@@ -7,7 +7,7 @@ import argparse
 import itertools
 import swd
 import swd.stlink
-import swd.stlinkcom
+import swd.stlink.usb
 import swd.__about__
 
 
@@ -458,9 +458,9 @@ class Application:
                         self.print_info("Core stay halted.")
                     else:
                         self.print_info("Core is running.")
-        except swd.stlinkcom.NoDeviceFoundException:
+        except swd.stlink.usb.NoDeviceFoundException:
             self.print_error("ST-Link not connected.")
-        except swd.stlinkcom.MoreDevicesException as err:
+        except swd.stlink.usb.MoreDevicesException as err:
             self.print_error(
                 f"ST-Link Found more devices with these serial numbers:")
             for serial_number in err.serial_numbers:
@@ -468,9 +468,9 @@ class Application:
             self.print_error("Use parameter: -s serial_no", prefix="")
         except PyswdException as err:
             self.print_error(f"pyswd error: {err}.")
-        except swd.stlink.StlinkException as err:
+        except swd.stlink.driver.StlinkException as err:
             self.print_error(f"Stlink error: {err}.")
-        except swd.stlinkcom.StlinkComException as err:
+        except swd.stlink.usb.StlinkComException as err:
             self.print_error(f"StlinkCom error: {err}.")
         else:
             return 0

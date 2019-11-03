@@ -2,7 +2,7 @@
 """
 
 import struct as _struct
-from swd.stlinkcom import StlinkCom as _StlinkCom
+from swd.stlink.usb import StlinkCom as _StlinkCom
 
 
 class StlinkError(Exception):
