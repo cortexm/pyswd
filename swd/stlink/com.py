@@ -194,7 +194,7 @@ class StlinkCom:
 
     STLINK_MAXIMUM_8BIT_DATA = 64
 
-    def __init__(self, stlink_usb, debug=0):
+    def __init__(self, usb, debug=0):
         """Stlink constructor
 
         Attributes:
@@ -202,7 +202,12 @@ class StlinkCom:
             debug: debug level
         """
         self._debug = debug
-        self._usb = stlink_usb
+        self._usb = usb
+
+    @property
+    def usb(self):
+        """Read USB device name"""
+        return self._usb
 
     def get_version(self):
         """Get ST-Link version
@@ -276,7 +281,7 @@ class StlinkCom:
             '<B',
             self.CMD.GET_CURRENT_MODE)
         res = self._usb.xfer(cmd, rx_length=2)
-        mode, = _struct.unpack('>H', res)  # big endian
+        mode, = _struct.unpack('<Bx', res)
         return mode
 
     def enter_debug_swd(self):

@@ -102,10 +102,19 @@ class Stlink:
             """String representation"""
             return self._str
 
-    def __init__(self, swd_frequency=None, serial_no='', debug=0):
+    def __init__(
+            self,
+            swd_frequency=None,
+            serial_no='',
+            debug=0,
+            usb=None,
+            com=None):
         self._debug = debug
-        self._usb = _usb.StlinkUsb(serial_no, debug=debug)
-        self._com = _com.StlinkCom(self._usb, debug=debug)
+        if not usb:
+            usb = _usb.StlinkUsb(serial_no, debug=debug)
+        if not com:
+            com = _com.StlinkCom(usb, debug=debug)
+        self._com = com
         self._version = self._read_version()
         self._leave_state()
         if swd_frequency:
@@ -121,21 +130,21 @@ class Stlink:
     @property
     def maximum_16bit_data(self):
         """Maximum transfer size for 16 bit data"""
-        return _usb.StlinkUsb.STLINK_MAXIMUM_TRANSFER_SIZE
+        return self._com.usb.STLINK_MAXIMUM_TRANSFER_SIZE
 
     @property
     def maximum_32bit_data(self):
         """Maximum transfer size for 32 bit data"""
-        return _usb.StlinkUsb.STLINK_MAXIMUM_TRANSFER_SIZE
+        return self._com.usb.STLINK_MAXIMUM_TRANSFER_SIZE
 
     def _read_version(self):
         ver, _, _ = self._com.get_version()
         version = {
             'V': (ver >> 12) & 0x000f,
             'J': (ver >> 6) & 0x003f}
-        if self._usb.version == 'V2':
+        if self._com.usb.dev_name == 'V2':
             version['S'] = ver & 0x003f
-        elif self._usb.version == 'V2-1':
+        elif self._com.usb.dev_name == 'V2-1':
             version['M'] = ver & 0x003f
         if version['V'] == 3:
             major, swim, jtag, bridge, msc, _, _ = self._com.get_version_ex()
@@ -145,7 +154,7 @@ class Stlink:
                 'J': jtag,
                 'M': msc,
                 'B': bridge}
-        version['HW'] = self._usb.version
+        version['HW'] = self._com.usb.dev_name
         return self.StlinkVersion(version)
 
     def get_version(self):
@@ -345,11 +354,11 @@ class Stlink:
         """
         if len(data) > self.maximum_8bit_data:
             raise StlinkException(
-                'Too many Bytes to read (maximum is %d Bytes)'
+                'Too many Bytes to write (maximum is %d Bytes)'
                 % self.maximum_8bit_data)
         self._com.write_mem8(address, data)
         if check_last_error_status:
-            self._com.get_last_rw_state_ex()
+            self._check_last_rw_state()
 
     def read_mem16(self, address, size, check_last_error_status=True):
         """Read data from memory with 16 bit memory access.
@@ -373,7 +382,7 @@ class Stlink:
                 % self.maximum_32bit_data)
         data = self._com.read_mem16(address, size)
         if check_last_error_status:
-            self._com.get_last_rw_state_ex()
+            self._check_last_rw_state()
         return data
 
     def write_mem16(self, address, data, check_last_error_status=True):
@@ -393,9 +402,9 @@ class Stlink:
             raise StlinkException(
                 'Too many Bytes to write (maximum is %d Bytes)'
                 % self.maximum_32bit_data)
-        self._com.write_mem8(address, data)
+        self._com.write_mem16(address, data)
         if check_last_error_status:
-            self._com.get_last_rw_state_ex()
+            self._check_last_rw_state()
 
     def read_mem32(self, address, size, check_last_error_status=True):
         """Read data from memory with 32 bit memory access.
@@ -417,7 +426,7 @@ class Stlink:
                 % self.maximum_32bit_data)
         data = self._com.read_mem32(address, size)
         if check_last_error_status:
-            self._com.get_last_rw_state_ex()
+            self._check_last_rw_state()
         return data
 
     def write_mem32(self, address, data, check_last_error_status=True):
@@ -435,6 +444,6 @@ class Stlink:
             raise StlinkException(
                 'Too many Bytes to write (maximum is %d Bytes)'
                 % self.maximum_32bit_data)
-        self._com.write_mem8(address, data)
+        self._com.write_mem32(address, data)
         if check_last_error_status:
-            self._com.get_last_rw_state_ex()
+            self._check_last_rw_state()

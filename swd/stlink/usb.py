@@ -199,8 +199,8 @@ class StlinkUsb:
         self._dev = devices[0]
 
     @property
-    def version(self):
-        """property with device version"""
+    def dev_name(self):
+        """property with device name"""
         return self._dev.DEV_NAME
 
     def xfer(self, command, data=None, rx_length=0, timeout=200):

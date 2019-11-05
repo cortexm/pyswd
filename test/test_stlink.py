@@ -2,7 +2,7 @@
 """
 
 import unittest
-import swd.stlink.driver
+import swd.stlink
 
 
 class FncMock():
@@ -39,8 +39,8 @@ class ComMock():
         self.xfer_mock = FncMock()
 
     @property
-    def version(self):
-        """Mock version"""
+    def dev_name(self):
+        """Mock device name"""
         return 'V2'
 
     def xfer(self, command, data=None, rx_length=0, tout=200):
@@ -56,16 +56,16 @@ class _TestStlink(unittest.TestCase):
     """Base class for testing Stlink class"""
 
     def setUp(self):
-        self._com = ComMock()
-        self._com.xfer_mock.set_return_data([
+        self._usb = ComMock()
+        self._usb.xfer_mock.set_return_data([
             bytes([0x28, 0xc7, 0x83, 0x04, 0x48, 0x37]),
             bytes([0x02, 0x00]),
-            None,
+            bytes([0x80, 0x00]),
             bytes([0x80, 0x00]),
             bytes([0x80, 0x00]),
         ])
-        self._stlink = swd.stlink.Stlink(com=self._com)
-        self._ctor_call_log = self._com.xfer_mock.get_call_log()
+        self._stlink = swd.stlink.Stlink(usb=self._usb)
+        self._ctor_call_log = self._usb.xfer_mock.get_call_log()
 
 
 class TestStlinkCtor(_TestStlink):
@@ -126,11 +126,11 @@ class TestStlinkGetTargetVoltage(_TestStlink):
 
     def test(self):
         """test getting arget voltage"""
-        self._com.xfer_mock.set_return_data([
+        self._usb.xfer_mock.set_return_data([
             bytes([0xfa, 0x05, 0x00, 0x00, 0xfb, 0x07, 0x00, 0x00],)
         ])
         target_voltage = self._stlink.get_target_voltage()
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+        self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([0xf7]), 'data': None, 'rx_length': 8, 'tout': 200},
         ])
         self.assertEqual(target_voltage, 3.2)
@@ -141,12 +141,12 @@ class TestStlinkGetCoreid(_TestStlink):
 
     def test(self):
         """test getting ore id"""
-        self._com.xfer_mock.set_return_data([bytes([
+        self._usb.xfer_mock.set_return_data([bytes([
             0x80, 0x00, 0x55, 0x55, 0x77, 0x14,
             0xb1, 0x0b, 0x00, 0x00, 0x00, 0x00])])
         idcode = self._stlink.get_idcode()
         self.assertEqual(
-            self._com.xfer_mock.get_call_log(),
+            self._usb.xfer_mock.get_call_log(),
             [{
                 'command': bytes([0xf2, 0x31]),
                 'data': None,
@@ -160,11 +160,11 @@ class TestStlinkGetReg(_TestStlink):
 
     def test(self):
         """test getting memory register"""
-        self._com.xfer_mock.set_return_data([
+        self._usb.xfer_mock.set_return_data([
             bytes([0x80, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x20]),
         ])
         coreid = self._stlink.get_reg(1)
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+        self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
                 0xf2, 0x33, 0x01,
             ]), 'data': None, 'rx_length': 8, 'tout': 200},
@@ -177,11 +177,11 @@ class TestStlinkSetReg(_TestStlink):
 
     def test(self):
         """test setting memory register"""
-        self._com.xfer_mock.set_return_data([
+        self._usb.xfer_mock.set_return_data([
             bytes([0x80, 0x00]),
         ])
         self._stlink.set_reg(1, 0x12345678)
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+        self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
                 0xf2, 0x34, 0x01, 0x78, 0x56, 0x34, 0x12,
             ]), 'data': None, 'rx_length': 2, 'tout': 200},
@@ -193,11 +193,11 @@ class TestStlinkGetMem32(_TestStlink):
 
     def test(self):
         """test getting memory register"""
-        self._com.xfer_mock.set_return_data([
+        self._usb.xfer_mock.set_return_data([
             bytes([0x80, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x20]),
         ])
         coreid = self._stlink.get_mem32(0x08000000)
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+        self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
                 0xf2, 0x36, 0x00, 0x00, 0x00, 0x08,
             ]), 'data': None, 'rx_length': 8, 'tout': 200},
@@ -217,11 +217,11 @@ class TestStlinkSetMem32(_TestStlink):
 
     def test(self):
         """test setting memory register"""
-        self._com.xfer_mock.set_return_data([
+        self._usb.xfer_mock.set_return_data([
             bytes([0x80, 0x00]),
         ])
         self._stlink.set_mem32(0x20000000, 0x12345678)
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+        self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
                 0xf2, 0x35, 0x00, 0x00, 0x00, 0x20, 0x78, 0x56, 0x34, 0x12,
             ]), 'data': None, 'rx_length': 2, 'tout': 200},
@@ -241,11 +241,11 @@ class TestStlinkReadMem8(_TestStlink):
     def test_1byte(self):
         """test reading emory with 8 bit access"""
         data = list(range(1))
-        self._com.xfer_mock.set_return_data([
+        self._usb.xfer_mock.set_return_data([
             data,
         ])
         ret_data = self._stlink.read_mem8(0x08000000, 1, check_last_error_status=False)
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+        self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
                 0xf2, 0x0c, 0x00, 0x00, 0x00, 0x08, 0x01, 0x00, 0x00, 0x00,
             ]), 'data': None, 'rx_length': 1, 'tout': 200},
@@ -255,11 +255,11 @@ class TestStlinkReadMem8(_TestStlink):
     def test_64bytes(self):
         """test reading memory with 8 bit access"""
         data = list(range(64))
-        self._com.xfer_mock.set_return_data([
+        self._usb.xfer_mock.set_return_data([
             data,
         ])
         ret_data = self._stlink.read_mem8(0x08000000, 64, check_last_error_status=False)
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+        self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
                 0xf2, 0x0c, 0x00, 0x00, 0x00, 0x08, 0x40, 0x00, 0x00, 0x00,
             ]), 'data': None, 'rx_length': 64, 'tout': 200},
@@ -281,12 +281,12 @@ class TestStlinkWriteMem8(_TestStlink):
     def test_1byte(self):
         """test writing memory with 8 bit access"""
         data = list(range(1))
-        self._com.xfer_mock.set_return_data([
+        self._usb.xfer_mock.set_return_data([
             None,
             None,
         ])
         self._stlink.write_mem8(0x20001000, data, check_last_error_status=False)
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+        self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
                 0xf2, 0x0d, 0x00, 0x10, 0x00, 0x20, 0x01, 0x00, 0x00, 0x00
             ]), 'data': data, 'rx_length': 0, 'tout': 200},
@@ -295,12 +295,12 @@ class TestStlinkWriteMem8(_TestStlink):
     def test_64bytes(self):
         """test writing memory with 8 bit access"""
         data = list(range(64))
-        self._com.xfer_mock.set_return_data([
+        self._usb.xfer_mock.set_return_data([
             None,
             None,
         ])
         self._stlink.write_mem8(0x20001000, data, check_last_error_status=False)
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+        self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
                 0xf2, 0x0d, 0x00, 0x10, 0x00, 0x20, 0x40, 0x00, 0x00, 0x00
             ]), 'data': data, 'rx_length': 0, 'tout': 200},
@@ -322,11 +322,11 @@ class TestStlinkReadMem16(_TestStlink):
     def test_4bytes(self):
         """test reading emory with 16 bit access"""
         data = list(range(4))
-        self._com.xfer_mock.set_return_data([
+        self._usb.xfer_mock.set_return_data([
             data,
         ])
         ret_data = self._stlink.read_mem16(0x08000000, 4, check_last_error_status=False)
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+        self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
                 0xf2, 0x47, 0x00, 0x00, 0x00, 0x08, 0x04, 0x00, 0x00, 0x00
             ]), 'data': None, 'rx_length': 4, 'tout': 200},
@@ -336,21 +336,21 @@ class TestStlinkReadMem16(_TestStlink):
     def test_1024bytes(self):
         """test reading memory with 16 bit access"""
         data = list(range(4))
-        self._com.xfer_mock.set_return_data([
+        self._usb.xfer_mock.set_return_data([
             data,
         ])
         ret_data = self._stlink.read_mem16(0x08000000, 1024, check_last_error_status=False)
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+        self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
                 0xf2, 0x47, 0x00, 0x00, 0x00, 0x08, 0x00, 0x04, 0x00, 0x00
             ]), 'data': None, 'rx_length': 1024, 'tout': 200},
         ])
         self.assertEqual(ret_data, data)
 
-    def test_oversize(self):
+    def test_over_size(self):
         """test setting memory register with unaligned address"""
         with self.assertRaises(swd.stlink.StlinkException) as context:
-            self._stlink.read_mem16(0x20000000, 1028)
+            self._stlink.read_mem16(0x20000000, 1028, check_last_error_status=False)
         self.assertEqual(
             str(context.exception),
             'Too many Bytes to read (maximum is 1024 Bytes)')
@@ -379,7 +379,7 @@ class TestStlinkWriteMem16(_TestStlink):
         """test writing memory with 16 bit access"""
         data = list(range(4))
         self._stlink.write_mem16(0x20001000, data, check_last_error_status=False)
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+        self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
                 0xf2, 0x48, 0x00, 0x10, 0x00, 0x20, 0x04, 0x00, 0x00, 0x00
             ]), 'data': data, 'rx_length': 0, 'tout': 200},
@@ -389,7 +389,7 @@ class TestStlinkWriteMem16(_TestStlink):
         """test writing memory with 16 bit access"""
         data = list(range(1024))
         self._stlink.write_mem16(0x20001000, data, check_last_error_status=False)
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+        self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
                 0xf2, 0x48, 0x00, 0x10, 0x00, 0x20, 0x00, 0x04, 0x00, 0x00
             ]), 'data': data, 'rx_length': 0, 'tout': 200},
@@ -429,11 +429,11 @@ class TestStlinkReadMem32(_TestStlink):
     def test_4bytes(self):
         """test reading emory with 32 bit access"""
         data = list(range(4))
-        self._com.xfer_mock.set_return_data([
+        self._usb.xfer_mock.set_return_data([
             data,
         ])
         ret_data = self._stlink.read_mem32(0x08000000, 4, check_last_error_status=False)
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+        self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
                 0xf2, 0x07, 0x00, 0x00, 0x00, 0x08, 0x04, 0x00, 0x00, 0x00
             ]), 'data': None, 'rx_length': 4, 'tout': 200},
@@ -443,18 +443,18 @@ class TestStlinkReadMem32(_TestStlink):
     def test_1024bytes(self):
         """test reading memory with 32 bit access"""
         data = list(range(4))
-        self._com.xfer_mock.set_return_data([
+        self._usb.xfer_mock.set_return_data([
             data,
         ])
         ret_data = self._stlink.read_mem32(0x08000000, 1024, check_last_error_status=False)
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+        self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
                 0xf2, 0x07, 0x00, 0x00, 0x00, 0x08, 0x00, 0x04, 0x00, 0x00
             ]), 'data': None, 'rx_length': 1024, 'tout': 200},
         ])
         self.assertEqual(ret_data, data)
 
-    def test_oversize(self):
+    def test_over_size(self):
         """test setting memory register with unaligned address"""
         with self.assertRaises(swd.stlink.StlinkException) as context:
             self._stlink.read_mem32(0x20000000, 1028)
@@ -486,7 +486,7 @@ class TestStlinkWriteMem32(_TestStlink):
         """test writing memory with 32 bit access"""
         data = list(range(4))
         self._stlink.write_mem32(0x20001000, data, check_last_error_status=False)
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+        self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
                 0xf2, 0x08, 0x00, 0x10, 0x00, 0x20, 0x04, 0x00, 0x00, 0x00
             ]), 'data': data, 'rx_length': 0, 'tout': 200},
@@ -496,7 +496,7 @@ class TestStlinkWriteMem32(_TestStlink):
         """test writing memory with 32 bit access"""
         data = list(range(1024))
         self._stlink.write_mem32(0x20001000, data, check_last_error_status=False)
-        self.assertEqual(self._com.xfer_mock.get_call_log(), [
+        self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
                 0xf2, 0x08, 0x00, 0x10, 0x00, 0x20, 0x00, 0x04, 0x00, 0x00
             ]), 'data': data, 'rx_length': 0, 'tout': 200},
