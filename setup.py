@@ -42,7 +42,8 @@ setuptools.setup(
     ],
 
     packages=[
-        'swd'
+        'swd',
+        'swd.stlink',
     ],
 
     install_requires=[
