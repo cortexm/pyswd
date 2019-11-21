@@ -232,7 +232,7 @@ class StlinkUsb:
         self._dev.write(command, timeout)
         if data:
             if not isinstance(data, bytes):
-                raise StlinkUsbError("command is not type of bytes")
+                raise StlinkUsbError("data are not type of bytes")
             self.print_debug_data("USB:WR", data, level=4)
             self._dev.write(data, timeout)
         if rx_length:

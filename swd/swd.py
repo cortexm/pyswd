@@ -159,14 +159,14 @@ class Swd():
         # first chunk to align address
         if address % 4:
             chunk_size_max = self._drv.maximum_8bit_data - (address % 4)
-            chunk = list(_itertools.islice(data, 0, chunk_size_max))
+            chunk = bytes(_itertools.islice(data, 0, chunk_size_max))
             if not chunk:
                 return
             self._drv.write_mem8(address, chunk)
             address += len(chunk)
         # write remained data, here is address always aligned
         while True:
-            chunk = list(
+            chunk = bytes(
                 _itertools.islice(data, 0, self._drv.maximum_32bit_data))
             if not chunk:
                 return
@@ -234,7 +234,7 @@ class Swd():
         """
         data = iter(data)
         while True:
-            chunk = list(
+            chunk = bytes(
                 _itertools.islice(data, 0, self._drv.maximum_8bit_data))
             if not chunk:
                 return
@@ -283,7 +283,7 @@ class Swd():
         """
         data = iter(data)
         while True:
-            chunk = list(
+            chunk = bytes(
                 _itertools.islice(data, 0, self._drv.maximum_16bit_data))
             if not chunk:
                 return
@@ -332,7 +332,7 @@ class Swd():
         """
         data = iter(data)
         while True:
-            chunk = list(
+            chunk = bytes(
                 _itertools.islice(data, 0, self._drv.maximum_32bit_data))
             if not chunk:
                 return
