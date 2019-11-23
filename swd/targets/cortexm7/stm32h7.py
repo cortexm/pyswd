@@ -47,7 +47,7 @@ class Stm32h7(_stm32.Stm32):
             'sram_size': 1024 * _mem.KILO,
             'flash': _FLASH_2M,
             'freq': 480,
-            'svd_file': 'svd/STM32H7_svd_V1.5/STM32H745x.svd',
+            'svd_file': 'svd/STM32H7_svd_V1.5/STM32H753x.svd',
         }, {
             'mcu_name': 'STM32H750xB',
             'dev_id': 0x450,

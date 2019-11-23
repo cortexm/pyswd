@@ -61,30 +61,37 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitRange>[15:4]</bitRange>
               <enumeratedValues>
                 <enumeratedValue>
+                  <name>CORTEXM0</name>
                   <description>Cortex-M0</description>
                   <value>0xc20</value>
                 </enumeratedValue>
                 <enumeratedValue>
+                  <name>CORTEXM3</name>
                   <description>Cortex-M3</description>
                   <value>0xc23</value>
                 </enumeratedValue>
                 <enumeratedValue>
+                  <name>CORTEXM4</name>
                   <description>Cortex-M4</description>
                   <value>0xc24</value>
                 </enumeratedValue>
                 <enumeratedValue>
+                  <name>CORTEXM7</name>
                   <description>Cortex-M7</description>
                   <value>0xc27</value>
                 </enumeratedValue>
                 <enumeratedValue>
+                  <name>CORTEXM0P</name>
                   <description>Cortex-M0+</description>
                   <value>0xc60</value>
                 </enumeratedValue>
                 <enumeratedValue>
+                  <name>CORTEXM23</name>
                   <description>Cortex-M23</description>
                   <value>0xd20</value>
                 </enumeratedValue>
                 <enumeratedValue>
+                  <name>CORTEXM33</name>
                   <description>Cortex-M33</description>
                   <value>0xd21</value>
                 </enumeratedValue>

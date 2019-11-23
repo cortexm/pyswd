@@ -1,6 +1,7 @@
 """SVD (System View Description) file parser"""
 
 import sys as _sys
+import string as _string
 import xml.etree.ElementTree as _et
 
 
@@ -28,7 +29,11 @@ class _Element:
     def parse(self, element):
         for sub_element in element:
             if sub_element.tag == 'name':
-                self._name = sub_element.text.upper()
+                name = sub_element.text.upper()
+                if not set(name).issubset(
+                        _string.ascii_uppercase + _string.digits + '_'):
+                    raise SvdException('wrong name')
+                self._name = name
             elif sub_element.tag == 'description':
                 description = sub_element.text
                 self._description = " ".join(description.split())
@@ -56,18 +61,6 @@ class EnumeratedValue(_Element):
         super().__init__()
         self._field = field
         self._value = None
-
-    @property
-    def name(self):
-        if self._name:
-            return self._name
-        return self._description
-
-    @property
-    def description(self):
-        if self._description:
-            return self._description
-        return self._name
 
     @property
     def value(self):
@@ -150,7 +143,8 @@ class Field(_Element):
         value = self.numeric_value
         for enumerated_value in self._enumerated_values:
             if value == enumerated_value.value:
-                return enumerated_value.name
+                if enumerated_value.name:
+                    return enumerated_value.name
         if self.mask == 1:
             value = bool(value)
         return value
@@ -225,7 +219,6 @@ class Field(_Element):
                     enumerated_value = EnumeratedValue(self)
                     enumerated_value.parse(sub_element)
                     self._enumerated_values.append(enumerated_value)
-                    # setattr(self, enumerated_value.name, enumerated_value)
 
     def validate(self):
         super().validate()
@@ -238,7 +231,7 @@ class Field(_Element):
         common = super().__str__()
         offset = self._offset
         width = self._width
-        return f"{common}: {offset=:d}, {width=:d}"
+        return f"{common}: {offset:d}:{width:d}"
 
 
 class Register(_Element):
@@ -247,8 +240,6 @@ class Register(_Element):
         self._peripheral = peripheral
         self._offset = None
         self._size = peripheral.size
-        self._access = None
-        self._reset_value = None
         self._mask = None
         self._value = None
         self._fields = []
@@ -272,14 +263,6 @@ class Register(_Element):
     @property
     def size_bytes(self):
         return self._size // 8
-
-    @property
-    def reset_value(self):
-        return self._reset_value
-
-    @property
-    def access(self):
-        return self._access
 
     @property
     def mask(self):
@@ -311,8 +294,6 @@ class Register(_Element):
         super().copy(source)
         self._offset = source.offset
         self._size = source.size
-        self._access = source.access
-        self._reset_value = source.reset_value
         for field in source.fields:
             new_field = Field(self)
             new_field.copy(field)
@@ -324,10 +305,6 @@ class Register(_Element):
             self._offset = int(element.text, 0)
         if element.tag == 'size':
             self._size = int(element.text, 0)
-        if element.tag == 'resetValue':
-            self._reset_value = int(element.text, 0)
-        if element.tag == 'access':
-            self._access = element.text
         elif element.tag == 'fields':
             for sub_element in element:
                 if sub_element.tag == 'field':
@@ -348,8 +325,7 @@ class Register(_Element):
     def __str__(self):
         common = super().__str__()
         offset = self._offset
-        size = self.size
-        return f"{common}: {offset=:04x} {size=:2}"
+        return f"{common}: +0x{offset:04x}"
 
 
 class MemRegister(Register):
@@ -478,8 +454,7 @@ class Peripheral(_Element):
     def __str__(self):
         common = super().__str__()
         base_address = self._base_address
-        size = self.size
-        return f"{common}: {base_address=:08x}, {size=:d}"
+        return f"{common}: 0x{base_address:08x}"
 
 
 class Cpu(_Element):
@@ -589,6 +564,7 @@ class Svd(_Element):
                     peripheral = Peripheral(self)
                     if 'derivedFrom' in sub_element.attrib:
                         derived_element = sub_element.attrib['derivedFrom']
+                        derived_element = derived_element.upper()
                         peripheral.copy(self.peripheral(derived_element))
                     peripheral.parse(sub_element)
                     self._peripherals.append(peripheral)
@@ -602,11 +578,6 @@ class Svd(_Element):
             self.cpu.validate()
         for peripheral in self._peripherals:
             peripheral.validate()
-
-    def __str__(self):
-        common = super().__str__()
-        size = self.size
-        return f"{common}, {size=:2d}"
 
 
 def main(svd_file):
@@ -624,6 +595,8 @@ def main(svd_file):
             print(f"  : {register}")
             for field in register.fields:
                 print(f"    : {field}")
+                for enumerated_value in field.enumerated_values:
+                    print(f"      : {enumerated_value}")
 
 
 if __name__ == "__main__":

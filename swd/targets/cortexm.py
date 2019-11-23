@@ -36,13 +36,13 @@ class CortexM:
         'SP', 'LR', 'PC', 'PSR', 'MSP', 'PSP']
 
     _TARGETS = {
-        'Cortex-M0': _cortexm0,
-        'Cortex-M0+': _cortexm0p,
-        'Cortex-M3': _cortexm3,
-        'Cortex-M4': _cortexm4,
-        'Cortex-M7': _cortexm7,
-        'Cortex-M23': _cortexm23,
-        'Cortex-M33': _cortexm33,
+        'CORTEXM0': _cortexm0,
+        'CORTEXM0P': _cortexm0p,
+        'CORTEXM3': _cortexm3,
+        'CORTEXM4': _cortexm4,
+        'CORTEXM7': _cortexm7,
+        'CORTEXM23': _cortexm23,
+        'CORTEXM33': _cortexm33,
     }
 
     def __init__(self, swd, expcted_parts=None):
