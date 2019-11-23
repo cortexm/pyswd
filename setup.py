@@ -44,6 +44,14 @@ setuptools.setup(
     packages=[
         'swd',
         'swd.stlink',
+        'swd.targets',
+        'swd.targets.cortexm0',
+        'swd.targets.cortexm0p',
+        'swd.targets.cortexm23',
+        'swd.targets.cortexm3',
+        'swd.targets.cortexm33',
+        'swd.targets.cortexm4',
+        'swd.targets.cortexm7',
     ],
 
     install_requires=[
@@ -55,4 +63,5 @@ setuptools.setup(
             '%s=swd._app:main' % _ABOUT['APP_NAME'],
         ],
     },
+    include_package_data=True,
 )

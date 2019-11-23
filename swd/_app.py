@@ -9,6 +9,7 @@ import swd
 import swd.stlink
 import swd.stlink.usb
 import swd.__about__
+import swd.targets
 
 
 class PyswdException(Exception):
@@ -89,6 +90,9 @@ def _configure_argparse():
     parser.add_argument(
         "-c", "--cpu", type=str, action='append',
         help='set expected CPU type [eg: STM32F031G6, STM32H75]')
+    parser.add_argument(
+        "-S", "--svd", type=str,
+        help='path to System View Description file (.svd)')
     parser.add_argument(
         'action', nargs='*',
         help='actions will be processed sequentially')
@@ -176,6 +180,7 @@ class Application:
         """Application startup"""
         self._swd = None
         self._cortexm = None
+        self._svd_file = args.svd
         self._info = args.info
         self._verbose = args.verbose
         self._debug = args.debug
@@ -186,7 +191,7 @@ class Application:
         self._actions = args.action
         self._swd_frequency = args.freq
         self._serial_no = args.serial
-        self._expected_devices = args.cpu
+        self._expected_parts = args.cpu
 
     def print_info(self, msg, level=1, prefix="I: "):
         """Print info string"""
@@ -477,20 +482,20 @@ class Application:
                     "No IDCODE, probably MCU is not connected")
             was_halted = None
             try:
-                self.cortexm = swd.CortexM(self._swd, self._expected_devices)
+                self._cortexm = swd.CortexM(self._swd, self._expected_parts)
             except swd.targets.cortexm.CortexMNotDetected as err:
                 self.print_warning(err)
             else:
                 self.print_info(f"CORE: {self.cortexm.name()}")
-                if self.cortexm.device:
-                    dev = self.cortexm.device
+                if self.cortexm.part:
+                    part = self.cortexm.part
                     self.print_info(
-                        f"PART: {' / '.join(dev.get_part_names())}")
-                else:
-                    self.print_warning("Unsupported part detected.")
+                        f"PART: {part.get_mcu_name()}")
                 was_halted = self.cortexm.is_halted()
                 if was_halted:
                     self.print_info("Core is halted.")
+            if self._svd_file:
+                self._swd.load_svd(self._svd_file)
             if self._actions:
                 self.process_actions()
                 is_halted = self.cortexm.is_halted()
@@ -515,6 +520,8 @@ class Application:
             self.print_error(f"Stlink error: {err}.")
         except swd.stlink.usb.StlinkUsbException as err:
             self.print_error(f"StlinkCom error: {err}.")
+        except swd.targets.mcu.McuException as err:
+            self.print_error(err)
         else:
             return 0
         return 1

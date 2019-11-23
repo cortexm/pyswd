@@ -1,0 +1,2 @@
+include swd/svd/*.svd
+recursive-include swd/svd/STM32* *.svd

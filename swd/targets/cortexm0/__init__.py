@@ -3,7 +3,9 @@
 
 from swd.targets.cortexm0.stm32f0 import Stm32f0
 
-DEVICES = [
+CORE = "Cortex-M0"
+
+FAMILIES = [
     Stm32f0,
 ]
 

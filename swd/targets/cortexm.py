@@ -2,8 +2,8 @@
 """
 
 import time
-import swd.io.cortexm as _io_cm
-import swd.targets.stm32 as _stm32
+import pkg_resources
+import swd.targets.mcu as _mcu
 import swd.targets.cortexm0 as _cortexm0
 import swd.targets.cortexm0p as _cortexm0p
 import swd.targets.cortexm3 as _cortexm3
@@ -12,13 +12,19 @@ import swd.targets.cortexm7 as _cortexm7
 import swd.targets.cortexm23 as _cortexm23
 import swd.targets.cortexm33 as _cortexm33
 
+CORTEXM_SVD = "svd/cortex-m.svd"
 
-class CortexMException(Exception):
+
+class CortexMError(Exception):
+    """CortexM general error"""
+
+
+class CortexMException(CortexMError):
     """CortexM general exception"""
 
 
 class CortexMNotDetected(Exception):
-    """Exception"""
+    """CortexM not detected exception"""
 
 
 class CortexM:
@@ -39,60 +45,38 @@ class CortexM:
         'Cortex-M33': _cortexm33,
     }
 
-    def create_io(self):
-        """Create IO registers"""
-        cpuid = _io_cm.Cpuid(self._swd)
-        implementer = cpuid.cached.named_value('IMPLEMENTER')
-        partno = cpuid.cached.named_value('PARTNO')
-        if implementer != 'ARM' or partno is None:
-            raise CortexMNotDetected(
-                f"Unknown MCU with CPUID: 0x{cpuid.cached.raw:08x}")
-        self._swd.append_io({
-            cpuid,
-            _io_cm.Aircr(self._swd),
-            _io_cm.DhcsrWrite(self._swd),
-            _io_cm.DhcsrRead(self._swd),
-            _io_cm.Demcr(self._swd),
-        })
-
-    def __init__(self, swd, expected_parts):
+    def __init__(self, swd, expcted_parts=None):
         self._swd = swd
-        self.create_io()
-        cpuid = self._swd.reg('CPUID')
-        self._implementer = cpuid.cached.named_value('IMPLEMENTER')
-        self._core = cpuid.cached.named_value('PARTNO')
-
+        svd_file = pkg_resources.resource_filename('swd', CORTEXM_SVD)
+        self._swd.load_svd(svd_file)
+        cpuid = self.swd.io.SCB.CPUID
+        if cpuid.cached.value in (0x00000000, 0xffffffff):
+            raise CortexMNotDetected(
+                f"CortexM not detected with CPUID: 0x{cpuid.cached.raw:08x}")
+        self._implementer = cpuid.cached.IMPLEMENTER.named_value
+        if self._implementer != 'ARM':
+            raise CortexMNotDetected(
+                f"Unsupported implementer: {self._implementer}")
+        self._core = cpuid.cached.PARTNO.named_value
         if self._core not in self._TARGETS:
             raise CortexMNotDetected(
                 f"Unsupported MCU with core: {self._core}")
-
-        devices = self._TARGETS[self._core].DEVICES
-
-        self._device = None
-        for device in devices:
-            family = device.get_family()
+        families = self._TARGETS[self._core].FAMILIES
+        self._part = None
+        unknow_part_error = None
+        for family in families:
             try:
-                parts = []
-                if expected_parts:
-                    for part in expected_parts:
-                        if part.startswith(family):
-                            parts.append(part)
-                    if not parts:
-                        continue
-                self._device = device(self, parts)
-            except _stm32.UnknownDevice:
-                continue
-            break
+                self._part = family(self, expcted_parts)
+                break
+            except _mcu.UnknownMcuDetected as err:
+                unknow_part_error = err
+        if expcted_parts and not self._part:
+            raise unknow_part_error
 
     @property
     def swd(self):
         """Return instance of SWD"""
         return self._swd
-
-    @property
-    def device(self):
-        """Return instance of device"""
-        return self._device
 
     @property
     def implementer(self):
@@ -103,6 +87,11 @@ class CortexM:
     def core(self):
         """Return core name"""
         return self._core
+
+    @property
+    def part(self):
+        """Return instance part"""
+        return self._part
 
     def name(self):
         """Return controller info string"""
@@ -126,51 +115,56 @@ class CortexM:
         """Read all registers"""
         return dict(zip(CortexM.REGISTERS, self._swd.get_reg_all()))
 
+    def _reset(self):
+        """Reset"""
+        self.swd.io.SCB.AIRCR.cache.value = 0
+        self.swd.io.SCB.AIRCR.cache.VECTKEY.value = "Vector Key"
+        self.swd.io.SCB.AIRCR.cache.SYSRESETREQ.value = True
+        self.swd.io.SCB.AIRCR.write_cache()
+        time.sleep(.01)
+
     def reset(self):
         """Reset"""
-        self._swd.reg('DEMCR').set_bits({
-            'VC_CORERESET': False})
-        self._swd.reg('AIRCR').set_bits({
-            'VECTKEY': 'KEY',
-            'SYSRESETREQ': True})
+        self.swd.io.DCB.DEMCR.VC_CORERESET.value = False
+        self._reset()
         time.sleep(.01)
 
     def reset_halt(self):
         """Reset and halt"""
         self.halt()
-        self._swd.reg('DEMCR').set_bits({
-            'VC_CORERESET': True})
-        self._swd.reg('AIRCR').set_bits({
-            'VECTKEY': 'KEY',
-            'SYSRESETREQ': True})
+        self.swd.io.DCB.DEMCR.VC_CORERESET.value = True
+        self._reset()
         time.sleep(.01)
 
     def halt(self):
         """Halt"""
-        self._swd.reg('DHCSR_W').set_bits({
-            'DBGKEY': 'KEY',
-            'C_DEBUGEN': True,
-            'C_HALT': True})
+        self.swd.io.DCB.DHCSR.cache.value = 0
+        self.swd.io.DCB.DHCSR.cache.DBGKEY.value = "Vector Key"
+        self.swd.io.DCB.DHCSR.cache.C_DEBUGEN.value = True
+        self.swd.io.DCB.DHCSR.cache.C_HALT.value = True
+        self.swd.io.DCB.DHCSR.write_cache()
 
     def step(self):
         """Step"""
-        self._swd.reg('DHCSR_W').set_bits({
-            'DBGKEY': 'KEY',
-            'C_DEBUGEN': True,
-            'C_STEP': True})
+        self.swd.io.DCB.DHCSR.cache.value = 0
+        self.swd.io.DCB.DHCSR.cache.DBGKEY.value = "Vector Key"
+        self.swd.io.DCB.DHCSR.cache.C_DEBUGEN.value = True
+        self.swd.io.DCB.DHCSR.cache.C_STEP.value = True
+        self.swd.io.DCB.DHCSR.write_cache()
 
     def run(self):
         """Enable debug"""
-        self._swd.reg('DHCSR_W').set_bits({
-            'DBGKEY': 'KEY',
-            'C_DEBUGEN': True})
+        self.swd.io.DCB.DHCSR.cache.value = 0
+        self.swd.io.DCB.DHCSR.cache.DBGKEY.value = "Vector Key"
+        self.swd.io.DCB.DHCSR.cache.C_DEBUGEN.value = True
+        self.swd.io.DCB.DHCSR.write_cache()
 
     def nodebug(self):
         """Disable debug"""
-        self._swd.reg('DHCSR_W').set_bits({
-            'DBGKEY': 'KEY',
-            'C_DEBUGEN': False})
+        self.swd.io.DCB.DHCSR.cache.value = 0
+        self.swd.io.DCB.DHCSR.cache.DBGKEY.value = "Vector Key"
+        self.swd.io.DCB.DHCSR.write_cache()
 
     def is_halted(self):
         """check if core is halted"""
-        return self._swd.reg('DHCSR_R').value('S_HALT')
+        return self.swd.io.DCB.DHCSR.S_HALT.value

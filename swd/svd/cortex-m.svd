@@ -1,0 +1,550 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<device schemaVersion="1.1"
+xmlns:xs="http://www.w3.org/2001/XMLSchema-instance"
+xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
+  <name>CORTEXM</name>
+  <version>1.0</version>
+  <description>CORTEXM</description>
+  <!--Bus Interface Properties-->
+  <!--Cortex-M0 is byte addressable-->
+  <addressUnitBits>8</addressUnitBits>
+  <!--the maximum data bit width accessible within a single transfer-->
+  <width>32</width>
+  <!--Register Default Properties-->
+  <size>0x20</size>
+  <resetValue>0x0</resetValue>
+  <resetMask>0xFFFFFFFF</resetMask>
+  <peripherals>
+    <peripheral>
+      <name>SCB</name>
+      <description>System Control Block</description>
+      <groupName></groupName>
+      <baseAddress>0xE000ED00</baseAddress>
+      <addressBlock>
+        <offset>0x0</offset>
+        <size>0x90</size>
+        <usage>registers</usage>
+      </addressBlock>
+      <registers>
+        <register>
+          <name>CPUID</name>
+          <displayName>CPUID Base Register</displayName>
+          <description>Provides identification information for the processor</description>
+          <addressOffset>0x0</addressOffset>
+          <access>read-only</access>
+          <fields>
+            <field>
+              <name>IMPLEMENTER</name>
+              <description>Implementer code assigned by ARM</description>
+              <bitRange>[31:24]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <name>ARM</name>
+                  <description>ARM</description>
+                  <value>0x41</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>VARIANT</name>
+              <description>IMPLEMENTATION DEFINED variant number</description>
+              <bitRange>[23:20]</bitRange>
+            </field>
+            <field>
+              <name>ARCHITECTURE</name>
+              <description>Reads as 0xF</description>
+              <bitRange>[19:16]</bitRange>
+            </field>
+            <field>
+              <name>PARTNO</name>
+              <description>IMPLEMENTATION DEFINED part number</description>
+              <bitRange>[15:4]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Cortex-M0</description>
+                  <value>0xc20</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Cortex-M3</description>
+                  <value>0xc23</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Cortex-M4</description>
+                  <value>0xc24</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Cortex-M7</description>
+                  <value>0xc27</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Cortex-M0+</description>
+                  <value>0xc60</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Cortex-M23</description>
+                  <value>0xd20</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Cortex-M33</description>
+                  <value>0xd21</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>REVISION</name>
+              <description>IMPLEMENTATION DEFINED revision number</description>
+              <bitRange>[3:0]</bitRange>
+            </field>
+          </fields>
+        </register>
+        <register>
+          <name>AIRCR</name>
+          <displayName>Application Interrupt and Reset Control Register</displayName>
+          <description>Sets or returns interrupt control data</description>
+          <addressOffset>0xC</addressOffset>
+          <access>read-write</access>
+          <fields>
+            <field>
+              <name>VECTKEY</name>
+              <description>Vector Key. The value 0x05FA must be written to this register.</description>
+              <bitRange>[31:16]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Vector Key</description>
+                  <value>0x05fa</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>ENDIANNESS</name>
+              <description>Indicates the memory system endianness</description>
+              <bitRange>[15:15]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Little endian</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Big endian</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>SYSRESETREQ</name>
+              <description>System Reset Request</description>
+              <bitRange>[2:2]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Do not request a reset</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Request reset</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>VECTCLRACTIVE</name>
+              <description>Writing 1 to this bit clears all active state information for fixed and configurable exceptions</description>
+              <bitRange>[1:1]</bitRange>
+            </field>
+          </fields>
+        </register>
+      </registers>
+    </peripheral>
+    <peripheral>
+      <name>DCB</name>
+      <description>Debug Control Block</description>
+      <groupName></groupName>
+      <baseAddress>0xE000EDF0</baseAddress>
+      <addressBlock>
+        <offset>0x0</offset>
+        <size>0x10</size>
+        <usage>registers</usage>
+      </addressBlock>
+      <registers>
+        <register>
+          <name>DHCSR</name>
+          <displayName>Debug Halting Control and Status Register</displayName>
+          <description>Controls halting debug</description>
+          <addressOffset>0x0</addressOffset>
+          <access>read-write</access>
+          <fields>
+            <field>
+              <name>DBGKEY</name>
+              <description>Debug key</description>
+              <bitRange>[31:16]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Vector Key</description>
+                  <value>0xa05f</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>S_RESET_ST</name>
+              <description>Indicates whether the processor has been reset since the last read of DHCSR</description>
+              <bitRange>[25:25]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>No reset since last DHCSR read</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>At least one reset since last DHCSR read</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>S_RETIRE_ST</name>
+              <description>Set to 1 every time the processor retires one or more instructions</description>
+              <bitRange>[24:24]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>No instruction retired since last DHCSR read</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>At least one instruction retired since last DHCSR read</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>S_LOCKUP</name>
+              <description>Indicates whether the processor is locked up because of an unrecoverable exception</description>
+              <bitRange>[19:19]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Not locked up</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Locked up</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>S_SLEEP</name>
+              <description>Indicates whether the processor is sleeping</description>
+              <bitRange>[18:18]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Not sleeping</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Sleeping</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>S_HALT</name>
+              <description>Indicates whether the processor is in Debug state</description>
+              <bitRange>[17:17]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>In Non-debug state</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>In Debug state</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>S_REGRDY</name>
+              <description>A handshake flag for transfers through the DCRDR</description>
+              <bitRange>[16:16]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>There has been a write to the DCRDR, but the transfer is not complete</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>The transfer to or from the DCRDR is complete</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>C_SNAPSTALL</name>
+              <description>Allow imprecise entry to Debug state</description>
+              <bitRange>[5:5]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>No action</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Allow imprecise entry to Debug state, for example by forcing any stalled load or store instruction to complete</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>C_MASKINTS</name>
+              <description>When debug is enabled, the debugger can write to this bit to mask PendSV, SysTick and external configurable interrupts</description>
+              <bitRange>[3:3]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Do not mask</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Mask PendSV, SysTick and external configurable interrupts</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>C_STEP</name>
+              <description>Processor step bit</description>
+              <bitRange>[2:2]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>No effect</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Single step enabled</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>C_HALT</name>
+              <description>Processor halt bit</description>
+              <bitRange>[1:1]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Causes the processor to leave Debug state, if in Debug state</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Halt the processor</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>C_DEBUGEN</name>
+              <description>Halting debug enable bit</description>
+              <bitRange>[0:0]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Disabled</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Enabled</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+          </fields>
+        </register>
+        <register>
+          <name>DEMCR</name>
+          <displayName>Debug Exception and Monitor Control Register</displayName>
+          <description>Manages vector catch behavior and DebugMonitor handling when debugging</description>
+          <addressOffset>0xC</addressOffset>
+          <access>read-write</access>
+          <fields>
+            <field>
+              <name>TRCENA</name>
+              <description>Global enable for all DWT and ITM features</description>
+              <bitRange>[24:24]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>DWT and ITM units disabled</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>DWT and ITM units enabled</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>MON_REQ</name>
+              <description>DebugMonitor semaphore bit</description>
+              <bitRange>[19:19]</bitRange>
+            </field>
+            <field>
+              <name>MON_STEP</name>
+              <description>When MON_EN is set to 0, this feature is disabled and the processor ignores MON_STEP</description>
+              <bitRange>[18:18]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Do not step the processor</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Step the processor</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>MON_PEND</name>
+              <description>Sets or clears the pending state of the DebugMonitor exception</description>
+              <bitRange>[17:17]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Clear the status of the DebugMonitor exception to not pending</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Set the status of the DebugMonitor exception to pending</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>MON_EN</name>
+              <description>Enable the DebugMonitor exception</description>
+              <bitRange>[16:16]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>DebugMonitor exception disabled</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>DebugMonitor exception enabled</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>VC_HARDERR</name>
+              <description>Enable halting debug trap on a HardFault exception</description>
+              <bitRange>[10:10]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Halting debug trap disabled</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Halting debug trap enabled</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>VC_INTERR</name>
+              <description>Enable halting debug trap on a fault occurring during exception entry or exception return</description>
+              <bitRange>[9:9]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Halting debug trap disabled</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Halting debug trap enabled</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>VC_BUSERR</name>
+              <description>Enable halting debug trap on a BusFault exception</description>
+              <bitRange>[8:8]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Halting debug trap disabled</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Halting debug trap enabled</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>VC_STATERR</name>
+              <description>Enable halting debug trap on a UsageFault exception caused by a state information error, for example an Undefined Instruction exception</description>
+              <bitRange>[7:7]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Halting debug trap disabled</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Halting debug trap enabled</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>VC_CHKERR</name>
+              <description>Enable halting debug trap on a UsageFault exception caused by a checking error, for example an alignment check error</description>
+              <bitRange>[6:6]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Halting debug trap disabled</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Halting debug trap enabled</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>VC_NOCPERR</name>
+              <description>Enable halting debug trap on a UsageFault caused by an access to a Coprocessor</description>
+              <bitRange>[5:5]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Halting debug trap disabled</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Halting debug trap enabled</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>VC_MMERR</name>
+              <description>Enable halting debug trap on a MemManage exception</description>
+              <bitRange>[4:4]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Halting debug trap disabled</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Halting debug trap enabled</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>VC_CORERESET</name>
+              <description>Enable Reset Vector Catch</description>
+              <bitRange>[0:0]</bitRange>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <description>Reset Vector Catch disabled</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <description>Reset Vector Catch enabled</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+          </fields>
+        </register>
+      </registers>
+    </peripheral>
+  </peripherals>
+</device>

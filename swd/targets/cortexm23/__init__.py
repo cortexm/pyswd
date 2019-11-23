@@ -1,8 +1,9 @@
 """Cortex-M23 package
 """
 
+CORE = "Cortex-M23"
 
-DEVICES = [
+FAMILIES = [
 ]
 
 __all__ = [

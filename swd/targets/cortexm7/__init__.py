@@ -3,7 +3,9 @@
 
 from swd.targets.cortexm7.stm32h7 import Stm32h7
 
-DEVICES = [
+CORE = "Cortex-M7"
+
+FAMILIES = [
     Stm32h7,
 ]
 

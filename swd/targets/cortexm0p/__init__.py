@@ -1,8 +1,9 @@
 """Cortex-M0+ package
 """
 
+CORE = "Cortex-M0+"
 
-DEVICES = [
+FAMILIES = [
 ]
 
 __all__ = [

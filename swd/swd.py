@@ -3,6 +3,7 @@
 
 import itertools as _itertools
 from swd.stlink import Stlink as _Stlink
+from swd.svd import Svd as _Svd
 
 
 class SwdException(Exception):
@@ -21,23 +22,28 @@ class Swd:
                 serial_no=serial_no,
                 debug=debug)
         self._drv = driver
-        self._io = {}
+        self._svd = _Svd(self)
 
-    def append_io(self, registers):
-        """Append bitfield registers"""
-        for register in registers:
-            self._io[register.name] = register
-        # self._io.update(registers)
+    def load_svd(self, svd_file):
+        """import SVD file"""
+        self._svd.parse_svd(svd_file)
+        self._svd.validate()
+        print(self._svd)
+        if self._svd.cpu:
+            print(f": {self._svd.cpu}")
+        for peripheral in self._svd.peripherals:
+            print(f": {peripheral}")
+        #     for register in peripheral.registers:
+        #         print(f"  : {register}")
+        #         for field in register.fields:
+        #             print(f"    : {field}")
+        #             for enumerated_value in field.enumerated_values:
+        #                 print(f"      : {enumerated_value}")
 
-    def reg(self, reg_name):
-        """Access bitfield register"""
-        if reg_name not in self._io:
-            raise SwdException(f"Register {reg_name} is not defined")
-        return self._io[reg_name]
-
-    def reg_list(self):
-        """Access bitfield register"""
-        return self._io.keys()
+    @property
+    def io(self):
+        """Return instance to registers from SVD"""
+        return self._svd
 
     def get_version(self):
         """Get SWD driver version
@@ -126,6 +132,54 @@ class Swd:
             data: 32 bit number
         """
         self._drv.set_mem32(address, data)
+
+    def get_mem16(self, address):
+        """Get 16 bit memory register with 16 bit memory access.
+
+        Address must be aligned to 4 Bytes.
+
+        Arguments:
+            address: address in memory
+
+        Return:
+            return 16 bit number
+        """
+        return self._drv.get_mem16(address)
+
+    def set_mem16(self, address, data):
+        """Set 16 bit memory register with 16 bit memory access.
+
+        Address must be aligned to 4 Bytes.
+
+        Arguments:
+            address: address in memory
+            data: 16 bit number
+        """
+        self._drv.set_mem16(address, data)
+
+    def get_mem8(self, address):
+        """Get 8 bit memory register with 8 bit memory access.
+
+        Address must be aligned to 4 Bytes.
+
+        Arguments:
+            address: address in memory
+
+        Return:
+            return 8 bit number
+        """
+        return self._drv.get_mem8(address)
+
+    def set_mem8(self, address, data):
+        """Set 8 bit memory register with 8 bit memory access.
+
+        Address must be aligned to 4 Bytes.
+
+        Arguments:
+            address: address in memory
+            data: 8 bit number
+        """
+        self._drv.set_mem8(address, data)
 
     def _get_chunk_size_to_align_size(self, address, size):
         if size > self._drv.maximum_8bit_data:

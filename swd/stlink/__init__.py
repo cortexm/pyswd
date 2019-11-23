@@ -1,6 +1,7 @@
 """Stlink package
 """
 
+import struct as _struct
 import swd.stlink.com as _com
 import swd.stlink.usb as _usb
 
@@ -115,6 +116,7 @@ class Stlink:
         if not com:
             com = _com.StlinkCom(usb, debug=debug)
         self._com = com
+        self._check_last_error_status = True
         self._version = self._read_version()
         self._leave_state()
         if swd_frequency:
@@ -311,6 +313,70 @@ class Stlink:
         _check_alignment(4, address=address)
         status = self._com.set_mem32(address, value)
         _check_status(status)
+
+    def get_mem16(self, address):
+        """Get 16 bit memory register with 16 bit memory access.
+
+        Address must be aligned to 4 Bytes.
+
+        Arguments:
+            address: address in memory
+
+        Return:
+            return 16 bit number
+        """
+        _check_alignment(2, address=address)
+        data = self._com.read_mem16(address, 2)
+        if self._check_last_error_status:
+            self._check_last_rw_state()
+        value, = _struct.unpack('<H', data)
+        return value
+
+    def set_mem16(self, address, value):
+        """Set 16 bit memory register with 16 bit memory access.
+
+        Address must be aligned to 4 Bytes.
+
+        Arguments:
+            address: address in memory
+            value: 16 bit number
+        """
+        _check_alignment(2, address=address)
+        data = _struct.pack('<H', value)
+        self._com.write_mem16(address, data)
+        if self._check_last_error_status:
+            self._check_last_rw_state()
+
+    def get_mem8(self, address):
+        """Get 8 bit memory register with 8 bit memory access.
+
+        Address must be aligned to 4 Bytes.
+
+        Arguments:
+            address: address in memory
+
+        Return:
+            return 8 bit number
+        """
+        _check_alignment(2, address=address)
+        data = self._com.read_mem8(address, 1)
+        if self._check_last_error_status:
+            self._check_last_rw_state()
+        return data[0]
+
+    def set_mem8(self, address, value):
+        """Set 8 bit memory register with 8 bit memory access.
+
+        Address must be aligned to 4 Bytes.
+
+        Arguments:
+            address: address in memory
+            value: 8 bit number
+        """
+        _check_alignment(2, address=address)
+        self._com.write_mem8(address, [value])
+        if self._check_last_error_status:
+            self._check_last_rw_state()
 
     def _check_last_rw_state(self):
         status, fault_address = self._com.get_last_rw_state_ex()
