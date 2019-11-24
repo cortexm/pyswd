@@ -149,6 +149,21 @@ class Field(_Element):
             value = bool(value)
         return value
 
+    @property
+    def str_value(self):
+        value = self.numeric_value
+        for enumerated_value in self._enumerated_values:
+            if value == enumerated_value.value:
+                if enumerated_value.name:
+                    return enumerated_value.name
+        if self.mask == 1:
+            value = f"{bool(value)}"
+        elif self.mask < 10:
+            value = f"{value}"
+        else:
+            value = f"0x{value:0{(self.width + 3) // 4}x}"
+        return value
+
     def _convert_value(self, value):
         if isinstance(value, int):
             pass
@@ -189,9 +204,9 @@ class Field(_Element):
         return self._enumerated_values
 
     def _enumerated_value(self, name):
-        name = name.lower()
+        name = name.upper()
         for enumerated_value in self._enumerated_values:
-            if name == enumerated_value.name.lower():
+            if name == enumerated_value.name.upper():
                 return enumerated_value
         raise SvdException(f"EnumeratedValue name '{name}' not found.")
 
@@ -275,6 +290,7 @@ class Register(_Element):
         return self._fields
 
     def field(self, name):
+        name = name.upper()
         for field in self._fields:
             if field.name == name:
                 return field
@@ -408,6 +424,7 @@ class Peripheral(_Element):
         return self._registers
 
     def register(self, name):
+        name = name.upper()
         for register in self._registers:
             if register.name == name:
                 return register
@@ -544,6 +561,7 @@ class Svd(_Element):
         return self._peripherals
 
     def peripheral(self, name):
+        name = name.upper()
         for peripheral in self._peripherals:
             if peripheral.name == name:
                 return peripheral

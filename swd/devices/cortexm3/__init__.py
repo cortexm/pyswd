@@ -1,8 +1,8 @@
 """Cortex-M3 package
 """
 
-from swd.targets.cortexm3.stm32f1 import Stm32f1
-from swd.targets.cortexm3.stm32l1 import Stm32l1
+from swd.devices.cortexm3.stm32f1 import Stm32f1
+from swd.devices.cortexm3.stm32l1 import Stm32l1
 
 CORE = "Cortex-M3"
 

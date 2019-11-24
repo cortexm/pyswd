@@ -1,6 +1,6 @@
 """STM32F1xx"""
 
-import swd.targets.stm32 as _stm32
+import swd.devices.stm32 as _stm32
 
 
 class Stm32f1(_stm32.Stm32):

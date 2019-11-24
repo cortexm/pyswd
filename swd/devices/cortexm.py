@@ -1,16 +1,16 @@
 """Cortex-Mx definitions
 """
 
-import time
+import time as _time
 import pkg_resources
-import swd.targets.mcu as _mcu
-import swd.targets.cortexm0 as _cortexm0
-import swd.targets.cortexm0p as _cortexm0p
-import swd.targets.cortexm3 as _cortexm3
-import swd.targets.cortexm4 as _cortexm4
-import swd.targets.cortexm7 as _cortexm7
-import swd.targets.cortexm23 as _cortexm23
-import swd.targets.cortexm33 as _cortexm33
+import swd.devices.mcu as _mcu
+import swd.devices.cortexm0 as _cortexm0
+import swd.devices.cortexm0p as _cortexm0p
+import swd.devices.cortexm3 as _cortexm3
+import swd.devices.cortexm4 as _cortexm4
+import swd.devices.cortexm7 as _cortexm7
+import swd.devices.cortexm23 as _cortexm23
+import swd.devices.cortexm33 as _cortexm33
 
 CORTEXM_SVD = "svd/cortex-m.svd"
 
@@ -48,8 +48,9 @@ class CortexM:
     def __init__(self, swd, expcted_parts=None):
         self._swd = swd
         svd_file = pkg_resources.resource_filename('swd', CORTEXM_SVD)
-        self._swd.load_svd(svd_file)
-        cpuid = self.swd.io.SCB.CPUID
+        self.swd.load_svd(svd_file)
+        self._io = self.swd.io
+        cpuid = self.swd.io.CM_SCB.CPUID
         if cpuid.cached.value in (0x00000000, 0xffffffff):
             raise CortexMNotDetected(
                 f"CortexM not detected with CPUID: 0x{cpuid.cached.raw:08x}")
@@ -117,54 +118,54 @@ class CortexM:
 
     def _reset(self):
         """Reset"""
-        self.swd.io.SCB.AIRCR.cache.value = 0
-        self.swd.io.SCB.AIRCR.cache.VECTKEY.value = "Vector Key"
-        self.swd.io.SCB.AIRCR.cache.SYSRESETREQ.value = True
-        self.swd.io.SCB.AIRCR.write_cache()
-        time.sleep(.01)
+        self.swd.io.CM_SCB.AIRCR.cache.value = 0
+        self.swd.io.CM_SCB.AIRCR.cache.VECTKEY.value = "KEY"
+        self.swd.io.CM_SCB.AIRCR.cache.SYSRESETREQ.value = True
+        self.swd.io.CM_SCB.AIRCR.write_cache()
+        _time.sleep(.01)
 
     def reset(self):
         """Reset"""
-        self.swd.io.DCB.DEMCR.VC_CORERESET.value = False
+        self.swd.io.CM_DCB.DEMCR.VC_CORERESET.value = False
         self._reset()
-        time.sleep(.01)
+        _time.sleep(.01)
 
     def reset_halt(self):
         """Reset and halt"""
         self.halt()
-        self.swd.io.DCB.DEMCR.VC_CORERESET.value = True
+        self.swd.io.CM_DCB.DEMCR.VC_CORERESET.value = True
         self._reset()
-        time.sleep(.01)
+        _time.sleep(.01)
 
     def halt(self):
         """Halt"""
-        self.swd.io.DCB.DHCSR.cache.value = 0
-        self.swd.io.DCB.DHCSR.cache.DBGKEY.value = "Vector Key"
-        self.swd.io.DCB.DHCSR.cache.C_DEBUGEN.value = True
-        self.swd.io.DCB.DHCSR.cache.C_HALT.value = True
-        self.swd.io.DCB.DHCSR.write_cache()
+        self.swd.io.CM_DCB.DHCSR.cache.value = 0
+        self.swd.io.CM_DCB.DHCSR.cache.DBGKEY.value = "KEY"
+        self.swd.io.CM_DCB.DHCSR.cache.C_DEBUGEN.value = True
+        self.swd.io.CM_DCB.DHCSR.cache.C_HALT.value = True
+        self.swd.io.CM_DCB.DHCSR.write_cache()
 
     def step(self):
         """Step"""
-        self.swd.io.DCB.DHCSR.cache.value = 0
-        self.swd.io.DCB.DHCSR.cache.DBGKEY.value = "Vector Key"
-        self.swd.io.DCB.DHCSR.cache.C_DEBUGEN.value = True
-        self.swd.io.DCB.DHCSR.cache.C_STEP.value = True
-        self.swd.io.DCB.DHCSR.write_cache()
+        self.swd.io.CM_DCB.DHCSR.cache.value = 0
+        self.swd.io.CM_DCB.DHCSR.cache.DBGKEY.value = "KEY"
+        self.swd.io.CM_DCB.DHCSR.cache.C_DEBUGEN.value = True
+        self.swd.io.CM_DCB.DHCSR.cache.C_STEP.value = True
+        self.swd.io.CM_DCB.DHCSR.write_cache()
 
     def run(self):
         """Enable debug"""
-        self.swd.io.DCB.DHCSR.cache.value = 0
-        self.swd.io.DCB.DHCSR.cache.DBGKEY.value = "Vector Key"
-        self.swd.io.DCB.DHCSR.cache.C_DEBUGEN.value = True
-        self.swd.io.DCB.DHCSR.write_cache()
+        self.swd.io.CM_DCB.DHCSR.cache.value = 0
+        self.swd.io.CM_DCB.DHCSR.cache.DBGKEY.value = "KEY"
+        self.swd.io.CM_DCB.DHCSR.cache.C_DEBUGEN.value = True
+        self.swd.io.CM_DCB.DHCSR.write_cache()
 
     def nodebug(self):
         """Disable debug"""
-        self.swd.io.DCB.DHCSR.cache.value = 0
-        self.swd.io.DCB.DHCSR.cache.DBGKEY.value = "Vector Key"
-        self.swd.io.DCB.DHCSR.write_cache()
+        self.swd.io.CM_DCB.DHCSR.cache.value = 0
+        self.swd.io.CM_DCB.DHCSR.cache.DBGKEY.value = "KEY"
+        self.swd.io.CM_DCB.DHCSR.write_cache()
 
     def is_halted(self):
         """check if core is halted"""
-        return self.swd.io.DCB.DHCSR.S_HALT.value
+        return self.swd.io.CM_DCB.DHCSR.S_HALT.value

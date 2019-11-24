@@ -1,9 +1,9 @@
 """STM32"""
 
-import swd.targets.memory as _memory
-import swd.targets.mcu as _mcu
+import swd.devices.memory as _memory
+import swd.devices.mcu as _mcu
 
-import pkg_resources
+import pkg_resources as _pkg
 
 
 class UnknownMcuDetected(_mcu.UnknownMcuDetected):
@@ -59,12 +59,6 @@ class Stm32(_mcu.Mcu):
         self._mcus = mcus
         self._flash_size = flash_size
         self._sram_sizes = {mcu['sram_size'] for mcu in mcus}
-        svd_files = self._mcu_values(mcus, 'svd_file')
-        if len(svd_files) == 1:
-            svd_file = pkg_resources.resource_filename('swd', svd_files.pop())
-            self.swd.load_svd(svd_file)
-        elif len(svd_files) > 1:
-            print("Specify MCU to load SVD file")
         # self._memory_regions = [
         #     {
         #         'type': 'FLASH',
@@ -194,6 +188,7 @@ class Stm32(_mcu.Mcu):
                 fixed_names.add(fixed_name)
         return fixed_names
 
+
     @property
     def cortexm(self):
         """Instance of CortexM"""
@@ -217,8 +212,11 @@ class Stm32(_mcu.Mcu):
         """Return list of supposed MCU names"""
         return " / ".join(self._get_mcu_names(self._mcus))
 
-    def get_mcu_revision(self):
-        """Return revision string"""
-        major = self.swd.reg('IDCODE').cached.get('REV_ID_MAJOR')
-        minor = self.swd.reg('IDCODE').cached.get('REV_ID_MINOR')
-        return f"{major:d}.{minor:d}"
+    def load_svd(self):
+        svd_files = self._mcu_values(self._mcus, 'svd_file')
+        if len(svd_files) == 1:
+            svd_file = _pkg.resource_filename('swd', svd_files.pop())
+            self.swd.load_svd(svd_file)
+        elif len(svd_files) > 1:
+            raise _mcu.McuException("Specify MCU to load SVD file")
+

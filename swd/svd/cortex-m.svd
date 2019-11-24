@@ -2,21 +2,20 @@
 <device schemaVersion="1.1"
 xmlns:xs="http://www.w3.org/2001/XMLSchema-instance"
 xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
+  <!--These registers has prefix `CM_`
+  to avoid overwriting by other .svd files
+  which can have different naming-->
   <name>CORTEXM</name>
   <version>1.0</version>
   <description>CORTEXM</description>
-  <!--Bus Interface Properties-->
-  <!--Cortex-M0 is byte addressable-->
   <addressUnitBits>8</addressUnitBits>
-  <!--the maximum data bit width accessible within a single transfer-->
   <width>32</width>
-  <!--Register Default Properties-->
   <size>0x20</size>
   <resetValue>0x0</resetValue>
   <resetMask>0xFFFFFFFF</resetMask>
   <peripherals>
     <peripheral>
-      <name>SCB</name>
+      <name>CM_SCB</name>
       <description>System Control Block</description>
       <groupName></groupName>
       <baseAddress>0xE000ED00</baseAddress>
@@ -117,6 +116,7 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitRange>[31:16]</bitRange>
               <enumeratedValues>
                 <enumeratedValue>
+                  <name>KEY</name>
                   <description>Vector Key</description>
                   <value>0x05fa</value>
                 </enumeratedValue>
@@ -162,7 +162,7 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
       </registers>
     </peripheral>
     <peripheral>
-      <name>DCB</name>
+      <name>CM_DCB</name>
       <description>Debug Control Block</description>
       <groupName></groupName>
       <baseAddress>0xE000EDF0</baseAddress>
@@ -185,6 +185,7 @@ xs:noNamespaceSchemaLocation="CMSIS-SVD_Schema_1_1.xsd">
               <bitRange>[31:16]</bitRange>
               <enumeratedValues>
                 <enumeratedValue>
+                  <name>KEY</name>
                   <description>Vector Key</description>
                   <value>0xa05f</value>
                 </enumeratedValue>

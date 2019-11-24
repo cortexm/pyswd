@@ -5,11 +5,12 @@ import sys
 import time
 import argparse
 import itertools
+import logging
 import swd
 import swd.stlink
 import swd.stlink.usb
 import swd.__about__
-import swd.targets
+import swd.devices
 
 
 class PyswdException(Exception):
@@ -181,42 +182,37 @@ class Application:
         self._swd = None
         self._cortexm = None
         self._svd_file = args.svd
-        self._info = args.info
+        # self._info = args.info
         self._verbose = args.verbose
-        self._debug = args.debug
+        logging.basicConfig(format='%(levelname).1s: %(message)s')
+        self._logger = logging.getLogger('swd:stlink:usb')
+        self._logger.setLevel(logging.INFO + 1 - args.info)
+        if args.debug:
+            logger_usb = logging.getLogger('swd:stlink:usb')
+            logger_usb.setLevel(logging.DEBUG + 1 - args.debug)
         if args.quite:
-            self._info = -1
-            self._verbose = -1
-            self._debug = -1
+            self._logger.setLevel(logging.ERROR)
+            # self._info = 0
+            self._verbose = 0
         self._actions = args.action
         self._swd_frequency = args.freq
         self._serial_no = args.serial
         self._expected_parts = args.cpu
 
-    def print_info(self, msg, level=1, prefix="I: "):
-        """Print info string"""
-        if self._info >= level:
-            sys.stderr.write(f"{prefix}{msg}\n")
+    # def print_info(self, msg, level=0):
+    #     """Print info string"""
+    #     if self._info >= level:
+    #         sys.stderr.write(f"{prefix}{msg}\n")
 
-    def print_verbose(self, msg, level=1, prefix="V: "):
-        """Print info string"""
-        if self._verbose >= level:
-            sys.stderr.write(f"{prefix}{msg}\n")
+    # def print_warning(self, msg, prefix="W: "):
+    #     """Print info string"""
+    #     if self._info >= 0:
+    #         sys.stderr.write(f"{prefix}{msg}\n")
 
-    def print_debug(self, msg, level=1, prefix="D: "):
-        """Print info string"""
-        if self._debug >= level:
-            sys.stderr.write(f"{prefix}{msg}\n")
-
-    def print_warning(self, msg, prefix="W: "):
-        """Print info string"""
-        if self._info >= 0:
-            sys.stderr.write(f"{prefix}{msg}\n")
-
-    @staticmethod
-    def print_error(msg, prefix="E: "):
-        """Print info string"""
-        sys.stderr.write(f"{prefix}{msg}\n")
+    # @staticmethod
+    # def print_error(msg, prefix="E: "):
+    #     """Print info string"""
+    #     sys.stderr.write(f"{prefix}{msg}\n")
 
     @property
     def cortexm(self):
@@ -225,31 +221,89 @@ class Application:
             raise PyswdException("This is not CortexM")
         return self._cortexm
 
-    def print_io(self, reg_name):
-        """Print IO register content"""
-        bitf_reg = self._swd.reg(reg_name)
-        bitf_reg.discard_cache()
-        print(f"{(' ' + reg_name):_>16s} : value ____")
-        for reg in bitf_reg.field_names:
-            print(f"{reg:>16s} : {str(bitf_reg.cached.string_value(reg)):>10s}")
+    # def print_io(self, io_reg):
+    #     """Print IO register content"""
+    #     io_reg.discard_cache()
+    #     print(f"{(' ' + reg_name):_>16s} : value ____")
+    #     for reg in bitf_reg.field_names:
+    #         print(f"{reg:>16s} : {str(bitf_reg.cached.string_value(reg)):>10s}")
 
-    def print_io_registers(self):
-        """Print IO register content"""
-        print("__ register name : _ address  : value ____")
-        for reg_name in sorted(self._swd.reg_list()):
-            self._swd.reg(reg_name).discard_cache()
-            address = self._swd.reg(reg_name).address
-            value = self._swd.reg(reg_name).raw
-            bits4 = (self._swd.reg(reg_name).size + 3) // 4
-            print(f"{reg_name:>16s} : 0x{address:08x} : 0x{value:0{bits4}x}")
+    # def print_io_registers(self):
+    #     """Print IO register content"""
+    #     print("__ register name : _ address  : value ____")
+    #     for reg_name in sorted(self._swd.reg_list()):
+    #         self._swd.reg(reg_name).discard_cache()
+    #         address = self._swd.reg(reg_name).address
+    #         value = self._swd.reg(reg_name).raw
+    #         bits4 = (self._swd.reg(reg_name).size + 3) // 4
+    #         print(f"{reg_name:>16s} : 0x{address:08x} : 0x{value:0{bits4}x}")
+
+    def _print_peripherals(self):
+        """Print list of peripherals"""
+        for peripheral in self._swd.io.peripherals:
+            print(
+                f"0x{peripheral.base_address:08x}:"
+                f" {peripheral.name:12s}"
+                f" ({peripheral.description:s})")
+
+    @staticmethod
+    def _print_registers(peripheral):
+        """Print list of peripherals"""
+        print(f"{peripheral.name:s}  ({peripheral.description:s})")
+        for register in peripheral.registers:
+            print(
+                f"0x{register.address:08x}:"
+                f" 0x{register.value:08x}"
+                f" : {register.name:12s}"
+                f" ({register.description})")
+
+    @staticmethod
+    def _print_fields(register):
+        """Print list of peripherals"""
+        register.discard_cache()
+        register = register.cached
+        print(
+            f"0x{register.address:08x}:"
+            f" 0x{register.value:08x}"
+            f" : {register.peripheral.name:s}.{register.name:s}"
+            f" ({register.description})")
+        for field in register.fields:
+            print(
+                f"[{field.offset:02}:{field.offset + field.width - 1:02}]:"
+                f" {field.str_value:10s}"
+                f" : {field.name:12s}"
+                f" ({field.description})")
 
     def action_dumpio(self, params):
-        """Dump memory 32 bit"""
-        if params:
-            for reg_name in params:
-                self.print_io(reg_name)
-        else:
-            self.print_io_registers()
+        """Dump memory 32 bit
+
+        [peripheral[:register[:field]]]
+        """
+        if not params:
+            self._print_peripherals()
+            return
+        for param in params:
+            param_parts = param.split('.')
+            # print list of registers:
+            peripheral_name, *param_parts = param_parts
+            peripheral_name = peripheral_name.upper()
+            peripheral = self._swd.io.peripheral(peripheral_name)
+            if not peripheral:
+                raise PyswdException(
+                    f"Peripheral `{peripheral_name}` was not found")
+            if not param_parts:
+                self._print_registers(peripheral)
+                return
+            # print list fields
+            register_name, *param_parts = param_parts
+            register_name = register_name.upper()
+            register = peripheral.register(register_name)
+            if not register:
+                raise PyswdException(
+                    f"Register `{register_name}` was not found")
+            if not param_parts:
+                self._print_fields(register)
+                return
 
     def print_buffer(self, addr, data, hex_line=hex_line8):
         """Print buffer in hex and ASCII"""
@@ -458,7 +512,7 @@ class Application:
     def process_actions(self):
         """Process all actions"""
         for action in self._actions:
-            self.print_debug("ACTION: %s" % action)
+            self._logger.log(logging.INFO - 2, "ACTION: %s", action)
             action_parts = action.split(":")
             action_name = "action_" + action_parts[0]
             if not hasattr(self, action_name):
@@ -473,9 +527,8 @@ class Application:
         try:
             self._swd = swd.Swd(
                 swd_frequency=self._swd_frequency,
-                serial_no=self._serial_no,
-                debug=self._debug)
-            self.print_info(self._swd.get_version(), level=2)
+                serial_no=self._serial_no)
+            self._logger.log(logging.INFO - 1, self._swd.get_version())
             idcode = self._swd.get_idcode()
             if idcode == 0:
                 raise PyswdException(
@@ -483,17 +536,20 @@ class Application:
             was_halted = None
             try:
                 self._cortexm = swd.CortexM(self._swd, self._expected_parts)
-            except swd.targets.cortexm.CortexMNotDetected as err:
-                self.print_warning(err)
+            except swd.devices.cortexm.CortexMNotDetected as err:
+                self._logger.warning(err)
             else:
-                self.print_info(f"CORE: {self.cortexm.name()}")
+                self._logger.info("CORE: %s", self.cortexm.name())
                 if self.cortexm.part:
                     part = self.cortexm.part
-                    self.print_info(
-                        f"PART: {part.get_mcu_name()}")
+                    self._logger.info("PART: %s", part.get_mcu_name())
+                    try:
+                        part.load_svd()
+                    except swd.devices.mcu.McuException as err:
+                        self._logger.warning(err)
                 was_halted = self.cortexm.is_halted()
                 if was_halted:
-                    self.print_info("Core is halted.")
+                    self._logger.info("Core is halted.")
             if self._svd_file:
                 self._swd.load_svd(self._svd_file)
             if self._actions:
@@ -501,27 +557,27 @@ class Application:
                 is_halted = self.cortexm.is_halted()
                 if was_halted != is_halted:
                     if is_halted:
-                        self.print_info("Core stay halted.")
+                        self._logger.info("Core stay halted.")
                     else:
-                        self.print_info("Core is running.")
+                        self._logger.info("Core is running.")
         except swd.stlink.usb.NoDeviceFoundException:
-            self.print_error("ST-Link not connected.")
+            self._logger.error("ST-Link not connected.")
         except swd.stlink.usb.MoreDevicesException as err:
-            self.print_error(
-                f"ST-Link Found more devices with these serial numbers:")
+            self._logger.error(
+                "ST-Link Found more devices with these serial numbers:")
             for serial_number in err.serial_numbers:
-                self.print_error(serial_number, prefix="  ")
-            self.print_error("Use parameter: -s serial_no", prefix="")
+                sys.stderr.write(f"  {serial_number}\n")
+            sys.stderr.write("Use parameter: -s serial_no\n")
         except PyswdException as err:
-            self.print_error(f"Pyswd error: {err}.")
+            self._logger.error("Pyswd error: %s.", err)
         except swd.swd.SwdException as err:
-            self.print_error(f"Swd error: {err}.")
+            self._logger.error("Swd error: %s.", err)
         except swd.stlink.StlinkException as err:
-            self.print_error(f"Stlink error: {err}.")
+            self._logger.error("Stlink error: %s.", err)
         except swd.stlink.usb.StlinkUsbException as err:
-            self.print_error(f"StlinkCom error: {err}.")
-        except swd.targets.mcu.McuException as err:
-            self.print_error(err)
+            self._logger.error("StlinkCom error: %s.", err)
+        except swd.devices.mcu.McuException as err:
+            self._logger.error("MCU error: %s.", err)
         else:
             return 0
         return 1

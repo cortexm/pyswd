@@ -13,14 +13,16 @@ class SwdException(Exception):
 class Swd:
     """Swd class"""
 
-    def __init__(self, swd_frequency=None, driver=None, serial_no='', debug=0):
-        self._debug = debug
+    def __init__(
+            self,
+            swd_frequency=None,
+            driver=None,
+            serial_no=''):
         if driver is None:
             # default SWD driver is Stlink
             driver = _Stlink(
                 swd_frequency=swd_frequency,
-                serial_no=serial_no,
-                debug=debug)
+                serial_no=serial_no)
         self._drv = driver
         self._svd = _Svd(self)
 
@@ -28,17 +30,6 @@ class Swd:
         """import SVD file"""
         self._svd.parse_svd(svd_file)
         self._svd.validate()
-        print(self._svd)
-        if self._svd.cpu:
-            print(f": {self._svd.cpu}")
-        for peripheral in self._svd.peripherals:
-            print(f": {peripheral}")
-        #     for register in peripheral.registers:
-        #         print(f"  : {register}")
-        #         for field in register.fields:
-        #             print(f"    : {field}")
-        #             for enumerated_value in field.enumerated_values:
-        #                 print(f"      : {enumerated_value}")
 
     @property
     def io(self):

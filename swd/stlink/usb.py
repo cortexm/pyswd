@@ -1,8 +1,8 @@
 """ST-Link USB communication
 """
 
-import sys as _sys
 import usb as _usb
+import logging as _logging
 
 
 class StlinkUsbError(Exception):
@@ -186,23 +186,15 @@ class StlinkUsb:
                 del dev
         return filtered_devices
 
-    def print_debug(self, msg, level=0):
-        """Print info string"""
-        if self._debug >= level:
-            _sys.stderr.write(f"D: {msg}\n")
-
-    def print_debug_data(self, msg, data, level=0):
+    def print_debug_data(self, msg, data):
         """Print info string with hexadecimal representation of data"""
-        if self._debug >= level:
-            if data is None:
-                _sys.stderr.write(f"{msg}\n")
-            else:
-                _sys.stderr.write(
-                    f"{msg}: {' '.join([f'{i:02x}' for i in data])}\n")
+        if self._logger.isEnabledFor(_logging.DEBUG):
+            self._logger.debug(
+                msg=f"{msg}: {' '.join([f'{i:02x}' for i in data])}")
 
-    def __init__(self, serial_no='', debug=0):
+    def __init__(self, serial_no=''):
+        self._logger = _logging.getLogger('swd:stlink:usb')
         self._dev = None
-        self._debug = debug
         devices = StlinkUsb._find_all_devices()
         if serial_no:
             devices = StlinkUsb._filter_devices(devices, serial_no)
@@ -235,24 +227,24 @@ class StlinkUsb:
         """
         if not isinstance(command, bytes):
             raise StlinkUsbError("command is not type of bytes")
-        self.print_debug_data("command", command, level=3)
+        self.print_debug_data("command", command)
         if len(command) > self._STLINK_CMD_SIZE:
             raise StlinkUsbError(
                 "Error too many Bytes in command (maximum is %d Bytes)"
                 % self._STLINK_CMD_SIZE)
         # pad to _STLINK_CMD_SIZE
         command += b'\x00' * (self._STLINK_CMD_SIZE - len(command))
-        self.print_debug_data("USB:WR", command, level=4)
+        self.print_debug_data("USB:WR", command)
         self._dev.write(command, timeout)
         if data:
             if not isinstance(data, bytes):
                 raise StlinkUsbError("data are not type of bytes")
-            self.print_debug_data("USB:WR", data, level=4)
+            self.print_debug_data("USB:WR", data)
             self._dev.write(data, timeout)
         if rx_length:
             # minimum read length is 2 bytes
             data = self._dev.read(max(2, rx_length))
-            self.print_debug_data("USB:RD", data, level=4)
+            self.print_debug_data("USB:RD", data)
             if len(data) != rx_length:
                 data = data[:rx_length]
             return data

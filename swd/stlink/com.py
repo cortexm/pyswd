@@ -194,14 +194,13 @@ class StlinkCom:
 
     STLINK_MAXIMUM_8BIT_DATA = 64
 
-    def __init__(self, usb, debug=0):
+    def __init__(self, usb):
         """Stlink constructor
 
         Attributes:
             serial_no: serial number or part (begin or end
             debug: debug level
         """
-        self._debug = debug
         self._usb = usb
 
     @property

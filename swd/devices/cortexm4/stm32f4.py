@@ -1,7 +1,7 @@
 """STM32F4xx"""
 
-import swd.targets.memory as _mem
-import swd.targets.stm32 as _stm32
+import swd.devices.memory as _mem
+import swd.devices.stm32 as _stm32
 
 
 class Stm32f4(_stm32.Stm32):

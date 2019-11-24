@@ -1,8 +1,8 @@
 """STM32F3xx"""
 
 # import swd.io.stm32 as _io_stm32
-import swd.targets.memory as _mem
-import swd.targets.stm32 as _stm32
+import swd.devices.memory as _mem
+import swd.devices.stm32 as _stm32
 
 
 class Stm32f3(_stm32.Stm32):

@@ -21,43 +21,6 @@ class StlinkOutdatedFirmware(StlinkException):
             f"Outdated FW: {current_version}, require: {minimal_version}.")
 
 
-def _check_alignment(alignment, **values):
-    """Check alignment of values
-
-    Arguments:
-        alignment: number of bytes to align
-        **values: values for align checking
-
-    Raise:
-        StlinkException: if value is not aligned
-
-    Example:
-        _check_alignment(4, address=offset, size=len(data))
-    """
-    for key, value in values.items():
-        if value % alignment:
-            raise StlinkException(
-                f'{key.capitalize()} is not aligned to {alignment} Bytes')
-
-
-def _check_status(status):
-    """check status and raise on error
-
-    Arguments:
-        status: status code returned from ST-Link
-
-    Raise:
-        StlinkComException: on error
-        StlinkComError: on unknown status
-
-    """
-    if status == _com.StlinkCom.STATUS.JTAG_OK:
-        return
-    if status in _com.StlinkCom.STATUS.MESSAGES:
-        raise StlinkException(_com.StlinkCom.STATUS.MESSAGES[status])
-    raise StlinkError(f"Unknown status: 0x{status:x}")
-
-
 class Stlink:
     """Stlink driver"""
     class StlinkVersion:
@@ -107,22 +70,70 @@ class Stlink:
             self,
             swd_frequency=None,
             serial_no='',
-            debug=0,
             usb=None,
             com=None):
-        self._debug = debug
         if not usb:
-            usb = _usb.StlinkUsb(serial_no, debug=debug)
+            usb = _usb.StlinkUsb(serial_no)
         if not com:
-            com = _com.StlinkCom(usb, debug=debug)
+            com = _com.StlinkCom(usb)
         self._com = com
-        self._check_last_error_status = True
+        self._status_checking = True
         self._version = self._read_version()
         self._leave_state()
         if swd_frequency:
             self.set_swd_freq(swd_frequency)
         status = self._com.enter_debug_swd()
-        _check_status(status)
+        self._check_status(status)
+
+    @staticmethod
+    def _check_alignment(alignment, **values):
+        """Check alignment of values
+
+        Arguments:
+            alignment: number of bytes to align
+            **values: values for align checking
+
+        Raise:
+            StlinkException: if value is not aligned
+
+        Example:
+            _check_alignment(4, address=offset, size=len(data))
+        """
+        for key, value in values.items():
+            if value % alignment:
+                raise StlinkException(
+                    f'{key.capitalize()} is not aligned to {alignment} Bytes')
+
+    def _check_status(self, status):
+        """check status and raise on error
+
+        Arguments:
+            status: status code returned from ST-Link
+
+        Raise:
+            StlinkComException: on error
+            StlinkComError: on unknown status
+
+        """
+        if not self._status_checking:
+            return
+        if status == _com.StlinkCom.STATUS.JTAG_OK:
+            return
+        if status in _com.StlinkCom.STATUS.MESSAGES:
+            raise StlinkException(_com.StlinkCom.STATUS.MESSAGES[status])
+        raise StlinkError(f"Unknown status: 0x{status:x}")
+
+    def _check_last_rw_state(self):
+        if not self._status_checking:
+            return
+        status, fault_address = self._com.get_last_rw_state_ex()
+        if status == self._com.STATUS.JTAG_OK:
+            return
+        if status in self._com.STATUS.MESSAGES:
+            msg = self._com.STATUS.MESSAGES[status]
+            msg = f"{msg} at address: 0x{fault_address:08x}"
+            raise StlinkException(msg)
+        raise StlinkError("Unknown status")
 
     @property
     def maximum_8bit_data(self):
@@ -203,7 +214,7 @@ class Stlink:
         for freq, freq_id in self._com.SWD_FREQ:
             if swd_frequency >= freq:
                 status = self._com.set_swd_freq(freq_id)
-                _check_status(status)
+                self._check_status(status)
                 break
         else:
             raise StlinkException("Selected SWD frequency is too low")
@@ -213,13 +224,13 @@ class Stlink:
             raise StlinkError("This command require ST-Link/V3")
         req_freq_khz = req_frequency // 1000
         status, current_freq_khz, frequencies_khz = self._com.get_com_freq(com)
-        _check_status(status)
+        self._check_status(status)
         if current_freq_khz == req_freq_khz:
             return
         for freq_khz in frequencies_khz:
             if req_freq_khz >= freq_khz:
                 status, set_freq_khz = self._com.set_com_freq(freq_khz, com)
-                _check_status(status)
+                self._check_status(status)
                 if freq_khz != set_freq_khz:
                     raise StlinkError("Error setting frequency.")
                 break
@@ -233,7 +244,7 @@ class Stlink:
             32 bit number
         """
         status, idcode = self._com.get_idcode()
-        _check_status(status)
+        self._check_status(status)
         return idcode
 
     def get_reg(self, register):
@@ -250,7 +261,7 @@ class Stlink:
             32 bit number
         """
         status, value = self._com.get_reg(register)
-        _check_status(status)
+        self._check_status(status)
         return value
 
     def get_reg_all(self):
@@ -265,7 +276,7 @@ class Stlink:
             list of 32 bit numbers
         """
         status, values = self._com.get_reg_all()
-        _check_status(status)
+        self._check_status(status)
         return values
 
     def set_reg(self, register, value):
@@ -283,7 +294,7 @@ class Stlink:
             status: command status
         """
         status = self._com.set_reg(register, value)
-        _check_status(status)
+        self._check_status(status)
 
     def get_mem32(self, address):
         """Get 32 bit memory register with 32 bit memory access.
@@ -296,9 +307,9 @@ class Stlink:
         Return:
             return 32 bit number
         """
-        _check_alignment(4, address=address)
+        self._check_alignment(4, address=address)
         status, value = self._com.get_mem32(address)
-        _check_status(status)
+        self._check_status(status)
         return value
 
     def set_mem32(self, address, value):
@@ -310,9 +321,9 @@ class Stlink:
             address: address in memory
             value: 32 bit number
         """
-        _check_alignment(4, address=address)
+        self._check_alignment(4, address=address)
         status = self._com.set_mem32(address, value)
-        _check_status(status)
+        self._check_status(status)
 
     def get_mem16(self, address):
         """Get 16 bit memory register with 16 bit memory access.
@@ -325,9 +336,9 @@ class Stlink:
         Return:
             return 16 bit number
         """
-        _check_alignment(2, address=address)
+        self._check_alignment(2, address=address)
         data = self._com.read_mem16(address, 2)
-        if self._check_last_error_status:
+        if self._status_checking:
             self._check_last_rw_state()
         value, = _struct.unpack('<H', data)
         return value
@@ -341,10 +352,10 @@ class Stlink:
             address: address in memory
             value: 16 bit number
         """
-        _check_alignment(2, address=address)
+        self._check_alignment(2, address=address)
         data = _struct.pack('<H', value)
         self._com.write_mem16(address, data)
-        if self._check_last_error_status:
+        if self._status_checking:
             self._check_last_rw_state()
 
     def get_mem8(self, address):
@@ -358,9 +369,9 @@ class Stlink:
         Return:
             return 8 bit number
         """
-        _check_alignment(2, address=address)
+        self._check_alignment(2, address=address)
         data = self._com.read_mem8(address, 1)
-        if self._check_last_error_status:
+        if self._status_checking:
             self._check_last_rw_state()
         return data[0]
 
@@ -373,22 +384,12 @@ class Stlink:
             address: address in memory
             value: 8 bit number
         """
-        _check_alignment(2, address=address)
+        self._check_alignment(2, address=address)
         self._com.write_mem8(address, [value])
-        if self._check_last_error_status:
+        if self._status_checking:
             self._check_last_rw_state()
 
-    def _check_last_rw_state(self):
-        status, fault_address = self._com.get_last_rw_state_ex()
-        if status == self._com.STATUS.JTAG_OK:
-            return
-        if status in self._com.STATUS.MESSAGES:
-            msg = self._com.STATUS.MESSAGES[status]
-            msg = f"{msg} at address: 0x{fault_address:08x}"
-            raise StlinkException(msg)
-        raise StlinkError("Unknown status")
-
-    def read_mem8(self, address, size, check_last_error_status=True):
+    def read_mem8(self, address, size):
         """Read data from memory with 8 bit memory access.
 
         Maximum number of bytes for read can be 64.
@@ -405,11 +406,10 @@ class Stlink:
                 'Too many Bytes to read (maximum is %d Bytes)'
                 % self.maximum_8bit_data)
         data = self._com.read_mem8(address, size)
-        if check_last_error_status:
-            self._check_last_rw_state()
+        self._check_last_rw_state()
         return data
 
-    def write_mem8(self, address, data, check_last_error_status=True):
+    def write_mem8(self, address, data):
         """Write data into memory with 8 bit memory access.
 
         Maximum number of bytes for one write can be 64.
@@ -423,10 +423,9 @@ class Stlink:
                 'Too many Bytes to write (maximum is %d Bytes)'
                 % self.maximum_8bit_data)
         self._com.write_mem8(address, data)
-        if check_last_error_status:
-            self._check_last_rw_state()
+        self._check_last_rw_state()
 
-    def read_mem16(self, address, size, check_last_error_status=True):
+    def read_mem16(self, address, size):
         """Read data from memory with 16 bit memory access.
 
         Maximum number of bytes for one read can be 1024.
@@ -441,17 +440,16 @@ class Stlink:
         """
         if self._version.major <= 2 and self._version.jtag < 26:
             raise StlinkException(self._version.str, "J26")
-        _check_alignment(2, address=address, size=size)
+        self._check_alignment(2, address=address, size=size)
         if size > self.maximum_32bit_data:
             raise StlinkException(
                 'Too many Bytes to read (maximum is %d Bytes)'
                 % self.maximum_32bit_data)
         data = self._com.read_mem16(address, size)
-        if check_last_error_status:
-            self._check_last_rw_state()
+        self._check_last_rw_state()
         return data
 
-    def write_mem16(self, address, data, check_last_error_status=True):
+    def write_mem16(self, address, data):
         """Write data into memory with 16 bit memory access.
 
         Maximum number of bytes for one write can be 1024.
@@ -463,16 +461,15 @@ class Stlink:
         """
         if self._version.major <= 2 and self._version.jtag < 26:
             raise StlinkException(self._version.str, "J26")
-        _check_alignment(2, address=address, size=len(data))
+        self._check_alignment(2, address=address, size=len(data))
         if len(data) > self.maximum_32bit_data:
             raise StlinkException(
                 'Too many Bytes to write (maximum is %d Bytes)'
                 % self.maximum_32bit_data)
         self._com.write_mem16(address, data)
-        if check_last_error_status:
-            self._check_last_rw_state()
+        self._check_last_rw_state()
 
-    def read_mem32(self, address, size, check_last_error_status=True):
+    def read_mem32(self, address, size):
         """Read data from memory with 32 bit memory access.
 
         Maximum number of bytes for one read can be 1024.
@@ -485,17 +482,16 @@ class Stlink:
         Return:
             list of read data
         """
-        _check_alignment(4, address=address, size=size)
+        self._check_alignment(4, address=address, size=size)
         if size > self.maximum_32bit_data:
             raise StlinkException(
                 'Too many Bytes to read (maximum is %d Bytes)'
                 % self.maximum_32bit_data)
         data = self._com.read_mem32(address, size)
-        if check_last_error_status:
-            self._check_last_rw_state()
+        self._check_last_rw_state()
         return data
 
-    def write_mem32(self, address, data, check_last_error_status=True):
+    def write_mem32(self, address, data):
         """Write data into memory with 32 bit memory access.
 
         Maximum number of bytes for one write can be 1024.
@@ -505,11 +501,10 @@ class Stlink:
             address: address in memory
             data: list of bytes to write into memory
         """
-        _check_alignment(4, address=address, size=len(data))
+        self._check_alignment(4, address=address, size=len(data))
         if len(data) > self.maximum_32bit_data:
             raise StlinkException(
                 'Too many Bytes to write (maximum is %d Bytes)'
                 % self.maximum_32bit_data)
         self._com.write_mem32(address, data)
-        if check_last_error_status:
-            self._check_last_rw_state()
+        self._check_last_rw_state()
