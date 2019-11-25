@@ -95,6 +95,9 @@ def _configure_argparse():
         "-S", "--svd", type=str,
         help='path to System View Description file (.svd)')
     parser.add_argument(
+        "-N", "--no-load-svd", action="store_true",
+        help='disable auto loading MCU .svd file')
+    parser.add_argument(
         'action', nargs='*',
         help='actions will be processed sequentially')
     return parser.parse_args()
@@ -187,6 +190,7 @@ class Application:
         self._swd = None
         self._cortexm = None
         self._svd_file = args.svd
+        self._no_load_svd = args.no_load_svd
         # self._info = args.info
         self._verbose = args.verbose
         logging.basicConfig(format='%(levelname).1s: %(message)s')
@@ -545,10 +549,11 @@ class Application:
                 if self.cortexm.part:
                     part = self.cortexm.part
                     self._logger.info("PART: %s", part.get_mcu_name())
-                    try:
-                        part.load_svd()
-                    except swd.devices.mcu.McuException as err:
-                        self._logger.warning(err)
+                    if not self._no_load_svd:
+                        try:
+                            part.load_svd()
+                        except swd.devices.mcu.McuException as err:
+                            self._logger.warning(err)
                 was_halted = self.cortexm.is_halted()
                 if was_halted:
                     self._logger.info("Core was halted.")
