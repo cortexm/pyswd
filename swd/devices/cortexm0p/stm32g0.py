@@ -19,6 +19,7 @@ class Stm32g0(_stm32.Stm32):
             'sram_size': 32 * _mem.KILO,
             'freq': 64,
             'flash_page_sizes': 2 * _mem.KILO,
+            'svd_file': 'svd/STM32G0_svd/STM32G070',
         }, {
             'mcu_name': 'STM32G070xB',
             'dev_id': 0x460,
@@ -26,6 +27,7 @@ class Stm32g0(_stm32.Stm32):
             'sram_size': 32 * _mem.KILO,
             'freq': 64,
             'flash_page_sizes': 2 * _mem.KILO,
+            'svd_file': 'svd/STM32G0_svd/STM32G070',
         }, {
             'mcu_name': 'STM32G071x8',
             'dev_id': 0x460,
@@ -33,6 +35,7 @@ class Stm32g0(_stm32.Stm32):
             'sram_size': 32 * _mem.KILO,
             'freq': 64,
             'flash_page_sizes': 2 * _mem.KILO,
+            'svd_file': 'svd/STM32G0_svd/STM32G071',
         }, {
             'mcu_name': 'STM32G071xB',
             'dev_id': 0x460,
@@ -40,4 +43,5 @@ class Stm32g0(_stm32.Stm32):
             'sram_size': 32 * _mem.KILO,
             'freq': 64,
             'flash_page_sizes': 2 * _mem.KILO,
+            'svd_file': 'svd/STM32G0_svd/STM32G071',
         }, ]
