@@ -27,10 +27,12 @@ class Stlink:
         """ST-Link version holder class"""
         def __init__(self, version):
             self._version = version
-            self._str = f"ST-Link/{version.get('HW')} "
+            self._str = f"ST-Link/{version.get('hw')} "
             for name in 'VJSMB':
                 if name in version:
                     self._str += f"{name}{version[name]}"
+            if 'serial_no' in self._version:
+                self._str += f" ({self._version.get('serial_no')})"
 
         def __str__(self):
             """String representation"""
@@ -62,6 +64,11 @@ class Stlink:
             return self._version.get('B')
 
         @property
+        def serial_no(self):
+            """Device number"""
+            return self._version.get('serial_no')
+
+        @property
         def str(self):
             """String representation"""
             return self._str
@@ -83,7 +90,20 @@ class Stlink:
         if swd_frequency:
             self.set_swd_freq(swd_frequency)
         status = self._com.enter_debug_swd()
-        self._check_status(status)
+        self._check_status(status, force=True)
+
+    @property
+    def status_checking(self):
+        """Status checking
+
+        If is enabled, then on status error will raise StlinkException
+        also on _check_last_rw_state will ask for last status
+        """
+        return self._status_checking
+
+    @status_checking.setter
+    def status_checking(self, value):
+        self._status_checking = value
 
     @staticmethod
     def _check_alignment(alignment, **values):
@@ -104,8 +124,10 @@ class Stlink:
                 raise StlinkException(
                     f'{key.capitalize()} is not aligned to {alignment} Bytes')
 
-    def _check_status(self, status):
+    def _check_status(self, status, force=False):
         """check status and raise on error
+
+        Can be disabled with status_checking property
 
         Arguments:
             status: status code returned from ST-Link
@@ -115,7 +137,7 @@ class Stlink:
             StlinkComError: on unknown status
 
         """
-        if not self._status_checking:
+        if not force and not self._status_checking:
             return
         if status == _com.StlinkCom.STATUS.JTAG_OK:
             return
@@ -123,8 +145,17 @@ class Stlink:
             raise StlinkException(_com.StlinkCom.STATUS.MESSAGES[status])
         raise StlinkError(f"Unknown status: 0x{status:x}")
 
-    def _check_last_rw_state(self):
-        if not self._status_checking:
+    def _check_last_rw_state(self, force=False):
+        """Ask last RW status and raise on error
+
+        Can be disabled with status_checking property
+
+        Raise:
+            StlinkComException: on error
+            StlinkComError: on unknown status
+
+        """
+        if not force and not self._status_checking:
             return
         status, fault_address = self._com.get_last_rw_state_ex()
         if status == self._com.STATUS.JTAG_OK:
@@ -167,7 +198,8 @@ class Stlink:
                 'J': jtag,
                 'M': msc,
                 'B': bridge}
-        version['HW'] = self._com.usb.dev_name
+        version['hw'] = self._com.usb.dev_name
+        version['serial_no'] = self._com.usb.serial_no
         return self.StlinkVersion(version)
 
     def get_version(self):
@@ -214,7 +246,7 @@ class Stlink:
         for freq, freq_id in self._com.SWD_FREQ:
             if swd_frequency >= freq:
                 status = self._com.set_swd_freq(freq_id)
-                self._check_status(status)
+                self._check_status(status, force=True)
                 break
         else:
             raise StlinkException("Selected SWD frequency is too low")
@@ -224,13 +256,13 @@ class Stlink:
             raise StlinkError("This command require ST-Link/V3")
         req_freq_khz = req_frequency // 1000
         status, current_freq_khz, frequencies_khz = self._com.get_com_freq(com)
-        self._check_status(status)
+        self._check_status(status, force=True)
         if current_freq_khz == req_freq_khz:
             return
         for freq_khz in frequencies_khz:
             if req_freq_khz >= freq_khz:
                 status, set_freq_khz = self._com.set_com_freq(freq_khz, com)
-                self._check_status(status)
+                self._check_status(status, force=True)
                 if freq_khz != set_freq_khz:
                     raise StlinkError("Error setting frequency.")
                 break
@@ -244,7 +276,7 @@ class Stlink:
             32 bit number
         """
         status, idcode = self._com.get_idcode()
-        self._check_status(status)
+        self._check_status(status, force=True)
         return idcode
 
     def get_reg(self, register):
@@ -338,8 +370,7 @@ class Stlink:
         """
         self._check_alignment(2, address=address)
         data = self._com.read_mem16(address, 2)
-        if self._status_checking:
-            self._check_last_rw_state()
+        self._check_last_rw_state()
         value, = _struct.unpack('<H', data)
         return value
 
@@ -355,8 +386,7 @@ class Stlink:
         self._check_alignment(2, address=address)
         data = _struct.pack('<H', value)
         self._com.write_mem16(address, data)
-        if self._status_checking:
-            self._check_last_rw_state()
+        self._check_last_rw_state()
 
     def get_mem8(self, address):
         """Get 8 bit memory register with 8 bit memory access.
@@ -371,8 +401,7 @@ class Stlink:
         """
         self._check_alignment(2, address=address)
         data = self._com.read_mem8(address, 1)
-        if self._status_checking:
-            self._check_last_rw_state()
+        self._check_last_rw_state()
         return data[0]
 
     def set_mem8(self, address, value):
@@ -386,8 +415,7 @@ class Stlink:
         """
         self._check_alignment(2, address=address)
         self._com.write_mem8(address, [value])
-        if self._status_checking:
-            self._check_last_rw_state()
+        self._check_last_rw_state()
 
     def read_mem8(self, address, size):
         """Read data from memory with 8 bit memory access.

@@ -209,6 +209,11 @@ class StlinkUsb:
         """property with device name"""
         return self._dev.DEV_NAME
 
+    @property
+    def serial_no(self):
+        """property with serial number"""
+        return self._dev.serial_no
+
     def xfer(self, command, data=None, rx_length=0, timeout=200):
         """Transfer command between ST-Link
 

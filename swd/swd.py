@@ -32,6 +32,18 @@ class Swd:
         self._svd.validate()
 
     @property
+    def status_checking(self):
+        """Status checking
+
+        enabling status checking of memory access operations
+        """
+        return self._drv.status_checking
+
+    @status_checking.setter
+    def status_checking(self, value):
+        self._drv.status_checking = value
+
+    @property
     def io(self):
         """Return instance to registers from SVD"""
         return self._svd

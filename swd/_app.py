@@ -78,7 +78,7 @@ def _configure_argparse():
         help="increase info output")
     parser.add_argument(
         "-v", "--verbose", action="count", default=0,
-        help="increase verbose output")
+        help="increase verbose output (standard printing)")
     parser.add_argument(
         "-d", "--debug", action="count", default=0,
         help="increase debug output")
@@ -95,8 +95,11 @@ def _configure_argparse():
         "-S", "--svd", type=str,
         help='path to System View Description file (.svd)')
     parser.add_argument(
-        "-N", "--no-load-svd", action="store_true",
+        "--no-load-svd", action="store_true",
         help='disable auto loading MCU .svd file')
+    parser.add_argument(
+        "--no-status-checking", action="store_true",
+        help='disable checking status')
     parser.add_argument(
         'action', nargs='*',
         help='actions will be processed sequentially')
@@ -190,23 +193,32 @@ class Application:
         self._swd = None
         self._cortexm = None
         self._svd_file = args.svd
-        self._no_load_svd = args.no_load_svd
-        # self._info = args.info
         self._verbose = args.verbose
-        logging.basicConfig(format='%(levelname).1s: %(message)s')
-        self._logger = logging.getLogger('swd:stlink:usb')
-        self._logger.setLevel(logging.INFO + 1 - args.info)
-        if args.debug:
-            logger_usb = logging.getLogger('swd:stlink:usb')
-            logger_usb.setLevel(logging.DEBUG + 1 - args.debug)
-        if args.quite:
-            self._logger.setLevel(logging.ERROR)
-            # self._info = 0
-            self._verbose = 0
         self._actions = args.action
         self._swd_frequency = args.freq
         self._serial_no = args.serial
         self._expected_parts = args.cpu
+        self._load_svd = not args.no_load_svd
+        self._status_checking = not args.no_status_checking
+        self._logger = self._configure_loggers(args)
+
+    @staticmethod
+    def _configure_loggers(args):
+        logging.basicConfig(format='%(levelname)s: %(message)s')
+        # make names for all info levels
+        for level in range(10):
+            logging.addLevelName(logging.DEBUG - level, 'D')
+            logging.addLevelName(logging.INFO - level, 'I')
+            logging.addLevelName(logging.WARNING - level, 'W')
+            logging.addLevelName(logging.ERROR - level, 'E')
+        logger = logging.getLogger('swd:stlink:usb')
+        logger.setLevel(logging.INFO + 1 - args.info)
+        if args.debug:
+            logger_usb = logging.getLogger('swd:stlink:usb')
+            logger_usb.setLevel(logging.DEBUG + 1 - args.debug)
+        if args.quite:
+            logger.setLevel(logging.ERROR)
+        return logger
 
     @property
     def cortexm(self):
@@ -549,7 +561,7 @@ class Application:
                 if self.cortexm.part:
                     part = self.cortexm.part
                     self._logger.info("PART: %s", part.get_mcu_name())
-                    if not self._no_load_svd:
+                    if self._load_svd:
                         try:
                             part.load_svd()
                         except swd.devices.mcu.McuException as err:
@@ -559,6 +571,7 @@ class Application:
                     self._logger.info("Core was halted.")
             if self._svd_file:
                 self._swd.load_svd(self._svd_file)
+            self._swd.status_checking = self._status_checking
             if self._actions:
                 self.process_actions()
                 is_halted = self.cortexm.is_halted()
