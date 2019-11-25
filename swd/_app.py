@@ -160,6 +160,11 @@ def convert_numeric(num, max_bits=32):
     ret = 0
     if not num:
         return 0
+    if max_bits == 1:
+        if num == 'True':
+            return True
+        if num == 'False':
+            return False
     multi = UNITS.get(num[-1].upper())
     try:
         if multi:
@@ -167,10 +172,10 @@ def convert_numeric(num, max_bits=32):
         else:
             ret = int(num, 0)
     except ValueError:
-        raise PyswdException('number "%s" has wrong format' % num)
-    if ret >= pow(2, max_bits):
+        raise PyswdException(f'number {num} has wrong format')
+    if ret >= (2 ** max_bits):
         raise PyswdException(
-            '%s is too big, number must fit into %d bits' % (num, max_bits))
+            f'{num} is too big, number must fit into {max_bits:d} bits')
     return ret
 
 
@@ -199,44 +204,12 @@ class Application:
         self._serial_no = args.serial
         self._expected_parts = args.cpu
 
-    # def print_info(self, msg, level=0):
-    #     """Print info string"""
-    #     if self._info >= level:
-    #         sys.stderr.write(f"{prefix}{msg}\n")
-
-    # def print_warning(self, msg, prefix="W: "):
-    #     """Print info string"""
-    #     if self._info >= 0:
-    #         sys.stderr.write(f"{prefix}{msg}\n")
-
-    # @staticmethod
-    # def print_error(msg, prefix="E: "):
-    #     """Print info string"""
-    #     sys.stderr.write(f"{prefix}{msg}\n")
-
     @property
     def cortexm(self):
         """return instance of CortexM or raise Error."""
         if not self._cortexm:
             raise PyswdException("This is not CortexM")
         return self._cortexm
-
-    # def print_io(self, io_reg):
-    #     """Print IO register content"""
-    #     io_reg.discard_cache()
-    #     print(f"{(' ' + reg_name):_>16s} : value ____")
-    #     for reg in bitf_reg.field_names:
-    #         print(f"{reg:>16s} : {str(bitf_reg.cached.string_value(reg)):>10s}")
-
-    # def print_io_registers(self):
-    #     """Print IO register content"""
-    #     print("__ register name : _ address  : value ____")
-    #     for reg_name in sorted(self._swd.reg_list()):
-    #         self._swd.reg(reg_name).discard_cache()
-    #         address = self._swd.reg(reg_name).address
-    #         value = self._swd.reg(reg_name).raw
-    #         bits4 = (self._swd.reg(reg_name).size + 3) // 4
-    #         print(f"{reg_name:>16s} : 0x{address:08x} : 0x{value:0{bits4}x}")
 
     def _print_peripherals(self):
         """Print list of peripherals"""
@@ -269,12 +242,23 @@ class Application:
             f" ({register.description})")
         for field in register.fields:
             print(
-                f"[{field.offset:02}:{field.offset + field.width - 1:02}]:"
+                f"[{field.offset:02d}:{field.offset + field.width - 1:02d}]:"
                 f" {field.str_value:10s}"
                 f" : {field.name:12s}"
                 f" ({field.description})")
 
-    def action_dumpio(self, params):
+    @staticmethod
+    def _print_field(field):
+        """Print list of peripherals"""
+        register = field.register
+        peripheral = register.peripheral
+        print(
+            f"[{field.width:d} bit{'s' if field.width > 1 else ''}]:"
+            f" {field.str_value:s}"
+            f" : {peripheral.name:s}.{register.name:s}.{field.name:s}"
+            f" ({field.description})")
+
+    def action_io(self, params):
         """Dump memory 32 bit
 
         [peripheral[:register[:field]]]
@@ -282,28 +266,46 @@ class Application:
         if not params:
             self._print_peripherals()
             return
-        for param in params:
-            param_parts = param.split('.')
-            # print list of registers:
-            peripheral_name, *param_parts = param_parts
-            peripheral_name = peripheral_name.upper()
-            peripheral = self._swd.io.peripheral(peripheral_name)
-            if not peripheral:
-                raise PyswdException(
-                    f"Peripheral `{peripheral_name}` was not found")
-            if not param_parts:
-                self._print_registers(peripheral)
+        # register name
+        reg = params.pop(0)
+        reg_parts = reg.split('.')
+        if len(reg_parts) > 3:
+            raise PyswdException(
+                f"Wrong register name `{reg}`")
+        # list of registers:
+        peripheral_name = reg_parts.pop(0)
+        peripheral = self._swd.io.peripheral(peripheral_name)
+        if not peripheral:
+            raise PyswdException(
+                f"Peripheral `{peripheral_name.upper()}` was not found")
+        if not reg_parts:
+            self._print_registers(peripheral)
+            return
+        # selected register
+        register_name = reg_parts.pop(0)
+        register = peripheral.register(register_name)
+        if not register:
+            raise PyswdException(
+                f"Register `{register_name}` was not found")
+        if not reg_parts:
+            if params:
+                # set register
+                register.value = convert_numeric(params.pop(0))
                 return
-            # print list fields
-            register_name, *param_parts = param_parts
-            register_name = register_name.upper()
-            register = peripheral.register(register_name)
-            if not register:
-                raise PyswdException(
-                    f"Register `{register_name}` was not found")
-            if not param_parts:
-                self._print_fields(register)
-                return
+            # list of fields
+            self._print_fields(register)
+            return
+        field_name = reg_parts.pop(0)
+        field = register.field(field_name)
+        if not field:
+            raise PyswdException(
+                f"field `{field_name.upper()}` was not found")
+        if params:
+            # set field
+            field.value = convert_numeric(params.pop(0), field.width)
+            return
+        # print field value
+        self._print_field(field)
 
     def print_buffer(self, addr, data, hex_line=hex_line8):
         """Print buffer in hex and ASCII"""
@@ -549,7 +551,7 @@ class Application:
                         self._logger.warning(err)
                 was_halted = self.cortexm.is_halted()
                 if was_halted:
-                    self._logger.info("Core is halted.")
+                    self._logger.info("Core was halted.")
             if self._svd_file:
                 self._swd.load_svd(self._svd_file)
             if self._actions:

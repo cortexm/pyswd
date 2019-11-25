@@ -101,6 +101,10 @@ class Field(_Element):
         self._enumerated_values = []
 
     @property
+    def register(self):
+        return self._register
+
+    @property
     def offset(self):
         return self._offset
 
