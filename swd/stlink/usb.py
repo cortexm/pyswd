@@ -121,7 +121,7 @@ class StlinkUsbV21M(StlinkUsbBase):
 
 
 class StlinkUsbV21(StlinkUsbBase):
-    """ST-Link/V2-1 USB communication"""
+    """ST-Link/V2-1 USB communication without mass storage"""
     ID_VENDOR = 0x0483
     ID_PRODUCT = 0x3752
     PIPE_OUT = 0x01
@@ -142,6 +142,15 @@ class StlinkUsbV3(StlinkUsbBase):
     """ST-Link/V3 USB communication"""
     ID_VENDOR = 0x0483
     ID_PRODUCT = 0x374f
+    PIPE_OUT = 0x01
+    PIPE_IN = 0x81
+    DEV_NAME = "V3"
+
+
+class StlinkUsbV3(StlinkUsbBase):
+    """ST-Link/V3 USB communication without mass storage"""
+    ID_VENDOR = 0x0483
+    ID_PRODUCT = 0x3753
     PIPE_OUT = 0x01
     PIPE_IN = 0x81
     DEV_NAME = "V3"
