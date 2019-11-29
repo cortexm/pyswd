@@ -17,7 +17,7 @@ PYSWD will work on Linux, Mac and Windows.
 ### Python
 Python 3.7+
 ### Dependencies
-- [pyusb](https://github.com/walac/pyusb) - is installed automatically as dependency with pip
+- [pyusb](https://github.com/walac/pyusb) - prefer latest version from github, especially on Windows platgorm
 - [libusb](https://github.com/libusb/libusb)
 
 ## Installation:
