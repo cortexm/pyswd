@@ -18,12 +18,14 @@ class Swd:
             swd_frequency=None,
             driver=None,
             serial_no=''):
-        if driver is None:
+        if not driver:
             # default SWD driver is Stlink
             driver = _Stlink(
-                swd_frequency=swd_frequency,
                 serial_no=serial_no)
         self._drv = driver
+        if swd_frequency:
+            self._drv.set_swd_freq(swd_frequency)
+        self._drv.enter_debug()
         self._svd = _Svd(self)
 
     def load_svd(self, svd_file):

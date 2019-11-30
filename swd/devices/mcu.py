@@ -20,10 +20,8 @@ class McuNotMatch(McuException):
 class Mcu:
     """General MCU class"""
 
-    def __init__(self, cortexm, expected_mcus):
+    def __init__(self, cortexm):
         self._cortexm = cortexm
-        self._expected_mcus = expected_mcus
-        self._memory_regions = []
 
     @property
     def cortexm(self):
@@ -35,10 +33,14 @@ class Mcu:
         """Instance of Swd"""
         return self._cortexm.swd
 
-    def get_mcu_name(self):
-        """Return detected_ MCU name"""
+    def get_name(self):
+        """Return detected MCU name"""
         raise NotImplementedError()
 
-    def get_mcu_revision(self):
-        """Return MCU revision string"""
+    def load_svd(self):
+        """Load SVD associated with this MCU"""
+        raise NotImplementedError()
+
+    def get_flash_size(self):
+        """Return minimal size of all memory regions"""
         raise NotImplementedError()

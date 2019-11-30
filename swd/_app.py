@@ -543,14 +543,11 @@ class Application:
     def start(self):
         """Application start point"""
         try:
+            driver = swd.stlink.Stlink(serial_no=self._serial_no)
+            self._logger.log(logging.INFO - 1, driver.get_version())
             self._swd = swd.Swd(
                 swd_frequency=self._swd_frequency,
-                serial_no=self._serial_no)
-            self._logger.log(logging.INFO - 1, self._swd.get_version())
-            idcode = self._swd.get_idcode()
-            if idcode == 0:
-                raise PyswdException(
-                    "No IDCODE, probably MCU is not connected")
+                driver=driver)
             was_halted = None
             try:
                 self._cortexm = swd.CortexM(self._swd, self._expected_parts)
@@ -560,7 +557,10 @@ class Application:
                 self._logger.info("CORE: %s", self.cortexm.name())
                 if self.cortexm.part:
                     part = self.cortexm.part
-                    self._logger.info("PART: %s", part.get_mcu_name())
+                    self._logger.info("PART: %s", part.get_name())
+                    self._logger.info(
+                        "FLASH: %s KB",
+                        part.get_flash_size() // swd.devices.memory.KILO)
                     if self._load_svd:
                         try:
                             part.load_svd()

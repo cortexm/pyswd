@@ -15,9 +15,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L100x6',
             'dev_id': 0x416,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 32 * _mem.KILO,
-            'sram_size': 4 * _mem.KILO,
-            'eeprom_size': 2 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 32 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 4 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 2 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L100.svd',
@@ -25,9 +42,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L100x6-A',
             'dev_id': 0x429,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 32 * _mem.KILO,
-            'sram_size': 4 * _mem.KILO,
-            'eeprom_size': 2 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 32 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 4 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 2 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L100.svd',
@@ -35,9 +69,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L100x8',
             'dev_id': 0x416,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 64 * _mem.KILO,
-            'sram_size': 8 * _mem.KILO,
-            'eeprom_size': 2 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 64 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 8 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 2 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L100.svd',
@@ -45,9 +96,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L100x8-A',
             'dev_id': 0x429,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 64 * _mem.KILO,
-            'sram_size': 8 * _mem.KILO,
-            'eeprom_size': 2 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 64 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 8 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 2 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L100.svd',
@@ -55,9 +123,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L100xB',
             'dev_id': 0x416,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 128 * _mem.KILO,
-            'sram_size': 10 * _mem.KILO,
-            'eeprom_size': 2 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 128 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 10 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 2 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L100.svd',
@@ -65,9 +150,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L100xB-A',
             'dev_id': 0x429,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 128 * _mem.KILO,
-            'sram_size': 16 * _mem.KILO,
-            'eeprom_size': 2 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 128 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 16 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 2 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L100.svd',
@@ -75,9 +177,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L100xC',
             'dev_id': 0x427,
             'flash_size_reg': 0x1ff800cc,
-            'flash_size': 256 * _mem.KILO,
-            'sram_size': 16 * _mem.KILO,
-            'eeprom_size': 4 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 256 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 16 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 4 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 8 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L100.svd',
@@ -85,9 +204,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L151x6',
             'dev_id': 0x416,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 32 * _mem.KILO,
-            'sram_size': 10 * _mem.KILO,
-            'eeprom_size': 4 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 32 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 10 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 4 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -95,9 +231,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L151x6-A',
             'dev_id': 0x429,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 32 * _mem.KILO,
-            'sram_size': 16 * _mem.KILO,
-            'eeprom_size': 4 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 32 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 16 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 4 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -105,9 +258,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L151x8',
             'dev_id': 0x416,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 64 * _mem.KILO,
-            'sram_size': 10 * _mem.KILO,
-            'eeprom_size': 4 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 64 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 10 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 4 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -115,9 +285,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L151x8-A',
             'dev_id': 0x429,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 64 * _mem.KILO,
-            'sram_size': 32 * _mem.KILO,
-            'eeprom_size': 4 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 64 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 32 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 4 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -125,9 +312,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L151xB',
             'dev_id': 0x416,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 128 * _mem.KILO,
-            'sram_size': 16 * _mem.KILO,
-            'eeprom_size': 4 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 128 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 16 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 4 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -135,9 +339,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L151xB-A',
             'dev_id': 0x429,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 128 * _mem.KILO,
-            'sram_size': 32 * _mem.KILO,
-            'eeprom_size': 4 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 128 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 32 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 4 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -145,9 +366,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L151xC',
             'dev_id': 0x436,
             'flash_size_reg': 0x1ff800cc,
-            'flash_size': 256 * _mem.KILO,
-            'sram_size': 32 * _mem.KILO,
-            'eeprom_size': 8 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 256 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 32 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 8 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 8 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -155,9 +393,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L151xC-A',
             'dev_id': 0x436,
             'flash_size_reg': 0x1ff800cc,
-            'flash_size': 256 * _mem.KILO,
-            'sram_size': 32 * _mem.KILO,
-            'eeprom_size': 8 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 256 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 32 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 8 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 8 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -165,9 +420,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L151xD',
             'dev_id': 0x436,
             'flash_size_reg': 0x1ff800cc,
-            'flash_size': 384 * _mem.KILO,
-            'sram_size': 48 * _mem.KILO,
-            'eeprom_size': 12 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 384 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 48 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 12 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 8 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -175,9 +447,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L151xD-X',
             'dev_id': 0x437,
             'flash_size_reg': 0x1ff800cc,
-            'flash_size': 384 * _mem.KILO,
-            'sram_size': 80 * _mem.KILO,
-            'eeprom_size': 16 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 384 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 80 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 16 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 8 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -185,9 +474,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L151xE',
             'dev_id': 0x437,
             'flash_size_reg': 0x1ff800cc,
-            'flash_size': 512 * _mem.KILO,
-            'sram_size': 80 * _mem.KILO,
-            'eeprom_size': 16 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 512 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 80 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 16 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 8 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -195,9 +501,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L152x6',
             'dev_id': 0x416,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 32 * _mem.KILO,
-            'sram_size': 10 * _mem.KILO,
-            'eeprom_size': 4 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 32 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 10 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 4 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -205,9 +528,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L152x6-A',
             'dev_id': 0x429,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 32 * _mem.KILO,
-            'sram_size': 16 * _mem.KILO,
-            'eeprom_size': 4 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 32 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 16 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 4 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -215,9 +555,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L152x8',
             'dev_id': 0x416,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 64 * _mem.KILO,
-            'sram_size': 10 * _mem.KILO,
-            'eeprom_size': 4 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 64 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 10 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 4 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -225,9 +582,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L152x8-A',
             'dev_id': 0x429,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 64 * _mem.KILO,
-            'sram_size': 32 * _mem.KILO,
-            'eeprom_size': 4 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 64 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 32 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 4 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -235,9 +609,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L152xB',
             'dev_id': 0x416,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 128 * _mem.KILO,
-            'sram_size': 16 * _mem.KILO,
-            'eeprom_size': 4 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 128 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 16 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 4 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -245,9 +636,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L152xB-A',
             'dev_id': 0x429,
             'flash_size_reg': 0x1ff8004c,
-            'flash_size': 128 * _mem.KILO,
-            'sram_size': 32 * _mem.KILO,
-            'eeprom_size': 4 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 128 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 32 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 4 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 4 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -255,9 +663,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L152xC',
             'dev_id': 0x436,
             'flash_size_reg': 0x1ff800cc,
-            'flash_size': 256 * _mem.KILO,
-            'sram_size': 32 * _mem.KILO,
-            'eeprom_size': 8 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 256 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 32 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 8 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 8 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -265,9 +690,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L152xC-A',
             'dev_id': 0x436,
             'flash_size_reg': 0x1ff800cc,
-            'flash_size': 256 * _mem.KILO,
-            'sram_size': 32 * _mem.KILO,
-            'eeprom_size': 8 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 256 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 32 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 8 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 8 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -275,9 +717,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L152xD',
             'dev_id': 0x436,
             'flash_size_reg': 0x1ff800cc,
-            'flash_size': 384 * _mem.KILO,
-            'sram_size': 48 * _mem.KILO,
-            'eeprom_size': 12 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 384 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 48 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 12 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 8 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -285,9 +744,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L152xD-X',
             'dev_id': 0x437,
             'flash_size_reg': 0x1ff800cc,
-            'flash_size': 384 * _mem.KILO,
-            'sram_size': 80 * _mem.KILO,
-            'eeprom_size': 16 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 384 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 80 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 16 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 8 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -295,9 +771,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L152xE',
             'dev_id': 0x437,
             'flash_size_reg': 0x1ff800cc,
-            'flash_size': 512 * _mem.KILO,
-            'sram_size': 80 * _mem.KILO,
-            'eeprom_size': 16 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 512 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 80 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 16 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 8 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L151.svd',
@@ -305,9 +798,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L162xC',
             'dev_id': 0x436,
             'flash_size_reg': 0x1ff800cc,
-            'flash_size': 256 * _mem.KILO,
-            'sram_size': 32 * _mem.KILO,
-            'eeprom_size': 8 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 256 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 32 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 8 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 8 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L162.svd',
@@ -315,9 +825,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L162xC-A',
             'dev_id': 0x436,
             'flash_size_reg': 0x1ff800cc,
-            'flash_size': 256 * _mem.KILO,
-            'sram_size': 32 * _mem.KILO,
-            'eeprom_size': 8 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 256 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 32 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 8 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 8 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L162.svd',
@@ -325,9 +852,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L162xD',
             'dev_id': 0x436,
             'flash_size_reg': 0x1ff800cc,
-            'flash_size': 384 * _mem.KILO,
-            'sram_size': 48 * _mem.KILO,
-            'eeprom_size': 12 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 384 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 48 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 12 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 8 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L162.svd',
@@ -335,9 +879,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L162xD-X',
             'dev_id': 0x437,
             'flash_size_reg': 0x1ff800cc,
-            'flash_size': 384 * _mem.KILO,
-            'sram_size': 80 * _mem.KILO,
-            'eeprom_size': 16 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 384 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 80 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 16 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 8 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L162.svd',
@@ -345,9 +906,26 @@ class Stm32l1(_stm32.Stm32):
             'mcu_name': 'STM32L162xE',
             'dev_id': 0x437,
             'flash_size_reg': 0x1ff800cc,
-            'flash_size': 512 * _mem.KILO,
-            'sram_size': 80 * _mem.KILO,
-            'eeprom_size': 16 * _mem.KILO,
+            'memory': [
+                {
+                    'kind': 'FLASH',
+                    'address': 0x08000000,
+                    'size': 512 * _mem.KILO,
+                    'page_size': 256,
+                }, {
+                    'kind': 'SRAM',
+                    'address': 0x20000000,
+                    'size': 80 * _mem.KILO,
+                }, {
+                    'kind': 'EEPROM',
+                    'address': 0x08080000,
+                    'size': 16 * _mem.KILO,
+                }, {
+                    'name': 'SYSTEM_MEMORY',
+                    'kind': 'OTP',
+                    'address': 0x1ff00000,
+                    'size': 8 * _mem.KILO,
+                }],
             'freq': 32,
             'flash_page_size': 256,
             'svd_file': 'svd/STM32L1_svd_V1.2/STM32L162.svd',

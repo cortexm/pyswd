@@ -75,7 +75,6 @@ class Stlink:
 
     def __init__(
             self,
-            swd_frequency=None,
             serial_no='',
             usb=None,
             com=None):
@@ -85,10 +84,11 @@ class Stlink:
             com = _com.StlinkCom(usb)
         self._com = com
         self._status_checking = True
-        self._version = self._read_version()
         self._leave_state()
-        if swd_frequency:
-            self.set_swd_freq(swd_frequency)
+        self._version = self._read_version()
+
+    def enter_debug(self):
+        """Switch ST-Link into debug mode"""
         status = self._com.enter_debug_swd()
         self._check_status(status, force=True)
 

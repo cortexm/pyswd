@@ -1,9 +1,8 @@
 """STM32"""
 
-import swd.devices.memory as _memory
-import swd.devices.mcu as _mcu
-
 import pkg_resources as _pkg
+import swd.devices.memory as _mem
+import swd.devices.mcu as _mcu
 
 
 class UnknownMcuDetected(_mcu.UnknownMcuDetected):
@@ -11,7 +10,7 @@ class UnknownMcuDetected(_mcu.UnknownMcuDetected):
     def __init__(self, dev_id, flash_size=None):
         msg = f"Unknown MCU with DEV_ID: {dev_id:03x}"
         if flash_size:
-            msg += f" with FLASH: {flash_size // _memory.KILO} KB"
+            msg += f" with FLASH: {flash_size // _mem.KILO} KB"
         super().__init__(msg)
 
 
@@ -29,25 +28,22 @@ class Stm32(_mcu.Mcu):
 
     _NAME = "STM32"
     _IDCODE_REG = None
-    _FLAS_SIZE_REG = None
-    _FREQ = None
-    _FLASH_START_ADDRESS = 0x08000000
-    _SRAM_START_ADDRESS = 0x20000000
+    _FLASH_SIZE_REG = None
     _MCUS = []
 
     def __init__(self, cortexm, expected_mcus=None):
-        super().__init__(cortexm, expected_mcus)
+        super().__init__(cortexm)
         # browse MCUs by DEV_ID
         dev_id = self._load_devid_from_idcode(self._IDCODE_REG)
-        mcus = self._select_mcus(self._MCUS, dev_id=dev_id)
+        mcus = self._select_by_specs(self._MCUS, dev_id=dev_id)
         if not mcus:
             raise UnknownMcuDetected(dev_id)
         # browse MCUs by FLASH_SIZE
-        flash_size_reg_addr = self._FLAS_SIZE_REG
+        flash_size_reg_addr = self._FLASH_SIZE_REG
         if not flash_size_reg_addr:
             flash_size_reg_addr = self._mcu_value(mcus, 'flash_size_reg')
-        flash_size = self._load_flash_size(flash_size_reg_addr) * _memory.KILO
-        mcus = self._select_mcus(mcus, flash_size=flash_size)
+        flash_size = self._load_flash_size(flash_size_reg_addr) * _mem.KILO
+        mcus = self._selet_mcus_by_flash_size(mcus, flash_size=flash_size)
         if not mcus:
             raise UnknownMcuDetected(dev_id, flash_size)
         if expected_mcus:
@@ -58,24 +54,6 @@ class Stm32(_mcu.Mcu):
             mcus = selected_mcus
         self._mcus = mcus
         self._flash_size = flash_size
-        self._sram_sizes = {mcu['sram_size'] for mcu in mcus}
-        # self._memory_regions = [
-        #     {
-        #         'type': 'FLASH',
-        #         'name': 'FLASH',
-        #         'start': self._FLASH_START_ADDRESS,
-        #         'size': self.get_flash_size(),
-        #     }, {
-        #         'type': 'SRAM',
-        #         'name': 'SRAM',
-        #         'start': self._SRAM_START_ADDRESS,
-        #         'size': self.get_sram_size(),
-        #     }
-        # ]
-        # for memory_region in self.get_memory_regions():
-        #     print(memory_region)
-        # print("STM32: FLASH_SIZE: %d KB" % (self.get_flash_size() // KILO))
-        # print("STM32: SRAM_SIZE: %d KB" % (self.get_sram_size() // KILO))
 
     def _load_devid_from_idcode(self, address):
         idcode = self.swd.get_mem32(address)
@@ -85,18 +63,28 @@ class Stm32(_mcu.Mcu):
         return self.swd.get_mem16(address)
 
     @staticmethod
-    def _select_mcus(mcus, **arguments):
-        """Select mcus by arguments (key=value)
+    def _select_by_specs(specs, **arguments):
+        """Select specs by arguments (key=value)
 
         Arguments:
-            mcus: input list of mcus structures
+            specs: input list of specs structures
             arguments: dev_id
         """
+        selected_specs = []
+        for spec in specs:
+            for key, value in arguments.items():
+                if spec.get(key) == value:
+                    selected_specs.append(spec)
+        return selected_specs
+
+    @staticmethod
+    def _selet_mcus_by_flash_size(mcus, flash_size):
+        """Select mcus by flash size"""
         selected_mcus = []
         for mcu in mcus:
-            for key, value in arguments.items():
-                if mcu[key] == value:
-                    selected_mcus.append(mcu)
+            memory_regions = _mem.MemoryRegions(mcu['memory'])
+            if flash_size == memory_regions.get_size('FLASH'):
+                selected_mcus.append(mcu)
         return selected_mcus
 
     @staticmethod
@@ -188,7 +176,6 @@ class Stm32(_mcu.Mcu):
                 fixed_names.add(fixed_name)
         return fixed_names
 
-
     @property
     def cortexm(self):
         """Instance of CortexM"""
@@ -204,19 +191,27 @@ class Stm32(_mcu.Mcu):
         """Return MCUs family"""
         return cls._NAME
 
+    def get_flash_size(self):
+        """Return flash size"""
+        return self._flash_size
+
     @staticmethod
     def _get_mcu_names(mcus):
         return [mcu['mcu_name'] for mcu in mcus]
 
-    def get_mcu_name(self):
+    def get_name(self):
         """Return list of supposed MCU names"""
         return " / ".join(self._get_mcu_names(self._mcus))
 
+    def get_mcu_revision(self):
+        """Return MCU revision string"""
+        raise NotImplementedError()
+
     def load_svd(self):
+        """Load SVD associated with this MCU"""
         svd_files = self._mcu_values(self._mcus, 'svd_file')
         if len(svd_files) == 1:
             svd_file = _pkg.resource_filename('swd', svd_files.pop())
             self.swd.load_svd(svd_file)
         elif len(svd_files) > 1:
             raise _mcu.McuException("Specify MCU to load SVD file")
-

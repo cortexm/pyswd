@@ -62,16 +62,17 @@ class StlinkUsbBase:
         try:
             serial_no = self._dev.serial_number
         except ValueError:
-            return None
+            return 'busy'
         try:
             if serial_no.isalnum():
                 return serial_no
             return ''.join(['%02X' % ord(c) for c in serial_no])
         except NotImplementedError:
-            return None
+            return 'unknown'
 
     def compare_serial_no(self, serial_no):
         """Compare device serial no with selected serial number"""
+        serial_no = serial_no.upper()
         if self.serial_no.startswith(serial_no):
             return True
         if self.serial_no.endswith(serial_no):
@@ -179,8 +180,7 @@ class StlinkUsb:
     def _filter_devices(devices, serial_no):
         filtered_devices = []
         for dev in devices:
-            serial = dev.serial_no
-            if serial and (serial.startswith(serial_no) or serial.endswith(serial_no)):
+            if dev.compare_serial_no(serial_no):
                 filtered_devices.append(dev)
             else:
                 del dev
