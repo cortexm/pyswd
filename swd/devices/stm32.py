@@ -114,6 +114,16 @@ class Stm32(_mcu.Mcu):
             raise _mcu.McuError("Error, more values in MCUs under key")
         return values.pop()
 
+    @property
+    def memory_regions(self):
+        """Return all memory regions"""
+        if len(self._mcus) > 1:
+            raise _mcu.McuException("Error, more regions found")
+        for mcu in self._mcus:
+            memory_regions = _mem.MemoryRegions(mcu['memory'])
+            return memory_regions
+        raise _mcu.McuException("Device has not defined memory regions")
+
     @classmethod
     def _is_expected_mcu(cls, mcu, expected_mcus):
         """Test if mcu contain expected MCU name"""
@@ -191,7 +201,8 @@ class Stm32(_mcu.Mcu):
         """Return MCUs family"""
         return cls._NAME
 
-    def get_flash_size(self):
+    @property
+    def flash_size(self):
         """Return flash size"""
         return self._flash_size
 
@@ -199,8 +210,9 @@ class Stm32(_mcu.Mcu):
     def _get_mcu_names(mcus):
         return [mcu['mcu_name'] for mcu in mcus]
 
-    def get_name(self):
-        """Return list of supposed MCU names"""
+    @property
+    def name(self):
+        """detected MCU name"""
         return " / ".join(self._get_mcu_names(self._mcus))
 
     def get_mcu_revision(self):

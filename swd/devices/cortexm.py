@@ -45,7 +45,7 @@ class CortexM:
         'CORTEXM33': _cortexm33,
     }
 
-    def __init__(self, swd, expcted_parts=None):
+    def __init__(self, swd):
         self._swd = swd
         svd_file = pkg_resources.resource_filename('swd', CORTEXM_SVD)
         self.swd.load_svd(svd_file)
@@ -62,17 +62,24 @@ class CortexM:
         if self._core not in self._TARGETS:
             raise CortexMNotDetected(
                 f"Unsupported MCU with core: {self._core}")
+        self._mcu = None
+
+    def detect_mcu(self, expected_mcus=None):
+        """Detect connected MCU
+
+        Arguments:
+            expected_mcus: list of strings with part number of expected MCUS
+        """
         families = self._TARGETS[self._core].FAMILIES
-        self._part = None
-        unknow_part_error = None
+        unknow_mcu_error = None
         for family in families:
             try:
-                self._part = family(self, expcted_parts)
+                self._mcu = family(self, expected_mcus)
                 break
             except _mcu.UnknownMcuDetected as err:
-                unknow_part_error = err
-        if expcted_parts and not self._part:
-            raise unknow_part_error
+                unknow_mcu_error = err
+        if expected_mcus and not self._mcu:
+            raise unknow_mcu_error
 
     @property
     def swd(self):
@@ -90,11 +97,11 @@ class CortexM:
         return self._core
 
     @property
-    def part(self):
-        """Return instance part"""
-        return self._part
+    def mcu(self):
+        """Return instance of Mcu"""
+        return self._mcu
 
-    def name(self):
+    def __str__(self):
         """Return controller info string"""
         return f"{self._implementer}/{self._core}"
 

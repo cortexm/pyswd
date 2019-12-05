@@ -33,14 +33,21 @@ class Mcu:
         """Instance of Swd"""
         return self._cortexm.swd
 
-    def get_name(self):
-        """Return detected MCU name"""
+    @property
+    def name(self):
+        """detected MCU name"""
+        raise NotImplementedError()
+
+    @property
+    def flash_size(self):
+        """Return minimal size of all memory regions"""
+        raise NotImplementedError()
+
+    @property
+    def memory_regions(self):
+        """Return memory regions"""
         raise NotImplementedError()
 
     def load_svd(self):
         """Load SVD associated with this MCU"""
-        raise NotImplementedError()
-
-    def get_flash_size(self):
-        """Return minimal size of all memory regions"""
         raise NotImplementedError()

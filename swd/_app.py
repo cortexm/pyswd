@@ -40,6 +40,16 @@ list of available actions:
   reg:{reg}                 print content of core register
   reg:{reg}:{data}          set core register
 
+  io                        list all IO peripherals
+  io:{peri}                 list all IO registers from peripheral
+  io:{peri}.{reg}           print IO register value and its fields
+  io:{peri}.{reg}.{field}   print IO register field value
+  io:{peri}.{reg}:{data}    set IO register
+  io:{peri}.{reg}.{field}:{data}  set IO field
+
+  mem                       list all memory regions
+  mem[:{region}[:{size}]]   dump memory regions
+
   sleep:{seconds}           sleep (float) - insert delay between commands
 
   reset[:halt]              reset core or halt after reset
@@ -197,7 +207,7 @@ class Application:
         self._actions = args.action
         self._swd_frequency = args.freq
         self._serial_no = args.serial
-        self._expected_parts = args.cpu
+        self._expected_cpus = args.cpu
         self._load_svd = not args.no_load_svd
         self._status_checking = not args.no_status_checking
         self._logger = self._configure_loggers(args)
@@ -275,9 +285,9 @@ class Application:
             f" ({field.description})")
 
     def action_io(self, params):
-        """Dump memory 32 bit
+        """Access IO peripherals registers
 
-        [peripheral[:register[:field]]]
+        [{peripheral}[.{register}[.{field}]]][:{data}]
         """
         if not params:
             self._print_peripherals()
@@ -345,6 +355,43 @@ class Application:
             addr += len(chunk)
         if same_chunk or self._verbose > 1:
             print('%08x' % addr)
+
+    def action_mem(self, params):
+        """List all memory regions"""
+        if not self.cortexm.mcu:
+            raise PyswdException("No MCU detected")
+        if not params:
+            # list all memory regions
+            memory_regions = self.cortexm.mcu.memory_regions.find()
+            memory_regions = sorted(
+                memory_regions, key=lambda x: x.address)
+            for memory in memory_regions:
+                name = f"{memory.kind}.{memory.name}"
+                print(
+                    f"0x{memory.address:08x}:"
+                    f" {name:20s}"
+                    f" {memory.size // swd.devices.memory.KILO:5d} KB")
+            return
+        memory_name = params.pop(0).upper()
+        memory_regions = self.cortexm.mcu.memory_regions.find(
+            memory_name)
+        if not memory_regions:
+            raise PyswdException(f"Memory `{memory_name}` not found")
+        memory_regions = sorted(
+            memory_regions, key=lambda x: x.address)
+        size = None
+        if params:
+            size = convert_numeric(params.pop(0))
+        for memory in memory_regions:
+            name = f"{memory.kind}.{memory.name}"
+            print(
+                f"0x{memory.address:08x}:"
+                f" {name:s}"
+                f" {memory.size // swd.devices.memory.KILO:d} KB")
+            data = self._swd.read_mem(
+                memory.address,
+                min(size, memory.size) if size else memory.size)
+            self.print_buffer(memory.address, data, hex_line8)
 
     def action_dump32(self, params):
         """Dump memory 32 bit"""
@@ -550,25 +597,26 @@ class Application:
                 driver=driver)
             was_halted = None
             try:
-                self._cortexm = swd.CortexM(self._swd, self._expected_parts)
+                self._cortexm = swd.CortexM(self._swd)
+                self._cortexm.detect_mcu(self._expected_cpus)
             except swd.devices.cortexm.CortexMNotDetected as err:
                 self._logger.warning(err)
             else:
-                self._logger.info("CORE: %s", self.cortexm.name())
-                if self.cortexm.part:
-                    part = self.cortexm.part
-                    self._logger.info("PART: %s", part.get_name())
+                self._logger.info("CORE: %s", self.cortexm)
+                if self.cortexm.mcu:
+                    mcu = self.cortexm.mcu
+                    self._logger.info("DEVICE: %s", mcu.name)
                     self._logger.info(
                         "FLASH: %s KB",
-                        part.get_flash_size() // swd.devices.memory.KILO)
+                        mcu.flash_size // swd.devices.memory.KILO)
                     if self._load_svd:
                         try:
-                            part.load_svd()
+                            mcu.load_svd()
                         except swd.devices.mcu.McuException as err:
                             self._logger.warning(err)
                 was_halted = self.cortexm.is_halted()
                 if was_halted:
-                    self._logger.info("Core was halted.")
+                    self._logger.info("Core was halted before.")
             if self._svd_file:
                 self._swd.load_svd(self._svd_file)
             self._swd.status_checking = self._status_checking

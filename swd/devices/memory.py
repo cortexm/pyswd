@@ -79,7 +79,7 @@ class MemoryRegions:
         for memory_spec in memory_specs:
             self._memory_regions.append(Memory(**memory_spec))
 
-    def get_memory_regions(self, name=None):
+    def find(self, name=None):
         """return list of memory regions
 
         Arguments:
@@ -88,16 +88,22 @@ class MemoryRegions:
         memory_regions = []
         if name is None:
             return self._memory_regions
-        for memory in self._memory_regions:
-            if name in (memory.kind, memory.name):
-                memory_regions.append(memory)
+        if name.startswith('.'):
+            name = name.strip('.')
+            for memory in self._memory_regions:
+                if name == memory.name:
+                    memory_regions.append(memory)
+        else:
+            for memory in self._memory_regions:
+                if name in (memory.kind, memory.name):
+                    memory_regions.append(memory)
         return memory_regions
 
     def get_size(self, name):
         """Return total size of memory regions"""
-        return sum([mem.size for mem in self.get_memory_regions(name)])
+        return sum([mem.size for mem in self.find(name)])
 
-    def get_memory(self, name):
+    def get(self, name):
         """return memory region with name
         """
         for memory in self._memory_regions:

@@ -48,7 +48,7 @@ make uninstall
 ## Python SWD module documentation
 
 ### swd.Swd:
-`swd.Swd(swd_frequency=4000000, logger=None, serial_no='')`
+`swd.Swd(swd_frequency=None, driver=None, serial_no='')`
 
 #### Arguments:
 - swd_frequency: SWD communication frequency
@@ -68,7 +68,7 @@ property with ST-Link version
 
 ```Python
 >>> dev.get_version().str
-'ST-Link/V2 V2J27S6'
+'ST-Link/V3 V3J5S1M3B2 (005400283137510339383538)'
 ```
 
 ### Target voltage
@@ -79,7 +79,7 @@ Get target voltage measured by ST-Link
 
 ```Python
 >>> dev.get_target_voltage()
-3.21
+3.25
 ```
 
 ### ID code
@@ -94,13 +94,15 @@ Get MCU ID code
 ```
 
 ### Get memory register
-`get_mem32(address)`
+`get_mem32(address)` - get 32 bit memory register
+`get_mem16(address)` - get 16 bit memory register
+`get_mem8(address)` - get 8 bit memory register
 
 #### Arguments:
-- address: address in memory, must be aligned to 32bits
+- address: address in memory
 
 #### Return:
-  32bit unsigned data from memory
+  unsigned data from memory
 
 ```Python
 >>> hex(dev.get_mem32(0x08000000))
@@ -108,11 +110,13 @@ Get MCU ID code
 ```
 
 ### Set memory register
-`set_mem32(address, data)`
+`set_mem32(address, data)` - set 32 bit memory register
+`set_mem16(address, data)` - set 16 bit memory register
+`set_mem8(address, data)` - set 8 bit memory register
 
 #### Arguments:
-- address: address in memory, must be aligned to 32bits
-- data: 32bit unsigned data
+- address: address in memory
+- data: unsigned data
 
 ```Python
 >>> dev.set_mem32(0x20000200, 0x12345678)
@@ -176,6 +180,7 @@ Get MCU ID code
 
 ### Read core register
 `get_reg(register)`
+
 On CortexM platform this will work only if program is halted
 
 #### Arguments:
@@ -191,6 +196,7 @@ On CortexM platform this will work only if program is halted
 
 ### Read all core registers
 `get_reg_all()`
+
 On CortexM platform this will work only if program is halted
 
 #### Return:
@@ -198,11 +204,12 @@ On CortexM platform this will work only if program is halted
 
 ```Python
 >>> dev.get_reg_all()
-[0,  0,  16942,  10,  100,  0,  0,  0,  0,  0,  0,  0,  10,  604502776,  134288075,  134284002,  1627389952,  604502776,  0,  0,  67125248]
+[0, 0, 16942, 10, 100, 0, 0, 0, 0, 0, 0, 0, 10, 604502776, 134288075, 134284002, 1627389952, 604502776, 0, 0, 67125248]
 ```
 
 ### Write core register
-`get_reg(register)`
+`set_reg(register, data)`
+
 On CortexM platform this will work only if program is halted
 
 #### Arguments:
@@ -212,6 +219,28 @@ On CortexM platform this will work only if program is halted
 ```Python
 >>> dev.set_reg(1, 0x12345678)
 ```
+
+### Load SVD file
+`load_svd(svd_file)`
+
+Will load SVD file. Registers are accessible under property `io`
+
+detailed API in `swd/svd.py`
+
+#### Arguments:
+- svd_file: path to SVD file
+
+```Python
+>>> dev.load_svd('STM32H753')
+>>> dev.io.RCC.CR.value
+252166181
+>>> dev.io.RCC.CR.HSEON.value
+True
+```
+
+## swd.CortexM module documentation
+
+detailed API in `swd/devices/cortexm.py`
 
 ### swd.CortexM:
 `swd.CortexM(swd)`
@@ -225,8 +254,14 @@ On CortexM platform this will work only if program is halted
 >>> cm = swd.CortexM(dev)
 ```
 
+```Python
+>>> cm.name
+'ARM/CORTEXM7'
+```
+
 ### Read core register
 `get_reg(register)`
+
 On CortexM platform this will work only if program is halted
 
 #### Arguments:
@@ -242,6 +277,7 @@ On CortexM platform this will work only if program is halted
 
 ### Write core register
 `set_reg(register)`
+
 On CortexM platform this will work only if program is halted
 
 #### Arguments:
@@ -254,6 +290,7 @@ On CortexM platform this will work only if program is halted
 
 ### Read all core registers
 `get_reg_all()`
+
 On CortexM platform this will work only if program is halted
 
 #### Return:
@@ -335,6 +372,82 @@ On CortexM platform this will work only if program is halted
 True
 ```
 
+### Detect connected MCU
+`detect_mcu(expected_mcus=None)`
+
+detailed API in: `swd/devices/mcu.py`
+
+Arguments:
+- expected_mcus: list of strings with expected MCUs
+
+```Python
+>>> cm.detect_mcu(['STM32H753'])
+```
+
+### Load attached MCU SVD
+`Mcu.load_svd()`
+
+will load attached SVD and all io registers will be accessible in dev.io
+
+```Python
+>>> cm.mcu.load_svd()
+>>> dev.io.USART1.CR2.CPOL.value
+False
+```
+
+### Memory regions:
+`Mcu.memory_regions`
+
+Instance of MemoryRegions class
+
+detailed API in: `swd/devices/memory.py`
+
+```Python
+mr = cm.mcu.memory_regions
+```
+
+### Find memory
+`MemoryRegions.find(name=None)`
+
+find memory region by name or kind
+
+Arguments:
+- name: memory region name or kind
+
+Returns:
+  list of memory instances
+
+```Python
+>>> for sram in mr.find('SRAM'):
+>>>     print(f"{sram.name} {sram.kind}: {sram.address:08x} {sram.size // 1024} KB")
+
+ITCM SRAM: 00000000 64 KB
+DTCM SRAM: 20000000 128 KB
+AXI SRAM: 24000000 512 KB
+SRAM1 SRAM: 30000000 128 KB
+SRAM2 SRAM: 30020000 128 KB
+SRAM3 SRAM: 30040000 32 KB
+SRAM4 SRAM: 38000000 64 KB
+BACKUP SRAM: 38800000 4 KB
+```
+
+### Get memory
+`MemoryRegions.get(name)`
+
+return memory with name
+
+Arguments:
+  name: memory region name
+
+Returns:
+  instance of memory
+
+```Python
+>>> axi = mr.find('AXI')
+>>> axi.size // 1024
+512
+```
+
 ## Python application
 Simple tool for access MCU debugging features from command line. Is installed together with python module.
 
@@ -351,27 +464,31 @@ action                actions will be processed sequentially
 ```
 ### Optional arguments:
 ```
--h, --help            show this help message and exit
--V, --version         show program's version number and exit
--q, --quite           quite output
--d, --debug           increase debug output
--i, --info            increase info output
--v, --verbose         increase verbose output
--f FREQ, --freq FREQ  set SWD frequency
--s SERIAL, --serial SERIAL
-                        select ST-Link by serial number (enough is part of serial number: begin or end
+  -h, --help            show this help message and exit
+  -V, --version         show program's version number and exit
+  -q, --quite           quite output
+  -i, --info            increase info output
+  -v, --verbose         increase verbose output (standard printing)
+  -d, --debug           increase debug output
+  -f FREQ, --freq FREQ  set SWD frequency
+  -s SERIAL, --serial SERIAL
+                        select ST-Link by serial number
+  -c CPU, --cpu CPU     set expected CPU type [eg: STM32F031G6, STM32H75]
+  -S SVD, --svd SVD     path to System View Description file (.svd)
+  --no-load-svd         disable auto loading MCU .svd file
+  --no-status-checking  disable checking status
 ```
 ### List of available actions:
 ```
   dump8:{addr}[:{size}]     print content of memory 8 bit register or dump
   dump16:{addr}[:{size}]    print content of memory 16 bit register or dump
   dump32:{addr}[:{size}]    print content of memory 32 bit register or dump
-  dump:{addr}[:{size}]      print content of memory 32 bit register or 8 bit dump
+  dump:{addr}[:{size}]      print content 32 bit register or 8 bit dump
 
   set8:{addr}:{data}[:{data}..]     set 8 bit memory
   set16:{addr}:{data}[:{data}..]    set 16 bit memory
   set32:{addr}:{data}[:{data}..]    set 32 bit memory
-  set:{addr}:{data}[:{data}..]      set 32 bit memory register or 8 bit memory area
+  set:{addr}:{data}[:{data}..]      set 32 bit register or 8 bit memory area
 
   fill8:{addr}:{size}:{pattern}     fill memory with 8 bit pattern
 
@@ -379,14 +496,25 @@ action                actions will be processed sequentially
   reg:{reg}                 print content of core register
   reg:{reg}:{data}          set core register
 
+  io                        list all IO peripherals
+  io:{peri}                 list all IO registers from peripheral
+  io:{peri}.{reg}           print IO register value and its fields
+  io:{peri}.{reg}.{field}   print IO register field value
+  io:{peri}.{reg}:{data}    set IO register
+  io:{peri}.{reg}.{field}:{data}  set IO field
+
+  mem                       list all memory regions
+  mem[:{region}[:{size}]]   dump memory regions
+
+  sleep:{seconds}           sleep (float) - insert delay between commands
+
   reset[:halt]              reset core or halt after reset
   run[:nodebug]             run core
   step[:{n}]                step core (n-times)
   halt                      halt core
 
-  sleep:{seconds}           sleep (float) - insert delay between commands
-```
-(numerical values can be in different formats, like: 42, 0x2a, 0o52, 0b101010, 32K, 1M, ..)
+  (number formats: 42, 0x2a, 0o52, 0b101010, 32K, 1M, ..)
+  (reg: R0, R1, ..., R12, SP, LR, PC, PSR, MSP, PSP)
 
 ## License
 Whole project is under MIT license

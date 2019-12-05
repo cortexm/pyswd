@@ -12,7 +12,7 @@ class Stm32h7(_stm32.Stm32):
     _FLASH_SIZE_REG = 0x1ff1e880
 
     _OTP_128KB = {
-        'name': "OTP",
+        'name': "SYSTEM_MEMORY",
         'kind': "OTP",
         'address': 0x1FF00000,
         'size': 128 * _mem.KILO,
@@ -85,7 +85,7 @@ class Stm32h7(_stm32.Stm32):
     _BACKUP_4K = {
         'name': "BACKUP",
         'kind': "SRAM",
-        'address': 0x38000000,
+        'address': 0x38800000,
         'size': 4 * _mem.KILO,
     }
 

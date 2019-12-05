@@ -44,14 +44,14 @@ setuptools.setup(
     packages=[
         'swd',
         'swd.stlink',
-        'swd.targets',
-        'swd.targets.cortexm0',
-        'swd.targets.cortexm0p',
-        'swd.targets.cortexm23',
-        'swd.targets.cortexm3',
-        'swd.targets.cortexm33',
-        'swd.targets.cortexm4',
-        'swd.targets.cortexm7',
+        'swd.devices',
+        'swd.devices.cortexm0',
+        'swd.devices.cortexm0p',
+        'swd.devices.cortexm23',
+        'swd.devices.cortexm3',
+        'swd.devices.cortexm33',
+        'swd.devices.cortexm4',
+        'swd.devices.cortexm7',
     ],
 
     install_requires=[
