@@ -30,9 +30,10 @@ class _Element:
         for sub_element in element:
             if sub_element.tag == 'name':
                 name = sub_element.text.upper()
+                name = name.replace('[', '').replace(']', '')
                 if not set(name).issubset(
                         _string.ascii_uppercase + _string.digits + '_'):
-                    raise SvdException('wrong name')
+                    raise SvdException(f'wrong name: "{name}"')
                 self._name = name
             elif sub_element.tag == 'description':
                 description = sub_element.text
@@ -45,9 +46,9 @@ class _Element:
 
     def validate(self):
         if self._name is None:
-            raise Exception("name is not set")
+            raise SvdException("name is not set")
         if self._description is None:
-            raise Exception("description is not set")
+            raise SvdException("description is not set")
 
     def __repr__(self):
         return self.__str__()
@@ -79,7 +80,7 @@ class EnumeratedValue(_Element):
     def validate(self):
         # name and description are optional
         if self._value is None:
-            raise Exception("EnumeratedValue/value is not set")
+            raise SvdException("EnumeratedValue/value is not set")
 
     def __str__(self):
         common = super().__str__()
@@ -99,6 +100,8 @@ class Field(_Element):
         self._mask_off = None
         self._mask_inv = None
         self._enumerated_values = []
+        self._allow_read = None
+        self._allow_write = None
 
     @property
     def register(self):
@@ -129,6 +132,14 @@ class Field(_Element):
         if self._mask_inv is None:
             self._mask_inv = self._mask_off ^ self._register.mask
         return self._mask_inv
+
+    @property
+    def allow_read(self):
+        return self._allow_read
+
+    @property
+    def allow_write(self):
+        return self._allow_write
 
     @property
     def numeric_value(self):
@@ -222,9 +233,9 @@ class Field(_Element):
     def _parse(self, element):
         if element.tag == 'bitOffset':
             self._offset = int(element.text, 0)
-        if element.tag == 'bitWidth':
+        elif element.tag == 'bitWidth':
             self._width = int(element.text, 0)
-        if element.tag == 'bitRange':
+        elif element.tag == 'bitRange':
             bit_range = element.text
             if bit_range[0] == '[' and bit_range[-1] == ']':
                 last, first = bit_range[1:-1].split(':')
@@ -232,6 +243,18 @@ class Field(_Element):
                 last = int(last, 0)
                 self._offset = first
                 self._width = (last - first) + 1
+        elif element.tag == 'access':
+            if element.text == 'write-only':
+                self._allow_read = False
+                self._allow_write = True
+            elif element.text == 'read-write':
+                self._allow_read = True
+                self._allow_write = True
+            elif element.text == 'read-only':
+                self._allow_read = True
+                self._allow_write = False
+            else:
+                raise SvdException(f"Unknown access: '{element.text}'")
         elif element.tag == 'enumeratedValues':
             for sub_element in element:
                 if sub_element.tag == 'enumeratedValue':
@@ -242,9 +265,9 @@ class Field(_Element):
     def validate(self):
         super().validate()
         if self._offset is None:
-            raise Exception("field/offset is not set")
+            raise SvdException("field/offset is not set")
         if self._width is None:
-            raise Exception("field/bit_widht is not set")
+            raise SvdException("field/bit_widht is not set")
 
     def __str__(self):
         common = super().__str__()
@@ -326,19 +349,21 @@ class Register(_Element):
         if element.tag == 'size':
             self._size = int(element.text, 0)
         elif element.tag == 'fields':
+            fields = []
             for sub_element in element:
                 if sub_element.tag == 'field':
                     field = Field(self)
                     field.parse(sub_element)
-                    self._fields.append(field)
+                    fields.append(field)
                     setattr(self, field.name, field)
+            self._fields = sorted(fields, key=lambda field: field.offset)
 
     def validate(self):
         super().validate()
         if self._offset is None:
-            raise Exception("register/offset is not set")
+            raise SvdException("register/offset is not set")
         if self.size is None:
-            raise Exception("register/size is not set")
+            raise SvdException("register/size is not set")
         for field in self._fields:
             field.validate()
 
@@ -403,6 +428,43 @@ class MemRegister(Register):
         self._cache.parse(element)
 
 
+class Interrupt(_Element):
+    def __init__(self, peripheral):
+        super().__init__()
+        self._peripherals = [peripheral]
+        self._vector = None
+
+    def add_peripheral(self, peripheral):
+        for per in self._peripherals:
+            if per.name == peripheral.name:
+                return
+        self._peripherals.append(peripheral)
+
+    @property
+    def peripherals(self):
+        return self._peripherals
+
+    @property
+    def vector(self):
+        return self._vector
+
+    def copy(self, source):
+        raise SvdException("can't copy INTERRUPT")
+
+    def _parse(self, element):
+        if element.tag == 'value':
+            self._vector = int(element.text, 0)
+
+    def validate(self):
+        super().validate()
+        if self._vector is None:
+            raise SvdException("vector is not set")
+
+    def __str__(self):
+        common = super().__str__()
+        return f"{common}: {self._vector}"
+
+
 class Peripheral(_Element):
     def __init__(self, device):
         super().__init__()
@@ -452,7 +514,12 @@ class Peripheral(_Element):
             self._base_address = int(element.text, 0)
         if element.tag == 'size':
             self._size = int(element.text, 0)
+        if element.tag == 'interrupt':
+            interrupt = Interrupt(self)
+            interrupt.parse(element)
+            self.device.add_interrupt(self, interrupt)
         elif element.tag == 'registers':
+            registers = []
             for sub_element in element:
                 if sub_element.tag == 'register':
                     if self.device.mem_drv is None:
@@ -460,15 +527,16 @@ class Peripheral(_Element):
                     else:
                         register = MemRegister(self)
                     register.parse(sub_element)
-                    self._registers.append(register)
+                    registers.append(register)
                     setattr(self, register.name, register)
+            self._registers = sorted(registers, key=lambda register: register.offset)
 
     def validate(self):
         super().validate()
         if self._base_address is None:
-            raise Exception("peripheral/base_address is not set")
+            raise SvdException("peripheral/base_address is not set")
         if self.size is None:
-            raise Exception("peripheral/size is not set")
+            raise SvdException("peripheral/size is not set")
         for register in self._registers:
             register.validate()
 
@@ -513,7 +581,7 @@ class Cpu(_Element):
         return self._vendor_systick_config
 
     def copy(self, source):
-        raise Exception("can't copy CPU")
+        raise SvdException("can't copy CPU")
 
     def _parse(self, element):
         if element.tag == 'revision':
@@ -532,7 +600,7 @@ class Cpu(_Element):
     def validate(self):
         # no super called, cpu has no description
         if self._name is None:
-            raise Exception("cpu is not set")
+            raise SvdException("cpu is not set")
 
 
 class Svd(_Element):
@@ -543,6 +611,7 @@ class Svd(_Element):
         self._width = None
         self._peripherals = []
         self._cpu = None
+        self._interrupts = []
 
     def parse_svd(self, svd_file):
         device_element = _et.parse(svd_file).getroot()
@@ -562,7 +631,7 @@ class Svd(_Element):
 
     @property
     def peripherals(self):
-        return self._peripherals
+        return sorted(self._peripherals, key=lambda peripheral: peripheral.base_address)
 
     def peripheral(self, name):
         name = name.upper()
@@ -570,6 +639,32 @@ class Svd(_Element):
             if peripheral.name == name:
                 return peripheral
         return None
+
+    @property
+    def interrupts(self):
+        return sorted(self._interrupts, key=lambda interrupt: interrupt.vector)
+
+    def interrupt(self, name):
+        name = name.upper()
+        for interrupt in self._interrupts:
+            if interrupt.name == name:
+                return interrupt
+        return None
+
+    def interrupt_by_vector(self, vector):
+        for interrupt in self._interrupts:
+            if interrupt.vector == vector:
+                return interrupt
+        return None
+
+    def add_interrupt(self, peripheral, interrupt):
+        existing_interrupt = self.interrupt_by_vector(interrupt.vector)
+        if existing_interrupt:
+            if existing_interrupt.name != interrupt.name:
+                raise SvdException("vector already exists but with different name")
+            existing_interrupt.add_peripheral(peripheral)
+        else:
+            self._interrupts.append(interrupt)
 
     def _parse(self, element):
         if element.tag == 'size':
@@ -595,7 +690,7 @@ class Svd(_Element):
     def validate(self):
         super().validate()
         if self.size is None:
-            raise Exception("device/size is not set")
+            raise SvdException("device/size is not set")
         if self.cpu:
             self.cpu.validate()
         for peripheral in self._peripherals:
@@ -616,9 +711,16 @@ def main(svd_file):
         for register in peripheral.registers:
             print(f"  : {register}")
             for field in register.fields:
-                print(f"    : {field}")
+                print(f"    : {field} ({field.description})")
                 for enumerated_value in field.enumerated_values:
                     print(f"      : {enumerated_value}")
+    last_vector = -1
+    for interrupt in svd.interrupts:
+        while last_vector + 1 < interrupt.vector:
+            last_vector += 1
+            print(f"interrupt: {last_vector}")
+        last_vector = interrupt.vector
+        print(f"interrupt: {interrupt.vector} : {interrupt.name} : [{', '.join([peripheral.name for peripheral in interrupt.peripherals])}]")
 
 
 if __name__ == "__main__":
