@@ -2,6 +2,7 @@
 """
 
 import sys as _sys
+import logging as _logging
 import usb as _usb
 
 
@@ -53,7 +54,7 @@ class StlinkUsbBase:
             for device in usb_devices:
                 devices.append(cls(device))
         except _usb.core.NoBackendError as err:
-            raise StlinkUsbException("USB Error: %s" % err)
+            raise StlinkUsbException("USB Error: %s" % err) from err
         return devices
 
     @property
@@ -138,19 +139,28 @@ class StlinkUsbV3E(StlinkUsbBase):
     DEV_NAME = "V3E"
 
 
-class StlinkUsbV3(StlinkUsbBase):
-    """ST-Link/V3 USB communication"""
+class StlinkUsbV3n(StlinkUsbBase):
+    """ST-Link/V3 USB communication without mass storage"""
     ID_VENDOR = 0x0483
-    ID_PRODUCT = 0x374f
+    ID_PRODUCT = 0x3753
+    PIPE_OUT = 0x01
+    PIPE_IN = 0x81
+    DEV_NAME = "V3"
+
+
+class StlinkUsbV3n1(StlinkUsbBase):
+    """ST-Link/V3 USB communication without mass storage"""
+    ID_VENDOR = 0x0483
+    ID_PRODUCT = 0x3754
     PIPE_OUT = 0x01
     PIPE_IN = 0x81
     DEV_NAME = "V3"
 
 
 class StlinkUsbV3(StlinkUsbBase):
-    """ST-Link/V3 USB communication without mass storage"""
+    """ST-Link/V3 USB communication"""
     ID_VENDOR = 0x0483
-    ID_PRODUCT = 0x3753
+    ID_PRODUCT = 0x374f
     PIPE_OUT = 0x01
     PIPE_IN = 0x81
     DEV_NAME = "V3"
@@ -165,7 +175,9 @@ class StlinkUsb:
         StlinkUsbV21M,
         StlinkUsbV21,
         StlinkUsbV3E,
-        StlinkUsbV3
+        StlinkUsbV3,
+        StlinkUsbV3n,
+        StlinkUsbV3n1,
     ]
 
     @classmethod
