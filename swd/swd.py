@@ -177,7 +177,7 @@ class Swd():
             if len(chunk) > self._drv.maximum_8bit_data:
                 chunk_size32 = len(chunk) & 0xfffffffc
                 self._drv.write_mem32(address, chunk[:chunk_size32])
-                del chunk[:chunk_size32]
+                chunk = chunk[chunk_size32:]
                 address += chunk_size32
             self._drv.write_mem8(address, chunk)
             return
