@@ -335,6 +335,27 @@ On CortexM platform this will work only if program is halted
 True
 ```
 
+## Microcontrollers with multiple APs
+
+Some MCUs (with STM32H5 series as an example) could have multiple independent APs (debug access ports). In such cases,
+you will need to specify which AP debugger should use:
+
+```python
+swd.open_ap(1)
+swd.default_ap = 1
+
+# continue using as usual:
+cm = CortexM(swd)
+print(cm.get_reg_all())
+```
+
+Note that you should use only `CortexM` high-level functions, as these functions will dynamically select between ST-Link
+native implementation (which is faster, but supports only AP0) and software emulation via memory accesses. `SWD` class
+exposes ST-Link native implementation directly, regardless of default AP selected.
+
+To dynamically detect which MCU is attached, you could use IDCODE and DBGMCU registers. Both methods are AP-independent, 
+as DBGMCU register block is available on AP0 as well. 
+
 ## Python application
 Simple tool for access MCU debugging features from command line. Is installed together with python module.
 
