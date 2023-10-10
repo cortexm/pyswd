@@ -1,5 +1,6 @@
 """Cortex-Mx definitions
 """
+import time
 
 
 class CortexMException(Exception):
@@ -15,6 +16,8 @@ class CortexM():
 
     AIRCR_REG = 0xe000ed0c
     DHCSR_REG = 0xe000edf0
+    DCRSR_REG = 0xe000edf4
+    DCRDR_REG = 0xe000edf8
     DEMCR_REG = 0xe000edfc
     DWTCTRL_REG = 0xe0001000
     BPCTRL_REG = 0xe0002000
@@ -39,10 +42,13 @@ class CortexM():
     DHCSR_HALT_BIT = 0x00000002
     DHCSR_STEP_BIT = 0x00000004
     DHCSR_STATUS_HALT_BIT = 0x00020000
+    DHCSR_STATUS_REGRDY_BIT = 0x00010000
     DHCSR_DEBUGDIS = DHCSR_KEY
     DHCSR_DEBUGEN = DHCSR_KEY | DHCSR_DEBUGEN_BIT
     DHCSR_HALT = DHCSR_KEY | DHCSR_DEBUGEN_BIT | DHCSR_HALT_BIT
     DHCSR_STEP = DHCSR_KEY | DHCSR_DEBUGEN_BIT | DHCSR_STEP_BIT
+
+    DCRSR_REGWnR_BIT = 0x00010000
 
     DEMCR_RUN_AFTER_RESET = 0x00000000
     DEMCR_HALT_AFTER_RESET = 0x00000001
@@ -52,21 +58,45 @@ class CortexM():
 
     @classmethod
     def _get_reg_index(cls, reg):
-        if reg.upper() not in cls.REGISTERS:
+        if isinstance(reg, int):
+            return reg  # allow user to override register name lookup
+
+        reg = reg.upper()
+        if reg not in cls.REGISTERS:
             raise CortexMException("Not a register")
+
         return cls.REGISTERS.index(reg)
 
     def get_reg(self, reg):
         """Read register"""
-        return self._swd.get_reg(CortexM._get_reg_index(reg))
+        reg = CortexM._get_reg_index(reg)
+        if self._swd.default_ap == 0:
+            return self._swd.get_reg(reg)
+        else:
+            self._swd.set_mem32(self.DCRSR_REG, reg)
+            while (self._swd.get_mem32(self.DHCSR_REG) & self.DHCSR_STATUS_REGRDY_BIT) == 0:
+                time.sleep(0.05)
+            return self._swd.get_mem32(self.DCRDR_REG)
 
     def set_reg(self, reg, data):
         """Read register"""
-        return self._swd.set_reg(CortexM._get_reg_index(reg), data)
+        reg = CortexM._get_reg_index(reg)
+        if self._swd.default_ap == 0:
+            return self._swd.set_reg(reg, data)
+        else:
+            self._swd.set_mem32(self.DCRDR_REG, data)
+            self._swd.set_mem32(self.DCRSR_REG, reg | self.DCRSR_REGWnR_BIT)
+            while (self._swd.get_mem32(self.DHCSR_REG) & self.DHCSR_STATUS_REGRDY_BIT) == 0:
+                time.sleep(0.05)
 
     def get_reg_all(self):
         """Read all registers"""
-        return dict(zip(CortexM.REGISTERS, self._swd.get_reg_all()))
+        if self._swd.default_ap == 0:
+            values = self._swd.get_reg_all()
+        else:
+            values = [self.get_reg(i) for i in range(len(self.REGISTERS))]
+
+        return dict(zip(CortexM.REGISTERS, values))
 
     def reset(self):
         """Reset"""

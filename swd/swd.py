@@ -42,6 +42,30 @@ class Swd():
         """
         return self._drv.get_idcode()
 
+    @property
+    def default_ap(self):
+        """ Get default AP number for accesses """
+        return self._drv.com.default_ap
+
+    @default_ap.setter
+    def default_ap(self, value):
+        """ Set default AP number for accesses """
+        self._drv.com.default_ap = value
+
+    def open_ap(self, ap_sel):
+        """Open AP (debug access point) for accesses
+
+        Arguments:
+            ap_sel: AP number to open"""
+        self._drv.open_ap(ap_sel)
+
+    def close_ap(self, ap_sel):
+        """Close AP (debug access point) for accesses
+
+        Arguments:
+            ap_sel: AP number to open"""
+        self._drv.close_ap(ap_sel)
+
     def get_reg(self, register):
         """Get core register
 
@@ -82,7 +106,7 @@ class Swd():
         """
         self._drv.set_reg(register, data)
 
-    def get_mem32(self, address):
+    def get_mem32(self, address, **kwargs):
         """Get 32 bit memory register with 32 bit memory access.
 
         Address must be aligned to 4 Bytes.
@@ -93,9 +117,9 @@ class Swd():
         Return:
             return 32 bit number
         """
-        return self._drv.get_mem32(address)
+        return self._drv.get_mem32(address, **kwargs)
 
-    def set_mem32(self, address, data):
+    def set_mem32(self, address, data, **kwargs):
         """Set 32 bit memory register with 32 bit memory access.
 
         Address must be aligned to 4 Bytes.
@@ -104,7 +128,7 @@ class Swd():
             address: address in memory
             data: 32 bit number
         """
-        self._drv.set_mem32(address, data)
+        self._drv.set_mem32(address, data, **kwargs)
 
     def _get_chunk_size_to_align_size(self, address, size):
         if size > self._drv.maximum_8bit_data:
@@ -118,7 +142,7 @@ class Swd():
             return min(size, self._drv.maximum_8bit_data - (address % 4))
         return 0
 
-    def read_mem(self, address, size):
+    def read_mem(self, address, size, **kwargs):
         """Read bytes memory
 
         Automatically use 8 and 32 bit access read which depends on alignment
@@ -132,21 +156,21 @@ class Swd():
         """
         chunk_size = self._get_chunk_size_to_align_address(address, size)
         if chunk_size:
-            yield from self._drv.read_mem8(address, chunk_size)
+            yield from self._drv.read_mem8(address, chunk_size, **kwargs)
             address += chunk_size
             size -= chunk_size
         while size:
             chunk_size = size
             if chunk_size < self._drv.maximum_8bit_data and chunk_size % 4:
-                yield from self._drv.read_mem8(address, chunk_size)
+                yield from self._drv.read_mem8(address, chunk_size, **kwargs)
             else:
                 chunk_size = min(chunk_size, self._drv.maximum_32bit_data)
                 chunk_size -= chunk_size % 4
-                yield from self._drv.read_mem32(address, chunk_size)
+                yield from self._drv.read_mem32(address, chunk_size, **kwargs)
             address += chunk_size
             size -= chunk_size
 
-    def write_mem(self, address, data):
+    def write_mem(self, address, data, **kwargs):
         """Write memory
 
         Automatically use 8 and 32 bit access write which depends on alignment
@@ -162,24 +186,23 @@ class Swd():
             chunk = bytes(_itertools.islice(data, 0, chunk_size_max))
             if not chunk:
                 return
-            self._drv.write_mem8(address, chunk)
+            self._drv.write_mem8(address, chunk, **kwargs)
             address += len(chunk)
         # write remained data, here is address always aligned
         while True:
-            chunk = bytes(
-                _itertools.islice(data, 0, self._drv.maximum_32bit_data))
+            chunk = bytes(_itertools.islice(data, 0, self._drv.maximum_32bit_data))
             if not chunk:
                 return
             if len(chunk) % 4 == 0:
-                self._drv.write_mem32(address, chunk)
+                self._drv.write_mem32(address, chunk, **kwargs)
                 address += len(chunk)
                 continue
             if len(chunk) > self._drv.maximum_8bit_data:
                 chunk_size32 = len(chunk) & 0xfffffffc
-                self._drv.write_mem32(address, chunk[:chunk_size32])
+                self._drv.write_mem32(address, chunk[:chunk_size32], **kwargs)
                 chunk = chunk[chunk_size32:]
                 address += chunk_size32
-            self._drv.write_mem8(address, chunk)
+            self._drv.write_mem8(address, chunk, **kwargs)
             return
 
     def fill_mem(self, address, pattern, size):

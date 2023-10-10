@@ -203,11 +203,25 @@ class StlinkCom:
         """
         self._debug = debug
         self._usb = usb
+        self._default_ap = 0
 
     @property
     def usb(self):
         """Read USB device name"""
         return self._usb
+
+    @property
+    def default_ap(self) -> int:
+        """Read default AP for read_mem* and write_mem* functions"""
+        return self._default_ap
+
+    @default_ap.setter
+    def default_ap(self, value: int):
+        """Change default AP for read_mem* and write_mem* functions"""
+        if value < 0 or value > 0xFF:
+            raise ValueError('AP index is out of range: ' + str(value))
+
+        self._default_ap = value
 
     def get_version(self):
         """Get ST-Link version
@@ -453,6 +467,42 @@ class StlinkCom:
         status, = _struct.unpack('<H', res)
         return status
 
+    def open_ap(self, ap_sel):
+        """Open AP (debug access port) for accesses
+
+        Arguments:
+            ap_sel: AP number to open
+
+        Return:
+            status: command status"""
+
+        cmd = _struct.pack(
+            '<BBB',
+            self.CMD.DEBUG.COMMAND,
+            self.CMD.DEBUG.APIV2.JTAG_INIT_AP,
+            ap_sel)
+        res = self._usb.xfer(cmd, rx_length=2)
+        status, = _struct.unpack('<H', res)
+        return status
+
+    def close_ap(self, ap_sel):
+        """Close AP (debug access port) for accesses
+
+        Arguments:
+            ap_sel: AP number to close
+
+        Return:
+            status: command status"""
+
+        cmd = _struct.pack(
+            '<BBB',
+            self.CMD.DEBUG.COMMAND,
+            self.CMD.DEBUG.APIV2.JTAG_CLOSE_AP,
+            ap_sel)
+        res = self._usb.xfer(cmd, rx_length=2)
+        status, = _struct.unpack('<H', res)
+        return status
+
     def get_ap_reg(self, ap_sel, register):
         """Get AP register
 
@@ -488,7 +538,7 @@ class StlinkCom:
         cmd = _struct.pack(
             '<BBHHL',
             self.CMD.DEBUG.COMMAND,
-            self.CMD.DEBUG.APIV2.WRITE_REG,
+            self.CMD.DEBUG.APIV2.WRITE_AP_REG,
             ap_sel,
             register,
             value)
@@ -499,6 +549,7 @@ class StlinkCom:
     def get_mem32(self, address):
         """Get 32 bit memory register with 32 bit memory access.
 
+        Implicitly accesses only AP0 regardless of self.default_ap setting.
         Address must be aligned to 4 Bytes.
 
         Arguments:
@@ -520,6 +571,7 @@ class StlinkCom:
     def set_mem32(self, address, value):
         """Set 32 bit memory register with 32 bit memory access.
 
+        Implicitly accesses only AP0 regardless of self.default_ap setting.
         Address must be aligned to 4 Bytes.
 
         Arguments:
@@ -568,7 +620,7 @@ class StlinkCom:
         status, fault_address = _struct.unpack('<HxxI4x', res)
         return status, fault_address
 
-    def read_mem8(self, address, size):
+    def read_mem8(self, address, size, *, ap=None, csw=None):
         """Read data from memory with 8 bit memory access.
 
         Maximum number of bytes for read can be 64.
@@ -576,19 +628,22 @@ class StlinkCom:
         Arguments:
             address: address in memory
             size: number of bytes to read from memory
+            ap: AP number to access
+            csw: CSWR value for the access
 
         Return:
             bytes of data
         """
         cmd = _struct.pack(
-            '<BBLL',
+            '<BBLHL',
             self.CMD.DEBUG.COMMAND,
             self.CMD.DEBUG.READ_MEM_8BIT,
             address,
-            size)
+            size,
+            self._encode_ap_csw(ap, csw))
         return self._usb.xfer(cmd, rx_length=size)
 
-    def write_mem8(self, address, data):
+    def write_mem8(self, address, data, *, ap=None, csw=None):
         """Write data into memory with 8 bit memory access.
 
         Maximum number of bytes for one write can be 64.
@@ -596,16 +651,19 @@ class StlinkCom:
         Arguments:
             address: address in memory
             data: bytes of data to write into memory
+            ap: AP number to access
+            csw: CSWR value for the access
         """
         cmd = _struct.pack(
-            '<BBLL',
+            '<BBLHL',
             self.CMD.DEBUG.COMMAND,
             self.CMD.DEBUG.WRITE_MEM_8BIT,
             address,
-            len(data))
+            len(data),
+            self._encode_ap_csw(ap, csw))
         self._usb.xfer(cmd, data=data)
 
-    def read_mem16(self, address, size):
+    def read_mem16(self, address, size, *, ap=None, csw=None):
         """Read data from memory with 16 bit memory access.
 
         Maximum number of bytes for one read can be 1024.
@@ -614,19 +672,22 @@ class StlinkCom:
         Arguments:
             address: address in memory
             size: number of bytes to read from memory
+            ap: AP number to access
+            csw: CSWR value for the access
 
         Return:
             list of read data
         """
         cmd = _struct.pack(
-            '<BBLL',
+            '<BBLHL',
             self.CMD.DEBUG.COMMAND,
             self.CMD.DEBUG.APIV2.READ_MEM_16BIT,
             address,
-            size)
+            size,
+            self._encode_ap_csw(ap, csw))
         return self._usb.xfer(cmd, rx_length=size)
 
-    def write_mem16(self, address, data):
+    def write_mem16(self, address, data, *, ap=None, csw=None):
         """Write data into memory with 16 bit memory access.
 
         Maximum number of bytes for one write can be 1024.
@@ -635,16 +696,19 @@ class StlinkCom:
         Arguments:
             address: address in memory
             data: list of bytes to write into memory
+            ap: AP number to access
+            csw: CSWR value for the access
         """
         cmd = _struct.pack(
-            '<BBLL',
+            '<BBLHL',
             self.CMD.DEBUG.COMMAND,
             self.CMD.DEBUG.APIV2.WRITE_MEM_16BIT,
             address,
-            len(data))
+            len(data),
+            self._encode_ap_csw(ap, csw))
         self._usb.xfer(cmd, data=data)
 
-    def read_mem32(self, address, size):
+    def read_mem32(self, address, size, *, ap=None, csw=None):
         """Read data from memory with 32 bit memory access.
 
         Maximum number of bytes for one read can be 1024.
@@ -653,19 +717,22 @@ class StlinkCom:
         Arguments:
             address: address in memory
             size: number of bytes to read from memory
+            ap: AP number to access
+            csw: CSWR value for the access
 
         Return:
             list of read data
         """
         cmd = _struct.pack(
-            '<BBLL',
+            '<BBLHL',
             self.CMD.DEBUG.COMMAND,
             self.CMD.DEBUG.READ_MEM_32BIT,
             address,
-            size)
+            size,
+            self._encode_ap_csw(ap, csw))
         return self._usb.xfer(cmd, rx_length=size)
 
-    def write_mem32(self, address, data):
+    def write_mem32(self, address, data, *, ap=None, csw=None):
         """Write data into memory with 32 bit memory access.
 
         Maximum number of bytes for one write can be 1024.
@@ -674,11 +741,20 @@ class StlinkCom:
         Arguments:
             address: address in memory
             data: list of bytes to write into memory
+            ap: AP number to access
+            csw: CSWR value for the access
         """
         cmd = _struct.pack(
-            '<BBLL',
+            '<BBLHL',
             self.CMD.DEBUG.COMMAND,
             self.CMD.DEBUG.WRITE_MEM_32BIT,
             address,
-            len(data))
+            len(data),
+            self._encode_ap_csw(ap, csw))
         self._usb.xfer(cmd, data=data)
+
+    def _encode_ap_csw(self, ap, csw):
+        """ Encode AP and CSW word for READ_MEM_x and WRITE_MEM_x commands """
+        ap = (ap or self._default_ap) & 0xFF
+        csw = (csw or 0) & 0xFFFFFF00
+        return ap | csw
