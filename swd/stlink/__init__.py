@@ -137,6 +137,11 @@ class Stlink:
         """Maximum transfer size for 32 bit data"""
         return self._com.usb.STLINK_MAXIMUM_TRANSFER_SIZE
 
+    @property
+    def com(self):
+        """Communication class"""
+        return self._com
+
     def _read_version(self):
         ver, _, _ = self._com.get_version()
         version = {
@@ -234,6 +239,22 @@ class Stlink:
         _check_status(status)
         return idcode
 
+    def open_ap(self, ap_sel):
+        """Open AP (debug access point) for accesses
+
+        Arguments:
+            ap_sel: AP number to open"""
+        status = self._com.open_ap(ap_sel)
+        _check_status(status)
+
+    def close_ap(self, ap_sel):
+        """Close AP (debug access point) for accesses
+
+        Arguments:
+            ap_sel: AP number to open"""
+        status = self._com.close_ap(ap_sel)
+        _check_status(status)
+
     def get_reg(self, register):
         """Get core register
 
@@ -283,23 +304,29 @@ class Stlink:
         status = self._com.set_reg(register, value)
         _check_status(status)
 
-    def get_mem32(self, address):
+    def get_mem32(self, address, *, ap=None, **kwargs):
         """Get 32 bit memory register with 32 bit memory access.
 
         Address must be aligned to 4 Bytes.
 
         Arguments:
             address: address in memory
+            ap: AP number to access
 
         Return:
             return 32 bit number
         """
         _check_alignment(4, address=address)
+
+        ap = ap or self._com.default_ap
+        if ap != 0:
+            return int.from_bytes(self.read_mem32(address, 4, ap=ap, **kwargs), 'little')
+
         status, value = self._com.get_mem32(address)
         _check_status(status)
         return value
 
-    def set_mem32(self, address, value):
+    def set_mem32(self, address, value, *, ap=None, **kwargs):
         """Set 32 bit memory register with 32 bit memory access.
 
         Address must be aligned to 4 Bytes.
@@ -307,8 +334,15 @@ class Stlink:
         Arguments:
             address: address in memory
             value: 32 bit number
+            ap: AP number to access
         """
         _check_alignment(4, address=address)
+
+        ap = ap or self._com.default_ap
+        if ap != 0:
+            self.write_mem32(address, value.to_bytes(4, 'little'), ap=ap, **kwargs)
+            return
+
         status = self._com.set_mem32(address, value)
         _check_status(status)
 
@@ -322,7 +356,7 @@ class Stlink:
             raise StlinkException(msg)
         raise StlinkError("Unknown status")
 
-    def read_mem8(self, address, size, check_last_error_status=True):
+    def read_mem8(self, address, size, check_last_error_status=True, **kwargs):
         """Read data from memory with 8 bit memory access.
 
         Maximum number of bytes for read can be 64.
@@ -338,12 +372,12 @@ class Stlink:
             raise StlinkException(
                 'Too many Bytes to read (maximum is %d Bytes)'
                 % self.maximum_8bit_data)
-        data = self._com.read_mem8(address, size)
+        data = self._com.read_mem8(address, size, **kwargs)
         if check_last_error_status:
             self._check_last_rw_state()
         return data
 
-    def write_mem8(self, address, data, check_last_error_status=True):
+    def write_mem8(self, address, data, check_last_error_status=True, **kwargs):
         """Write data into memory with 8 bit memory access.
 
         Maximum number of bytes for one write can be 64.
@@ -356,11 +390,11 @@ class Stlink:
             raise StlinkException(
                 'Too many Bytes to write (maximum is %d Bytes)'
                 % self.maximum_8bit_data)
-        self._com.write_mem8(address, data)
+        self._com.write_mem8(address, data, **kwargs)
         if check_last_error_status:
             self._check_last_rw_state()
 
-    def read_mem16(self, address, size, check_last_error_status=True):
+    def read_mem16(self, address, size, check_last_error_status=True, **kwargs):
         """Read data from memory with 16 bit memory access.
 
         Maximum number of bytes for one read can be 1024.
@@ -380,12 +414,12 @@ class Stlink:
             raise StlinkException(
                 'Too many Bytes to read (maximum is %d Bytes)'
                 % self.maximum_32bit_data)
-        data = self._com.read_mem16(address, size)
+        data = self._com.read_mem16(address, size, **kwargs)
         if check_last_error_status:
             self._check_last_rw_state()
         return data
 
-    def write_mem16(self, address, data, check_last_error_status=True):
+    def write_mem16(self, address, data, check_last_error_status=True, **kwargs):
         """Write data into memory with 16 bit memory access.
 
         Maximum number of bytes for one write can be 1024.
@@ -402,11 +436,11 @@ class Stlink:
             raise StlinkException(
                 'Too many Bytes to write (maximum is %d Bytes)'
                 % self.maximum_32bit_data)
-        self._com.write_mem16(address, data)
+        self._com.write_mem16(address, data, **kwargs)
         if check_last_error_status:
             self._check_last_rw_state()
 
-    def read_mem32(self, address, size, check_last_error_status=True):
+    def read_mem32(self, address, size, check_last_error_status=True, **kwargs):
         """Read data from memory with 32 bit memory access.
 
         Maximum number of bytes for one read can be 1024.
@@ -424,12 +458,12 @@ class Stlink:
             raise StlinkException(
                 'Too many Bytes to read (maximum is %d Bytes)'
                 % self.maximum_32bit_data)
-        data = self._com.read_mem32(address, size)
+        data = self._com.read_mem32(address, size, **kwargs)
         if check_last_error_status:
             self._check_last_rw_state()
         return data
 
-    def write_mem32(self, address, data, check_last_error_status=True):
+    def write_mem32(self, address, data, check_last_error_status=True, **kwargs):
         """Write data into memory with 32 bit memory access.
 
         Maximum number of bytes for one write can be 1024.
@@ -444,6 +478,6 @@ class Stlink:
             raise StlinkException(
                 'Too many Bytes to write (maximum is %d Bytes)'
                 % self.maximum_32bit_data)
-        self._com.write_mem32(address, data)
+        self._com.write_mem32(address, data, **kwargs)
         if check_last_error_status:
             self._check_last_rw_state()
