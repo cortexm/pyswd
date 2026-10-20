@@ -247,7 +247,7 @@ class TestStlinkReadMem8(_TestStlink):
         ret_data = self._stlink.read_mem8(0x08000000, 1, check_last_error_status=False)
         self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
-                0xf2, 0x0c, 0x00, 0x00, 0x00, 0x08, 0x01, 0x00, 0x00, 0x00,
+                0xf2, 0x0c, 0x00, 0x00, 0x00, 0x08, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
             ]), 'data': None, 'rx_length': 1, 'tout': 200},
         ])
         self.assertEqual(ret_data, data)
@@ -261,7 +261,7 @@ class TestStlinkReadMem8(_TestStlink):
         ret_data = self._stlink.read_mem8(0x08000000, 64, check_last_error_status=False)
         self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
-                0xf2, 0x0c, 0x00, 0x00, 0x00, 0x08, 0x40, 0x00, 0x00, 0x00,
+                0xf2, 0x0c, 0x00, 0x00, 0x00, 0x08, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00,
             ]), 'data': None, 'rx_length': 64, 'tout': 200},
         ])
         self.assertEqual(ret_data, data)
@@ -288,7 +288,7 @@ class TestStlinkWriteMem8(_TestStlink):
         self._stlink.write_mem8(0x20001000, data, check_last_error_status=False)
         self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
-                0xf2, 0x0d, 0x00, 0x10, 0x00, 0x20, 0x01, 0x00, 0x00, 0x00
+                0xf2, 0x0d, 0x00, 0x10, 0x00, 0x20, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00
             ]), 'data': data, 'rx_length': 0, 'tout': 200},
         ])
 
@@ -302,7 +302,7 @@ class TestStlinkWriteMem8(_TestStlink):
         self._stlink.write_mem8(0x20001000, data, check_last_error_status=False)
         self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
-                0xf2, 0x0d, 0x00, 0x10, 0x00, 0x20, 0x40, 0x00, 0x00, 0x00
+                0xf2, 0x0d, 0x00, 0x10, 0x00, 0x20, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00
             ]), 'data': data, 'rx_length': 0, 'tout': 200},
         ])
 
@@ -328,7 +328,7 @@ class TestStlinkReadMem16(_TestStlink):
         ret_data = self._stlink.read_mem16(0x08000000, 4, check_last_error_status=False)
         self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
-                0xf2, 0x47, 0x00, 0x00, 0x00, 0x08, 0x04, 0x00, 0x00, 0x00
+                0xf2, 0x47, 0x00, 0x00, 0x00, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00
             ]), 'data': None, 'rx_length': 4, 'tout': 200},
         ])
         self.assertEqual(ret_data, data)
@@ -342,7 +342,7 @@ class TestStlinkReadMem16(_TestStlink):
         ret_data = self._stlink.read_mem16(0x08000000, 1024, check_last_error_status=False)
         self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
-                0xf2, 0x47, 0x00, 0x00, 0x00, 0x08, 0x00, 0x04, 0x00, 0x00
+                0xf2, 0x47, 0x00, 0x00, 0x00, 0x08, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00
             ]), 'data': None, 'rx_length': 1024, 'tout': 200},
         ])
         self.assertEqual(ret_data, data)
@@ -381,7 +381,7 @@ class TestStlinkWriteMem16(_TestStlink):
         self._stlink.write_mem16(0x20001000, data, check_last_error_status=False)
         self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
-                0xf2, 0x48, 0x00, 0x10, 0x00, 0x20, 0x04, 0x00, 0x00, 0x00
+                0xf2, 0x48, 0x00, 0x10, 0x00, 0x20, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00
             ]), 'data': data, 'rx_length': 0, 'tout': 200},
         ])
 
@@ -391,7 +391,7 @@ class TestStlinkWriteMem16(_TestStlink):
         self._stlink.write_mem16(0x20001000, data, check_last_error_status=False)
         self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
-                0xf2, 0x48, 0x00, 0x10, 0x00, 0x20, 0x00, 0x04, 0x00, 0x00
+                0xf2, 0x48, 0x00, 0x10, 0x00, 0x20, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00
             ]), 'data': data, 'rx_length': 0, 'tout': 200},
         ])
 
@@ -435,7 +435,7 @@ class TestStlinkReadMem32(_TestStlink):
         ret_data = self._stlink.read_mem32(0x08000000, 4, check_last_error_status=False)
         self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
-                0xf2, 0x07, 0x00, 0x00, 0x00, 0x08, 0x04, 0x00, 0x00, 0x00
+                0xf2, 0x07, 0x00, 0x00, 0x00, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00
             ]), 'data': None, 'rx_length': 4, 'tout': 200},
         ])
         self.assertEqual(ret_data, data)
@@ -449,7 +449,7 @@ class TestStlinkReadMem32(_TestStlink):
         ret_data = self._stlink.read_mem32(0x08000000, 1024, check_last_error_status=False)
         self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
-                0xf2, 0x07, 0x00, 0x00, 0x00, 0x08, 0x00, 0x04, 0x00, 0x00
+                0xf2, 0x07, 0x00, 0x00, 0x00, 0x08, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00
             ]), 'data': None, 'rx_length': 1024, 'tout': 200},
         ])
         self.assertEqual(ret_data, data)
@@ -488,7 +488,7 @@ class TestStlinkWriteMem32(_TestStlink):
         self._stlink.write_mem32(0x20001000, data, check_last_error_status=False)
         self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
-                0xf2, 0x08, 0x00, 0x10, 0x00, 0x20, 0x04, 0x00, 0x00, 0x00
+                0xf2, 0x08, 0x00, 0x10, 0x00, 0x20, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00
             ]), 'data': data, 'rx_length': 0, 'tout': 200},
         ])
 
@@ -498,7 +498,7 @@ class TestStlinkWriteMem32(_TestStlink):
         self._stlink.write_mem32(0x20001000, data, check_last_error_status=False)
         self.assertEqual(self._usb.xfer_mock.get_call_log(), [
             {'command': bytes([
-                0xf2, 0x08, 0x00, 0x10, 0x00, 0x20, 0x00, 0x04, 0x00, 0x00
+                0xf2, 0x08, 0x00, 0x10, 0x00, 0x20, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00
             ]), 'data': data, 'rx_length': 0, 'tout': 200},
         ])
 

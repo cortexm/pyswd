@@ -48,12 +48,13 @@ make uninstall
 ## Python SWD module documentation
 
 ### swd.Swd:
-`swd.Swd(swd_frequency=4000000, logger=None, serial_no='')`
+`swd.Swd(swd_frequency=None, driver=None, serial_no='', debug=0)`
 
 #### Arguments:
-- swd_frequency: SWD communication frequency
-- logger: logging interface (optional)
+- swd_frequency: SWD communication frequency (optional)
+- driver: SWD driver instance (optional, default driver is `swd.stlink.Stlink`)
 - serial_no: serial number of connected USB ST-Link debugger (optional). Serial number can be also part from begin or end, if more devices are detected then it stops with error
+- debug: debug output level (optional)
 
 ```Python
 >>> import swd
@@ -202,7 +203,7 @@ On CortexM platform this will work only if program is halted
 ```
 
 ### Write core register
-`get_reg(register)`
+`set_reg(register, data)`
 On CortexM platform this will work only if program is halted
 
 #### Arguments:
@@ -356,6 +357,173 @@ exposes ST-Link native implementation directly, regardless of default AP selecte
 To dynamically detect which MCU is attached, you could use IDCODE and DBGMCU registers. Both methods are AP-independent, 
 as DBGMCU register block is available on AP0 as well. 
 
+## Python SWIM module documentation
+
+SWIM (Single Wire Interface Module) is debug interface of STM8 microcontrollers, accessed through ST-Link/V2 (/V2-1) or V3 debugger.
+
+### swd.Swim:
+`swd.Swim(driver=None, serial_no='', debug=0, high_speed=True)`
+
+#### Arguments:
+- driver: instance of SWIM driver (optional, default driver is swd.stlink.swim.StlinkSwim)
+- serial_no: serial number of connected USB ST-Link debugger (optional)
+- debug: debug output level (optional)
+- high_speed: switch SWIM to high speed mode after connect (optional, default True)
+
+```Python
+>>> import swd
+>>> swim = swd.Swim()
+>>> swim.get_version().str
+'ST-Link/V2 V2J35S7'
+>>> swim.get_target_voltage()
+3.21
+```
+
+### Read/write/fill memory
+Same API as `swd.Swd`: `read_mem`, `read_mem8`, `read_mem16`, `read_mem32`, `write_mem`, `write_mem8`, `write_mem16`, `write_mem32`, `fill_mem`, `fill_mem8`, `fill_mem16`, `fill_mem32`, `get_mem32`, `set_mem32`.
+
+Transfers are automatically chunked by the debugger's SWIM buffer size (`maximum_8bit_data`).
+
+```Python
+>>> swim.write_mem(0x8000, [1, 2, 3, 4])
+>>> data = swim.read_mem(0x8000, 4)
+>>> ' '.join(['%02x' % d for d in data])
+'01 02 03 04'
+```
+
+### swd.Stm8:
+`swd.Stm8(swim, part='STM8S')`
+
+#### Arguments:
+- swim: instance of Swim
+- part: part family - 'STM8S' or 'STM8L', or dictionary with flash register layout
+
+```Python
+>>> import swd
+>>> swim = swd.Swim()
+>>> stm8 = swd.Stm8(swim, 'STM8S')
+```
+
+### Read core register
+`get_reg(register)`
+
+#### Arguments:
+- register: register name ('A', 'PCE', 'PCH', 'PCL', 'XH', 'XL', 'YH', 'YL', 'SPH', 'SPL', 'CC', or assembled: 'PC', 'X', 'Y', 'SP')
+
+#### Return:
+  8, 16 or 24 bit number
+
+```Python
+>>> hex(stm8.get_reg('PC'))
+'0x8000'
+>>> hex(stm8.get_reg('A'))
+'0x5a'
+```
+
+### Write core register
+`set_reg(register, data)`
+
+```Python
+>>> stm8.set_reg('X', 0x1234)
+```
+
+### Read all core registers
+`get_reg_all()`
+
+#### Return:
+  dictionary with register name as key and as value 8, 16 or 24 bit number for each register
+
+```Python
+>>> stm8.get_reg_all()
+{'A': 90, 'CC': 8, 'PCE': 1, 'PC': 65792, ...}
+```
+
+### Halt core
+`halt()`
+
+### Run in debug mode
+`run()`
+
+### Check if MCU is halted
+`is_halted()`
+
+#### Return:
+  True if MCU is halted, or False if is running
+
+### Reset
+`reset()` - reset MCU (SWIM disable after reset)
+
+### Reset and halt
+`reset_halt()` - reset MCU and halt after reset
+
+### Step
+`step(count=1)` - execute `count` instructions in step mode (UM0470 4.10)
+
+CPU must be halted. Each instruction is executed and the CPU is stalled again.
+
+### Disable debug mode and run
+`nodebug()`
+
+Not supported on STM8: `SWIM_DM` in `SWIM_CSR` is write-1 only and can only be
+cleared by a hardware reset, so this function raises `Stm8Exception`. The closest
+equivalent is `reset()`, after which the CPU runs without the debug module.
+
+### Hardware breakpoints
+`set_breakpoint(mode, address, data=None)` - program the debug module break
+condition. `mode` is one of the `Stm8.BREAKPOINT_MODES` keys (UM0470 Table 4):
+
+- `'instruction'` - break on instruction fetch at `address`
+- `'write'`, `'read'`, `'read_write'` - break on data access at `address`
+  (optionally matched against `data`)
+- `'instruction_then'` - break on fetch at `address`, then at `data`
+- `'*_range'` / `'*_outside_range'` modes - break over the `address`..`data` range
+  (or its complement)
+
+```Python
+>>> stm8.set_breakpoint('instruction', 0x8000)
+>>> stm8.run()
+>>> stm8.is_breakpoint_hit()
+True
+```
+
+`clear_breakpoint()` - disable the break condition and reset the breakpoint
+registers.
+
+`clear_breakpoint_flags()` - clear the BK1F/BK2F/BRW flags in `DM_CSR1`.
+
+`is_breakpoint_hit()` - return True if a breakpoint flag is set.
+
+Note: instruction breakpoints only trigger on instruction boundaries (not at the
+initial PC), and data-read breakpoints are not usable on all parts (they depend
+on `DM_CR2.FV_ROM`).
+
+### Unlock FLASH / DATA for writing
+`unlock_flash()` - unlock FLASH (PUKR)
+
+`unlock_data()` - unlock DATA EEPROM / option bytes (DUKR)
+
+### Write FLASH block
+`write_flash_block(address, data, fast=True)`
+
+Stalls CPU, sets programming mode (fast or standard), unlocks FLASH, writes one block (64 bytes on STM8S, 128 on STM8L) and waits for end of programming (EOP).
+
+#### Arguments:
+- address: block aligned address in FLASH memory
+- data: list or bytes of block_size bytes to write
+- fast: use fast programming mode (default True)
+
+```Python
+>>> stm8.halt()
+>>> stm8.write_flash_block(0x8000, bytes(range(64)))
+```
+
+### Write option bytes block
+`write_option_block(address, data)`
+
+```Python
+>>> stm8.write_option_block(0x4800, bytes([0x00, 0x00]))
+```
+
 ## Python application
 Simple tool for access MCU debugging features from command line. Is installed together with python module.
 
@@ -364,7 +532,7 @@ $ pyswd --help
 ```
 ### Usage:
 ```
-pyswd [-h] [-V] [-q] [-d] [-i] [-v] [-f FREQ] [action [action ...]]
+pyswd [-h] [-V] [-q] [-i] [-v] [-d] [-f FREQ] [-w] [-s SERIAL] [action ...]
 ```
 ### positional arguments:
 ```
@@ -375,24 +543,25 @@ action                actions will be processed sequentially
 -h, --help            show this help message and exit
 -V, --version         show program's version number and exit
 -q, --quite           quite output
--d, --debug           increase debug output
 -i, --info            increase info output
 -v, --verbose         increase verbose output
+-d, --debug           increase debug output
 -f FREQ, --freq FREQ  set SWD frequency
+-w, --swim            use SWIM interface (STM8 targets)
 -s SERIAL, --serial SERIAL
-                        select ST-Link by serial number (enough is part of serial number: begin or end
+                      select ST-Link by serial number
 ```
 ### List of available actions:
 ```
   dump8:{addr}[:{size}]     print content of memory 8 bit register or dump
   dump16:{addr}[:{size}]    print content of memory 16 bit register or dump
   dump32:{addr}[:{size}]    print content of memory 32 bit register or dump
-  dump:{addr}[:{size}]      print content of memory 32 bit register or 8 bit dump
+  dump:{addr}[:{size}]      print content 32 bit register or 8 bit dump
 
   set8:{addr}:{data}[:{data}..]     set 8 bit memory
   set16:{addr}:{data}[:{data}..]    set 16 bit memory
   set32:{addr}:{data}[:{data}..]    set 32 bit memory
-  set:{addr}:{data}[:{data}..]      set 32 bit memory register or 8 bit memory area
+  set:{addr}:{data}[:{data}..]      set 32 bit register or 8 bit memory area
 
   fill8:{addr}:{size}:{pattern}     fill memory with 8 bit pattern
 
@@ -400,14 +569,18 @@ action                actions will be processed sequentially
   reg:{reg}                 print content of core register
   reg:{reg}:{data}          set core register
 
+  sleep:{seconds}           sleep (float) - insert delay between commands
+
   reset[:halt]              reset core or halt after reset
   run[:nodebug]             run core
   step[:{n}]                step core (n-times)
   halt                      halt core
 
-  sleep:{seconds}           sleep (float) - insert delay between commands
+  (number formats: 42, 0x2a, 0o52, 0b101010, 32K, 1M, ..)
+  (reg: R0, R1, ..., R12, SP, LR, PC, PSR, MSP, PSP)
 ```
-(numerical values can be in different formats, like: 42, 0x2a, 0o52, 0b101010, 32K, 1M, ..)
+
+With `--swim` option memory actions work over SWIM (STM8). `reg`, `reset`, `halt` and `step` are supported, `run:nodebug` is not available on STM8 (`nodebug()` raises an error, since SWIM debug mode can only be left by a reset).
 
 ## License
 Whole project is under MIT license

@@ -229,15 +229,18 @@ class StlinkUsb:
         """property with device name"""
         return self._dev.DEV_NAME
 
-    def xfer(self, command, data=None, rx_length=0, timeout=200):
+    def xfer(self, command, data=None, rx_length=0, timeout=200, pad=True):
         """Transfer command between ST-Link
 
         Arguments:
-            command: is an list of bytes with command (max 16 bytes)
+            command: is an list of bytes with command
+                (max 16 bytes if pad is True)
             data: data will be sent after command
             rx_length: number of expected data to receive after command
                 and data transfer
             timeout: maximum waiting time for received data in ms
+            pad: pad command to 16 bytes (required for debug/dfu commands,
+                SWIM commands must be sent unpadded)
 
         Return:
             received data
@@ -247,20 +250,33 @@ class StlinkUsb:
         """
         if not isinstance(command, bytes):
             raise StlinkUsbError("command is not type of bytes")
+        if data is not None and not isinstance(data, bytes):
+            raise StlinkUsbError("data are not type of bytes")
         self.print_debug_data("command", command, level=3)
-        if len(command) > self._STLINK_CMD_SIZE:
+        if pad:
+            if len(command) > self._STLINK_CMD_SIZE:
+                raise StlinkUsbError(
+                    "Error too many Bytes in command (maximum is %d Bytes)"
+                    % self._STLINK_CMD_SIZE)
+            # pad to _STLINK_CMD_SIZE
+            command += b'\x00' * (self._STLINK_CMD_SIZE - len(command))
+        elif len(command) > self.STLINK_MAXIMUM_TRANSFER_SIZE:
             raise StlinkUsbError(
                 "Error too many Bytes in command (maximum is %d Bytes)"
-                % self._STLINK_CMD_SIZE)
-        # pad to _STLINK_CMD_SIZE
-        command += b'\x00' * (self._STLINK_CMD_SIZE - len(command))
-        self.print_debug_data("USB:WR", command, level=4)
-        self._dev.write(command, timeout)
+                % self.STLINK_MAXIMUM_TRANSFER_SIZE)
         if data:
-            if not isinstance(data, bytes):
-                raise StlinkUsbError("data are not type of bytes")
-            self.print_debug_data("USB:WR", data, level=4)
-            self._dev.write(data, timeout)
+            if len(command) + len(data) > self.STLINK_MAXIMUM_TRANSFER_SIZE:
+                raise StlinkUsbError(
+                    "Error too many Bytes in transfer (maximum is %d Bytes)"
+                    % self.STLINK_MAXIMUM_TRANSFER_SIZE)
+            command += data
+        self.print_debug_data("USB:WR", command, level=4)
+        # ST-Link expects the command block (up to 16 bytes) in one USB
+        # transfer and the remaining payload in the next one
+        first = min(self._STLINK_CMD_SIZE, len(command))
+        self._dev.write(command[:first], timeout)
+        if len(command) > first:
+            self._dev.write(command[first:], timeout)
         if rx_length:
             # minimum read length is 2 bytes
             data = self._dev.read(max(2, rx_length))

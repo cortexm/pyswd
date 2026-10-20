@@ -84,6 +84,9 @@ def _configure_argparse():
         "-f", "--freq", type=int,
         help="set SWD frequency")
     parser.add_argument(
+        "-w", "--swim", action="store_true",
+        help="use SWIM interface (STM8 targets)")
+    parser.add_argument(
         "-s", "--serial", type=str, default='',
         help="select ST-Link by serial number")
     parser.add_argument(
@@ -183,6 +186,7 @@ class Application:
         self._actions = args.action
         self._swd_frequency = args.freq
         self._serial_no = args.serial
+        self._swim = args.swim
 
     def print_info(self, msg, level=1, prefix="I: "):
         """Print info string"""
@@ -429,16 +433,23 @@ class Application:
     def start(self):
         """Application start point"""
         try:
-            self._swd = swd.Swd(
-                swd_frequency=self._swd_frequency,
-                serial_no=self._serial_no,
-                debug=self._debug)
-            self.print_info(self._swd.get_version(), level=2)
-            idcode = self._swd.get_idcode()
-            if idcode == 0:
-                raise PyswdException(
-                    "No IDCODE, probably MCU is not connected")
-            self._cortexm = swd.CortexM(self._swd)
+            if self._swim:
+                self._swd = swd.Swim(
+                    serial_no=self._serial_no,
+                    debug=self._debug)
+                self.print_info(self._swd.get_version(), level=2)
+                self._cortexm = swd.Stm8(self._swd)
+            else:
+                self._swd = swd.Swd(
+                    swd_frequency=self._swd_frequency,
+                    serial_no=self._serial_no,
+                    debug=self._debug)
+                self.print_info(self._swd.get_version(), level=2)
+                idcode = self._swd.get_idcode()
+                if idcode == 0:
+                    raise PyswdException(
+                        "No IDCODE, probably MCU is not connected")
+                self._cortexm = swd.CortexM(self._swd)
             was_halted = self._cortexm.is_halted()
             if was_halted:
                 self.print_info("Core is halted.")
@@ -462,6 +473,10 @@ class Application:
             self.print_error(f"pyswd error: {err}.")
         except swd.stlink.StlinkException as err:
             self.print_error(f"Stlink error: {err}.")
+        except swd.SwimException as err:
+            self.print_error(f"Swim error: {err}.")
+        except swd.Stm8Exception as err:
+            self.print_error(f"Stm8 error: {err}.")
         except swd.stlink.usb.StlinkUsbException as err:
             self.print_error(f"StlinkCom error: {err}.")
         else:
