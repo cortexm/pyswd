@@ -32,6 +32,18 @@ class StlinkCom:
             """Swim commands"""
             ENTER = 0x00
             EXIT = 0x01  # _exit_swim()
+            READ_CAP = 0x02  # _read_cap()
+            SPEED = 0x03  # _set_speed()
+            ENTER_SEQ = 0x04  # _enter_seq()
+            GEN_RST = 0x05  # _generate_reset()
+            RESET = 0x06
+            ASSERT_RESET = 0x07  # assert_reset()
+            DEASSERT_RESET = 0x08  # deassert_reset()
+            READSTATUS = 0x09  # _get_status()
+            WRITEMEM = 0x0a  # write_mem8()
+            READMEM = 0x0b  # read_mem8()
+            READBUF = 0x0c  # read_mem8()
+            READ_BUFFERSIZE = 0x0d  # _read_buffer_size()
             COMMAND = 0xf4
 
         class DEBUG:
@@ -166,6 +178,18 @@ class StlinkCom:
             JTAG_UNKNOWN_CMD: "Unknown command",
         }
 
+    class SWIM_STATUS:
+        """STLink SWIM status codes"""
+        OK = 0x00
+        BUSY = 0x01
+        NO_RESPONSE = 0x04
+        BAD_STATE = 0x05
+
+        MESSAGES = {
+            NO_RESPONSE: "Target did not respond, SWIM not active",
+            BAD_STATE: "Bad state",
+        }
+
     SWD_FREQ = (
         (4000000, 0),
         (1800000, 1),
@@ -278,6 +302,25 @@ class StlinkCom:
             self.CMD.DEBUG.COMMAND,
             self.CMD.DEBUG.EXIT)
         self._usb.xfer(cmd)
+
+    def debug_force(self, no_wait=False):
+        """Force the ST-Link to take control of the target CPU core"""
+        cmd = _struct.pack(
+            '<BB',
+            self.CMD.DEBUG.COMMAND,
+            self.CMD.DEBUG.FORCE_DEBUG)
+        if no_wait:
+            self._usb.xfer(cmd)
+            return None
+        resp = self._usb.xfer(cmd, rx_length=2)
+        if resp is None:
+            return None
+        try:
+            status, = _struct.unpack('<H', resp)
+            return status
+        except Exception:
+            return resp
+
 
     def exit_swim(self):
         """Exit SWIM mode
