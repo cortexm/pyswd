@@ -63,6 +63,7 @@ class StlinkSwim:
             com = _com.StlinkCom(usb, debug=debug)
         self._com = com
         self._read_buf_size = 64
+        self.high_speed = False
         self._version = self._read_version()
         self._leave_state()
         self._swim_cmd(self._com.CMD.SWIM.ENTER)
@@ -81,6 +82,7 @@ class StlinkSwim:
         self.write_mem8(
             self.SWIM_DM_CSR2,
             bytes([self.SWIM_DM_CSR2_STALL]))
+        self.force_debug()
         # generate a reset to cause option bytes to load and start the
         # internal clock (HSIT will be set, allowing high speed mode)
         self.generate_reset()
@@ -349,6 +351,12 @@ class StlinkSwim:
             self._swim_cmd(
                 self._com.CMD.SWIM.SPEED,
                 data=bytes([0x01]))
+            self.high_speed = True
+
+    def force_debug(self, wait=True):
+        if wait:
+            return self._com.debug_force()
+        return self._com.debug_force(no_wait=True)
 
     def get_version(self):
         """Get ST-Link debugger version

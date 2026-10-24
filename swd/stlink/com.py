@@ -303,6 +303,25 @@ class StlinkCom:
             self.CMD.DEBUG.EXIT)
         self._usb.xfer(cmd)
 
+    def debug_force(self, no_wait=False):
+        """Force the ST-Link to take control of the target CPU core"""
+        cmd = _struct.pack(
+            '<BB',
+            self.CMD.DEBUG.COMMAND,
+            self.CMD.DEBUG.FORCE_DEBUG)
+        if no_wait:
+            self._usb.xfer(cmd)
+            return None
+        resp = self._usb.xfer(cmd, rx_length=2)
+        if resp is None:
+            return None
+        try:
+            status, = _struct.unpack('<H', resp)
+            return status
+        except Exception:
+            return resp
+
+
     def exit_swim(self):
         """Exit SWIM mode
         """

@@ -38,6 +38,29 @@ class Swim():
         """Generate target system reset (SRST)"""
         self._drv.srst()
 
+    def force_debug(self, wait=True):
+        return self._drv.force_debug(wait=wait)
+
+    def close(self):
+        if hasattr(self._drv, 'exit_swim'):
+            self._drv.exit_swim()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self.close()
+        return False
+
+    @property
+    def high_speed(self):
+        return getattr(self._drv, 'high_speed', False)
+
+    @high_speed.setter
+    def high_speed(self, value):
+        if hasattr(self._drv, 'high_speed'):
+            self._drv.high_speed = value
+
     @property
     def maximum_8bit_data(self):
         """Maximum transfer size for 8 bit data"""

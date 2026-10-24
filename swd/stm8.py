@@ -219,6 +219,41 @@ class Stm8():
             regs[name] = int.from_bytes(values[index:index + size], 'big')
         return regs
 
+    def get_regs(self):
+        return self.get_reg_all()
+
+    def set_regs(self, **regs):
+        unknown = set(regs) - set(self.REGISTERS)
+        if unknown:
+            raise Stm8Exception(
+                "Unknown register(s): %s" % ", ".join(sorted(unknown)))
+        values = self._swim.read_mem(self.REGISTERS_BASE, len(self.REGISTERS))
+        data = bytearray(values)
+        for name, value in regs.items():
+            data[self.REGISTERS.index(name)] = value & 0xff
+        self._swim.write_mem(self.REGISTERS_BASE, bytes(data))
+
+    def force_debug(self, wait=True):
+        if hasattr(self._swim, 'force_debug'):
+            return self._swim.force_debug(wait=wait)
+        return None
+
+    def run_to_software_break(self, timeout=5.0):
+        self._write8(
+            self.SWIM_DM_CSR2,
+            self.SWIM_DM_CSR2_SWBRK | self.SWIM_DM_CSR2_STALL
+            | self.SWIM_DM_CSR2_FLUSH)
+        self._write8(self.SWIM_DM_CSR2, self.SWIM_DM_CSR2_SWBRK)
+        deadline = _time.monotonic() + timeout
+        while _time.monotonic() < deadline:
+            csr2 = self._read8(self.SWIM_DM_CSR2)
+            if csr2 & self.SWIM_DM_CSR2_STALL:
+                return bool(csr2 & self.SWIM_DM_CSR2_SWBKF)
+            _time.sleep(0.002)
+        raise Stm8Exception(
+            "CPU did not stop within %.1f s (PC=0x%06x)"
+            % (timeout, self.get_reg('PC')))
+
     def halt(self):
         """Halt CPU"""
         csr = self._read8(self.SWIM_DM_CSR2)
